@@ -39,7 +39,26 @@ Per product direction: **Google News India-edition topic/search feeds as the bro
 - Raw-mode fallback with short TTL (`RAW_CACHE_TTL_MINUTES`, default 2)
 - Without `LLM_API_KEY`, app stays in raw mode (merge still works) — never blanks
 
+## M3 scope (done) — Bento Zine
+
+Built exactly per `M3-design-brief-bento-zine.md`.
+
+### Approved deviations from SPEC
+
+| Spec | Brief | Action |
+|---|---|---|
+| SPEC §9 dark theme default | Light paper default + Night Zine toggle | **Followed brief** (approved deviation) |
+
+### Quiet choices where brief was silent (logged)
+
+- Default time window on first load: **4h** (matches API default; brief shows the control but does not name the initial selection).
+- Empty-state CTA always labeled **TRY 4H**; if already on 4h/12h it steps to the next wider window (12h→24h) instead of no-op.
+- Fetch error (network/API down): one zine tile with message + Retry — brief covered loading/empty/stale/raw but not hard fetch failure.
+- `color-mix()` used for skeleton shimmer mid-tone (no extra token in brief).
+- No bottom dock (explicitly rejected as Direction B).
+- Section name on All-tab tiles uses the section id lowercase (`india`, `markets`, …) — brief asked for section name, not a display map.
+- Night Zine: teal/lav tile text stays `#141414` (not inverted `--ink`) so pastel accents keep AA contrast; brief kept those accent colors unchanged but was silent on their foreground.
+
 ## Not yet
 
-- M3 UI (waiting on locked design mock — do not freestyle)
-- M4 polish pass
+- M4 polish pass (SWR edge cases, screenshot evidence pack if needed beyond M3)

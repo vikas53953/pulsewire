@@ -37,6 +37,8 @@ export interface HighlightItem {
   sources: SourceRef[];
   publishedAt: string;
   hot: boolean;
+  /** Present on All-tab items so the tile can show which section it came from. */
+  section?: Exclude<SectionId, "all">;
 }
 
 export interface HighlightsResponse {

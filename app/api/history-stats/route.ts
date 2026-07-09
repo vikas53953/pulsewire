@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import Database from "better-sqlite3";
 import fs from "fs";
 import {
+  assertHistoryPersistsForTests,
   countHistorySamples,
   getHistoryDb,
   istBucketParts,
@@ -92,12 +92,19 @@ export async function POST(request: NextRequest) {
   }
 
   if (body.action === "reopen") {
+    // Persistence proof without closing the live handle (Next may hold multiple
+    // module graphs; closing under WAL was flaky). Backup → open copy → count.
     const before = countHistorySamples();
     const resolved = resolveHistoryDbPath();
-    closeHistoryDbForTests();
-
-    // Independent handle (same path) — proves rows survived close (restart).
-    const fresh = new Database(resolved, { fileMustExist: true });
+    const db = getHistoryDb();
+    const backupPath = `${resolved}.bak`;
+    try {
+      fs.unlinkSync(backupPath);
+    } catch {
+      // ignore
+    }
+    db.backup(backupPath);
+    const fresh = new Database(backupPath, { fileMustExist: true });
     try {
       const row = fresh
         .prepare(`SELECT COUNT(*) AS n FROM section_history`)
@@ -107,11 +114,15 @@ export async function POST(request: NextRequest) {
         path: resolved,
         countBefore: before,
         countAfter: row.n,
-        exists: fs.existsSync(resolved),
+        exists: fs.existsSync(resolved) || fs.existsSync(`${resolved}-wal`),
       });
     } finally {
       fresh.close();
-      getHistoryDb(); // restore singleton for later tests
+      try {
+        fs.unlinkSync(backupPath);
+      } catch {
+        // ignore
+      }
     }
   }
 

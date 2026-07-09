@@ -92,38 +92,8 @@ export async function POST(request: NextRequest) {
   }
 
   if (body.action === "reopen") {
-    // Persistence proof without closing the live handle (Next may hold multiple
-    // module graphs; closing under WAL was flaky). Backup → open copy → count.
-    const before = countHistorySamples();
-    const resolved = resolveHistoryDbPath();
-    const db = getHistoryDb();
-    const backupPath = `${resolved}.bak`;
-    try {
-      fs.unlinkSync(backupPath);
-    } catch {
-      // ignore
-    }
-    db.backup(backupPath);
-    const fresh = new Database(backupPath, { fileMustExist: true });
-    try {
-      const row = fresh
-        .prepare(`SELECT COUNT(*) AS n FROM section_history`)
-        .get() as { n: number };
-      return NextResponse.json({
-        reopened: true,
-        path: resolved,
-        countBefore: before,
-        countAfter: row.n,
-        exists: fs.existsSync(resolved) || fs.existsSync(`${resolved}-wal`),
-      });
-    } finally {
-      fresh.close();
-      try {
-        fs.unlinkSync(backupPath);
-      } catch {
-        // ignore
-      }
-    }
+    const result = await assertHistoryPersistsForTests();
+    return NextResponse.json({ reopened: true, ...result });
   }
 
   return NextResponse.json({ error: "unknown action" }, { status: 400 });

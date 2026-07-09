@@ -12,14 +12,12 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-### M1 API check
+### Check data (readable)
 
-[http://localhost:3000/api/highlights?section=markets&window=4h](http://localhost:3000/api/highlights?section=markets&window=4h)
+Open [http://localhost:3000/](http://localhost:3000/) — Markets 4h list with timestamps and 🔥 merges.
 
-Confirm:
+API: [http://localhost:3000/api/highlights?section=markets&window=4h](http://localhost:3000/api/highlights?section=markets&window=4h)
 
-1. `items[].publishedAt` are real ISO timestamps.
-2. No item is older than 4 hours.
-3. Response includes `stale` and `rawMode`.
+For LLM summaries (optional in M2): copy `.env.example` → `.env.local` and set `LLM_API_KEY`. Without it, raw-mode + merge still works (2 min retry TTL).
 
 See `SPEC-pulsewire-hot-news-app.md` and `PROJECT-MAP.md`.

@@ -1,11 +1,15 @@
 import { createHash } from "crypto";
 import Parser from "rss-parser";
 import { FEEDS, feedsForSection } from "./feeds.config";
+import { resolveArticleUrls } from "./resolve-url";
+import { stripPublisherSuffix } from "./similarity";
 import type { FeedConfig, RawFeedItem, SectionId } from "./types";
 import { windowToMs, type TimeWindow } from "./types";
 
 const FEED_TIMEOUT_MS = 8_000;
 const MAX_POOL_MS = windowToMs("24h");
+/** Cap items kept per individual feed before merge (keeps LLM batch small). */
+const PER_FEED_CAP = 12;
 
 const parser = new Parser({
   timeout: FEED_TIMEOUT_MS,
@@ -53,6 +57,12 @@ function parsePublishedAt(item: {
   return date.toISOString();
 }
 
+function sourceLabelFromTitle(title: string, fallback: string): string {
+  const m = title.match(/\s[-–|]\s([^–|-]{2,60})$/);
+  if (m?.[1] && !/google news/i.test(m[1])) return m[1].trim();
+  return fallback;
+}
+
 async function fetchOneFeed(
   feed: FeedConfig,
   now: number
@@ -62,7 +72,8 @@ async function fetchOneFeed(
     const items: RawFeedItem[] = [];
 
     for (const entry of parsed.items ?? []) {
-      const title = stripHtml(entry.title ?? "");
+      const rawTitle = stripHtml(entry.title ?? "");
+      const title = stripPublisherSuffix(rawTitle) || rawTitle;
       const url = (entry.link || entry.guid || "").trim();
       if (!title || !url) continue;
 
@@ -76,15 +87,22 @@ async function fetchOneFeed(
         entry.contentSnippet || entry.content || entry.summary || ""
       ).slice(0, 280);
 
+      const source =
+        feed.name.startsWith("Google News")
+          ? sourceLabelFromTitle(rawTitle, feed.name)
+          : feed.name;
+
       items.push({
-        id: makeId(feed.name, url, title),
+        id: makeId(source, url, title),
         title,
         snippet,
-        source: feed.name,
+        source,
         url,
         publishedAt,
         section: feed.section,
       });
+
+      if (items.length >= PER_FEED_CAP) break;
     }
 
     return items;
@@ -93,6 +111,14 @@ async function fetchOneFeed(
     console.warn(`[pulsewire] feed skip ${feed.name} (${feed.url}): ${message}`);
     return [];
   }
+}
+
+async function resolveItemUrls(items: RawFeedItem[]): Promise<RawFeedItem[]> {
+  const map = await resolveArticleUrls(items.map((i) => i.url));
+  return items.map((item) => ({
+    ...item,
+    url: map.get(item.url) ?? item.url,
+  }));
 }
 
 export interface SectionFetchResult {
@@ -110,10 +136,12 @@ export async function fetchSectionPool(
   const results = await Promise.all(feeds.map((feed) => fetchOneFeed(feed, now)));
 
   const succeeded = results.filter((r) => r.length > 0).length;
-  const items = results.flat().sort(
+  const flat = results.flat().sort(
     (a, b) =>
       new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
   );
+
+  const items = await resolveItemUrls(flat);
 
   return {
     items,
@@ -166,7 +194,7 @@ export function trimTitle(title: string, max = 110): string {
   return `${clean.slice(0, max - 1).trimEnd()}…`;
 }
 
-/** M1 raw highlights: one item per feed story, newest first, capped. */
+/** Raw-mode fallback highlights from a pre-merged cluster list. */
 export function toRawHighlights(
   items: RawFeedItem[],
   maxItems: number

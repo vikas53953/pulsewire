@@ -3,16 +3,19 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BentoGrid, StaleBanner } from "@/components/BentoGrid";
 import { Header } from "@/components/Header";
-import { SectionTabs } from "@/components/SectionTabs";
+import { ScoreChips } from "@/components/ScoreChips";
 import { StatusBar } from "@/components/StatusBar";
+import { VerdictHero } from "@/components/VerdictHero";
 import {
   isNewerThanLastVisit,
   readLastVisit,
   writeLastVisit,
 } from "@/lib/last-visit";
 import type {
+  ContentSectionId,
   HighlightItem,
   HighlightsResponse,
+  Lens,
   SectionId,
   TimeWindow,
 } from "@/lib/types";
@@ -20,11 +23,17 @@ import { TIME_WINDOWS } from "@/lib/types";
 
 const AUTO_REFRESH_MS = 10 * 60_000;
 const THEME_KEY = "pulsewire-theme";
+const SESSION_KEY = "pulsewire-session-start";
 
 type ClientCache = Map<string, HighlightsResponse>;
 
-function clientKey(section: SectionId, timeWindow: TimeWindow): string {
-  return `${section}|${timeWindow}`;
+function clientKey(
+  section: SectionId,
+  timeWindow: TimeWindow,
+  lens: Lens,
+  since: string | null
+): string {
+  return `${section}|${timeWindow}|${lens}|${since ?? ""}`;
 }
 
 function markNewItems(
@@ -40,9 +49,16 @@ function markNewItems(
 async function fetchHighlights(
   section: SectionId,
   timeWindow: TimeWindow,
+  lens: Lens,
+  since: string | null,
   refresh = false
 ): Promise<HighlightsResponse> {
-  const params = new URLSearchParams({ section, window: timeWindow });
+  const params = new URLSearchParams({
+    section,
+    window: timeWindow,
+    lens,
+  });
+  if (lens === "since" && since) params.set("since", since);
   if (refresh) params.set("refresh", "1");
   const res = await fetch(`/api/highlights?${params.toString()}`, {
     cache: "no-store",
@@ -72,21 +88,51 @@ function readInitialNight(): boolean {
   }
 }
 
+function recordSessionStart(): void {
+  try {
+    if (!sessionStorage.getItem(SESSION_KEY)) {
+      sessionStorage.setItem(SESSION_KEY, String(Date.now()));
+    }
+  } catch {
+    // ignore
+  }
+}
+
 export function PulseWireApp() {
   const [section, setSection] = useState<SectionId>("all");
   const [timeWindow, setTimeWindow] = useState<TimeWindow>("4h");
+  const [lens, setLens] = useState<Lens>("window");
   const [data, setData] = useState<HighlightsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [night, setNight] = useState(readInitialNight);
   const [error, setError] = useState<string | null>(null);
+  const [hasLastVisit, setHasLastVisit] = useState(false);
   const requestId = useRef(0);
   const clientCache = useRef<ClientCache>(new Map());
   const lastVisitRef = useRef<number | null>(null);
 
   useEffect(() => {
-    lastVisitRef.current = readLastVisit();
-    const onHide = () => writeLastVisit(Date.now());
+    recordSessionStart();
+    const lv = readLastVisit();
+    lastVisitRef.current = lv;
+    setHasLastVisit(lv != null);
+    // 2nd+ visit → default to since lens
+    if (lv != null) {
+      setLens("since");
+    }
+    const onHide = () => {
+      writeLastVisit(Date.now());
+      try {
+        const start = Number(sessionStorage.getItem(SESSION_KEY) || "0");
+        if (start > 0) {
+          const secs = Math.round((Date.now() - start) / 1000);
+          console.info(`[pulsewire] session-end secs=${secs}`);
+        }
+      } catch {
+        // ignore
+      }
+    };
     window.addEventListener("pagehide", onHide);
     return () => window.removeEventListener("pagehide", onHide);
   }, []);
@@ -100,9 +146,20 @@ export function PulseWireApp() {
     }
   }, [night]);
 
+  const sinceIso =
+    lens === "since" && lastVisitRef.current
+      ? new Date(lastVisitRef.current).toISOString()
+      : null;
+
   const showFor = useCallback(
-    (nextSection: SectionId, nextWindow: TimeWindow) => {
-      const cached = clientCache.current.get(clientKey(nextSection, nextWindow));
+    (nextSection: SectionId, nextWindow: TimeWindow, nextLens: Lens) => {
+      const since =
+        nextLens === "since" && lastVisitRef.current
+          ? new Date(lastVisitRef.current).toISOString()
+          : null;
+      const cached = clientCache.current.get(
+        clientKey(nextSection, nextWindow, nextLens, since)
+      );
       if (cached) {
         setData({
           ...cached,
@@ -122,24 +179,23 @@ export function PulseWireApp() {
     async (
       targetSection: SectionId,
       targetWindow: TimeWindow,
+      targetLens: Lens,
       opts?: { refresh?: boolean; soft?: boolean }
     ) => {
       const id = ++requestId.current;
       const refresh = Boolean(opts?.refresh);
       const soft = Boolean(opts?.soft);
+      const since =
+        targetLens === "since" && lastVisitRef.current
+          ? new Date(lastVisitRef.current).toISOString()
+          : null;
 
       if (refresh) {
-        for (const key of Array.from(clientCache.current.keys())) {
-          if (key.startsWith(`${targetSection}|`)) {
-            clientCache.current.delete(key);
-          }
-        }
+        clientCache.current.clear();
       }
 
-      if (
-        !soft &&
-        !clientCache.current.has(clientKey(targetSection, targetWindow))
-      ) {
+      const key = clientKey(targetSection, targetWindow, targetLens, since);
+      if (!soft && !clientCache.current.has(key)) {
         setLoading(true);
         setData(null);
       } else if (soft) {
@@ -151,6 +207,8 @@ export function PulseWireApp() {
         const payload = await fetchHighlights(
           targetSection,
           targetWindow,
+          targetLens,
+          since,
           refresh
         );
         if (id !== requestId.current) return;
@@ -158,10 +216,7 @@ export function PulseWireApp() {
           ...payload,
           items: markNewItems(payload.items, lastVisitRef.current),
         };
-        clientCache.current.set(
-          clientKey(targetSection, targetWindow),
-          withNew
-        );
+        clientCache.current.set(key, withNew);
         setData(withNew);
       } catch (err) {
         if (id !== requestId.current) return;
@@ -178,25 +233,20 @@ export function PulseWireApp() {
   );
 
   useEffect(() => {
-    const hit = showFor(section, timeWindow);
-    void load(section, timeWindow, { soft: hit });
-  }, [section, timeWindow, load, showFor]);
+    const hit = showFor(section, timeWindow, lens);
+    void load(section, timeWindow, lens, { soft: hit });
+  }, [section, timeWindow, lens, load, showFor]);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
-      void load(section, timeWindow, { soft: true });
+      void load(section, timeWindow, lens, { soft: true });
     }, AUTO_REFRESH_MS);
     return () => window.clearInterval(timer);
-  }, [load, section, timeWindow]);
+  }, [load, section, timeWindow, lens]);
 
-  const onSectionChange = (next: SectionId) => {
+  const onChipSelect = (next: ContentSectionId | "all") => {
     if (next === section) return;
     setSection(next);
-  };
-
-  const onWindowChange = (next: TimeWindow) => {
-    if (next === timeWindow) return;
-    setTimeWindow(next);
   };
 
   const showStale =
@@ -206,18 +256,41 @@ export function PulseWireApp() {
     data && data.section === section ? data.items : [];
   const showSkeleton = loading || !data || data.section !== section;
 
+  const quietTop =
+    data?.verdict?.level === "green" && visibleItems[0]
+      ? `Top of the quiet: ${visibleItems[0].text}`
+      : null;
+
+  // Quiet hero: only verdict + one line, no bento fill
+  const quietHero =
+    data?.verdict?.level === "green" &&
+    !showSkeleton &&
+    data.scores.every((s) => s.level === "green");
+
   return (
     <div className="mx-auto min-h-screen w-full max-w-zine px-3 py-4 sm:px-5 sm:py-6">
       <div className="flex flex-col gap-4">
         <Header
+          lens={lens}
           window={timeWindow}
-          onWindowChange={onWindowChange}
+          onLensChange={setLens}
+          onWindowChange={setTimeWindow}
+          hasLastVisit={hasLastVisit}
           night={night}
           onToggleNight={() => setNight((v) => !v)}
           rawMode={Boolean(data?.rawMode && data.section === section)}
         />
 
-        <SectionTabs value={section} onChange={onSectionChange} />
+        <VerdictHero
+          verdict={showSkeleton ? null : data?.verdict ?? null}
+          quietTop={quietHero ? quietTop : null}
+        />
+
+        <ScoreChips
+          scores={data?.scores ?? []}
+          active={section === "xpulse" ? "all" : (section as ContentSectionId | "all")}
+          onSelect={onChipSelect}
+        />
 
         <StaleBanner show={showStale && !showSkeleton} />
 
@@ -227,29 +300,39 @@ export function PulseWireApp() {
             <button
               type="button"
               className="ml-3 underline"
-              onClick={() => void load(section, timeWindow, { refresh: true })}
+              onClick={() =>
+                void load(section, timeWindow, lens, { refresh: true })
+              }
             >
               Retry
             </button>
           </div>
         ) : null}
 
-        <BentoGrid
-          key={`${section}-${timeWindow}`}
-          items={visibleItems}
-          loading={showSkeleton}
-          section={section}
-          window={timeWindow}
-          onTryWiderWindow={() => onWindowChange(nextWiderWindow(timeWindow))}
-        />
+        {!quietHero ? (
+          <BentoGrid
+            key={`${section}-${timeWindow}-${lens}`}
+            items={visibleItems}
+            loading={showSkeleton}
+            section={section}
+            window={timeWindow}
+            onTryWiderWindow={() =>
+              setTimeWindow(nextWiderWindow(timeWindow))
+            }
+          />
+        ) : null}
 
         <StatusBar
           generatedAt={
             data && data.section === section ? data.generatedAt : null
           }
+          lastVisit={lastVisitRef.current}
           refreshing={refreshing}
           onRefresh={() =>
-            void load(section, timeWindow, { refresh: true, soft: true })
+            void load(section, timeWindow, lens, {
+              refresh: true,
+              soft: true,
+            })
           }
           xPulseUsage={
             section === "xpulse" && data?.section === "xpulse"

@@ -10,6 +10,9 @@ import {
 } from "./test-mode";
 import type { ContentSectionId, FeedConfig, RawFeedItem } from "./types";
 import { windowToMs, type TimeWindow } from "./types";
+import { flashHeadline } from "./flash";
+
+export { flashHeadline, trimTitle } from "./flash";
 
 const FEED_TIMEOUT_MS = 8_000;
 const MAX_POOL_MS = windowToMs("24h");
@@ -218,12 +221,6 @@ export function filterByWindow(
   });
 }
 
-export function trimTitle(title: string, max = 110): string {
-  const clean = title.trim();
-  if (clean.length <= max) return clean;
-  return `${clean.slice(0, max - 1).trimEnd()}…`;
-}
-
 /** Raw-mode fallback highlights from a pre-merged cluster list. */
 export function toRawHighlights(
   items: RawFeedItem[],
@@ -235,10 +232,17 @@ export function toRawHighlights(
   hot: boolean;
 }[] {
   return items.slice(0, maxItems).map((item) => ({
-    text: trimTitle(item.title),
-    sources: [{ name: item.source, url: item.url }],
+    text: flashHeadline(item.title),
+    sources: [
+      {
+        name: item.source,
+        url: item.url,
+        firstSeen: item.publishedAt,
+      },
+    ],
     publishedAt: item.publishedAt,
     hot: false,
+    firstSeen: item.publishedAt,
   }));
 }
 

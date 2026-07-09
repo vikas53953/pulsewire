@@ -34,3 +34,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# PulseWire local SQLite history (moat data — never commit)
+/data/
+*.db
+*.db-shm
+*.db-wal
+pulsewire.db

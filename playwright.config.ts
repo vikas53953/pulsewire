@@ -1,6 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const PORT = Number(process.env.PW_PORT ?? "3000");
+const PORT = Number(process.env.PW_PORT ?? "3100");
 const BASE = `http://127.0.0.1:${PORT}`;
 
 export default defineConfig({
@@ -40,8 +40,9 @@ export default defineConfig({
   ],
   webServer: {
     command: `npx next dev -p ${PORT}`,
-    url: BASE,
-    reuseExistingServer: !process.env.CI,
+    url: `${BASE}/api/highlights?section=markets&window=1h`,
+    // Always start our own server so PW_TEST=1 is guaranteed (never reuse a live-feed dev server).
+    reuseExistingServer: false,
     timeout: 120_000,
     env: {
       ...process.env,

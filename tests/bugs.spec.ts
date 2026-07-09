@@ -35,15 +35,13 @@ test.describe("BUG regressions", () => {
     await expect(page.getByTestId("bento-grid")).toBeVisible({
       timeout: 5_000,
     });
-    await expect(page.locator('[data-tile="highlight"]').first()).toContainText(
-      /India/i,
-      { timeout: 5_000 }
-    );
-
     const indiaTiles = page.locator(
       '[data-tile="highlight"][data-section="india"]'
     );
-    await expect(indiaTiles.first()).toBeVisible();
+    await expect(indiaTiles.first()).toBeVisible({ timeout: 5_000 });
+    // Capture a unique India tile test-id so we can assert it never reappears
+    const indiaTestId = await indiaTiles.first().getAttribute("data-testid");
+    expect(indiaTestId).toBeTruthy();
 
     const clickAt = Date.now();
     await page.getByTestId("tab-markets").click();
@@ -59,6 +57,9 @@ test.describe("BUG regressions", () => {
     await expect(
       page.locator('[data-tile="highlight"][data-section="india"]')
     ).toHaveCount(0);
+    if (indiaTestId) {
+      await expect(page.getByTestId(indiaTestId)).toHaveCount(0);
+    }
 
     // Markets fixture headline within warm-cache budget
     await expect(page.getByTestId("bento-grid")).toBeVisible({
@@ -66,7 +67,13 @@ test.describe("BUG regressions", () => {
     });
     await expect(
       page.locator('[data-tile="highlight"][data-section="markets"]').first()
-    ).toContainText(/Markets/i, { timeout: 1_500 });
+    ).toBeVisible({ timeout: 1_500 });
+    await expect(
+      page.locator('[data-tile="highlight"][data-section="markets"]').first()
+    ).toContainText(
+      /Markets breaking|Markets mid-hour|Sensex jumps|Markets minor|RBI holds/i,
+      { timeout: 1_500 }
+    );
 
     // Still zero India tiles
     await expect(

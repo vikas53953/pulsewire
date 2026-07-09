@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import Database from "better-sqlite3";
 import fs from "fs";
 import {
-  closeHistoryDbForTests,
   countHistorySamples,
   getHistoryDb,
   istBucketParts,

@@ -78,75 +78,123 @@ test.describe("M3 Bento Zine UI gate", () => {
       "desktop states"
     );
 
-    // --- loading skeleton (throttle first response) ---
-    let first = true;
+    // --- loading skeleton (hold first API response until we assert) ---
+    let releaseFirst: (() => void) | null = null;
+    const firstGate = new Promise<void>((resolve) => {
+      releaseFirst = resolve;
+    });
+    let held = false;
     await page.route("**/api/highlights*", async (route) => {
-      if (first) {
-        first = false;
-        await new Promise((r) => setTimeout(r, 800));
+      if (!held) {
+        held = true;
+        await firstGate;
       }
       await route.continue();
     });
-    await page.goto("/");
+    await page.goto("/", { waitUntil: "domcontentloaded" });
     await expect(page.getByTestId("bento-skeleton")).toBeVisible({
-      timeout: 500,
+      timeout: 2_000,
     });
+    releaseFirst?.();
     await waitForGrid(page);
-    await page.unroute("**/api/highlights*");
+    await page.unrouteAll({ behavior: "ignoreErrors" });
 
-    // --- quiet hour ---
+    // --- quiet hour: empty 1h via client-side fulfill ---
     await page.route("**/api/highlights*", async (route) => {
       const url = new URL(route.request().url());
-      const res = await route.fetch();
-      const json = await res.json();
       if (url.searchParams.get("window") === "1h") {
-        json.items = [];
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            section: url.searchParams.get("section") ?? "all",
+            window: "1h",
+            generatedAt: new Date().toISOString(),
+            stale: false,
+            rawMode: false,
+            items: [],
+          }),
+        });
+        return;
       }
-      await route.fulfill({
-        status: res.status(),
-        headers: res.headers(),
-        body: JSON.stringify(json),
-      });
+      await route.continue();
     });
     await page.getByTestId("pill-1h").click();
     await expect(page.getByTestId("quiet-hour")).toBeVisible({
       timeout: 5_000,
     });
     await expect(page.getByTestId("try-4h")).toBeVisible();
+    await page.unrouteAll({ behavior: "ignoreErrors" });
     await page.getByTestId("try-4h").click();
     await expect(page.getByTestId("pill-4h")).toHaveAttribute(
       "aria-pressed",
       "true"
     );
-    await page.unroute("**/api/highlights*");
+    await waitForGrid(page);
 
     // --- stale strip ---
     await page.route("**/api/highlights*", async (route) => {
-      const res = await route.fetch();
-      const json = await res.json();
-      json.stale = true;
-      json.sourcesUnreachable = true;
+      const url = new URL(route.request().url());
       await route.fulfill({
-        status: res.status(),
-        headers: res.headers(),
-        body: JSON.stringify(json),
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          section: url.searchParams.get("section") ?? "all",
+          window: url.searchParams.get("window") ?? "12h",
+          generatedAt: new Date().toISOString(),
+          stale: true,
+          rawMode: false,
+          sourcesUnreachable: true,
+          items: [
+            {
+              text: "Stale fixture headline for banner test",
+              sources: [
+                {
+                  name: "Fixture A",
+                  url: "https://fixture.pulsewire.test/x",
+                },
+              ],
+              publishedAt: new Date().toISOString(),
+              hot: false,
+              section: "india",
+            },
+          ],
+        }),
       });
     });
     await page.getByTestId("pill-12h").click();
     await expect(page.getByTestId("stale-banner")).toBeVisible({
       timeout: 5_000,
     });
-    await page.unroute("**/api/highlights*");
+    await page.unrouteAll({ behavior: "ignoreErrors" });
 
     // --- RAW header sticker ---
     await page.route("**/api/highlights*", async (route) => {
-      const res = await route.fetch();
-      const json = await res.json();
-      json.rawMode = true;
+      const url = new URL(route.request().url());
       await route.fulfill({
-        status: res.status(),
-        headers: res.headers(),
-        body: JSON.stringify(json),
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          section: url.searchParams.get("section") ?? "all",
+          window: url.searchParams.get("window") ?? "12h",
+          generatedAt: new Date().toISOString(),
+          stale: false,
+          rawMode: true,
+          items: [
+            {
+              text: "Raw mode fixture headline",
+              sources: [
+                {
+                  name: "Fixture A",
+                  url: "https://fixture.pulsewire.test/raw",
+                },
+              ],
+              publishedAt: new Date().toISOString(),
+              hot: false,
+              section: "india",
+            },
+          ],
+        }),
       });
     });
     await page.getByTestId("refresh-btn").click();

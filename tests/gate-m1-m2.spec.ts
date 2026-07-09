@@ -74,11 +74,11 @@ test.describe("M1/M2 API gate", () => {
     expect(hit.json.cacheMiss).toBeFalsy();
     expect(hit.headers["x-pulsewire-cache"]).toBe("HIT");
 
-    // RAW_CACHE_TTL_MS=300 in webServer env
-    await new Promise((r) => setTimeout(r, 450));
+    // RAW_CACHE_TTL_MS=300 in webServer env (warmer interval disabled in PW_TEST)
+    await new Promise((r) => setTimeout(r, 500));
 
     const expired = await api(request, "tech", "4h");
-    // Expired → stale SWR path (still serves items) or miss
+    // Expired → stale SWR path (still serves items) or miss rebuild
     expect(
       expired.json.stale === true || expired.json.cacheMiss === true
     ).toBeTruthy();

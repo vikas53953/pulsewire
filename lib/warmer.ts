@@ -42,6 +42,13 @@ export function startBackgroundWarmer(): void {
   // Kick off immediately (don't block import)
   void warmAllSections("boot");
 
+  // In PW_TEST, warm once on boot only — interval re-warms would overwrite
+  // short RAW_CACHE_TTL_MS and break TTL assertions.
+  if (process.env.PW_TEST === "1") {
+    console.info("[pulsewire] warmer: PW_TEST=1 — boot warm only, no interval");
+    return;
+  }
+
   globalForWarmer.__pulsewireWarmTimer = setInterval(() => {
     void warmAllSections("interval");
   }, ttlMs());

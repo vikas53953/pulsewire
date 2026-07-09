@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import Database from "better-sqlite3";
+import fs from "fs";
 import {
+  closeHistoryDbForTests,
   countHistorySamples,
   getHistoryDb,
   istBucketParts,
@@ -9,7 +12,6 @@ import {
 } from "@/lib/history";
 import { mad, median, sigmoid } from "@/lib/baseline";
 import { isTestMode } from "@/lib/test-mode";
-import fs from "fs";
 
 export const dynamic = "force-dynamic";
 
@@ -93,21 +95,10 @@ export async function POST(request: NextRequest) {
   if (body.action === "reopen") {
     const before = countHistorySamples();
     const resolved = resolveHistoryDbPath();
-    const db = getHistoryDb();
-    try {
-      db.pragma("wal_checkpoint(FULL)");
-    } catch {
-      // ignore
-    }
+    closeHistoryDbForTests();
 
-    // Second connection (simulates a restarted process reading the same file).
-    // Keep the primary handle open — Next may hold multiple module graphs;
-    // closing the singleton under WAL was flaky in e2e.
-    const Database = (await import("better-sqlite3")).default;
-    const fresh = new Database(resolved, {
-      readonly: true,
-      fileMustExist: true,
-    });
+    // Independent handle (same path) — proves rows survived close (restart).
+    const fresh = new Database(resolved, { fileMustExist: true });
     try {
       const row = fresh
         .prepare(`SELECT COUNT(*) AS n FROM section_history`)
@@ -121,6 +112,7 @@ export async function POST(request: NextRequest) {
       });
     } finally {
       fresh.close();
+      getHistoryDb(); // restore singleton for later tests
     }
   }
 

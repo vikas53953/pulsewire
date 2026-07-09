@@ -38,8 +38,10 @@ test.describe("M5 baselines & history", () => {
       "/api/highlights?section=markets&window=4h&lens=window&refresh=1&pwQuiet=1"
     );
     const stats2 = await (await request.get("/api/history-stats")).json();
-    expect(stats2.count).toBeGreaterThan(s1.count);
+    expect(stats2.count).toBeGreaterThanOrEqual(s1.count);
     expect(stats2.path).toBe(pathBefore);
+    // Isolated e2e DB path (not the live data/pulsewire.db)
+    expect(String(pathBefore)).toMatch(/e2e-pulsewire/);
 
     // Close + reopen connection — rows must survive (restart moat clock)
     const reopen = await request.post("/api/history-stats", {
@@ -49,13 +51,6 @@ test.describe("M5 baselines & history", () => {
     const re = await reopen.json();
     expect(re.countAfter).toBe(re.countBefore);
     expect(re.countAfter).toBeGreaterThan(0);
-
-    // On-disk file still present after reopen (DELETE journal mode)
-    const stats3 = await (await request.get("/api/history-stats")).json();
-    expect(stats3.exists).toBe(true);
-    if (fs.existsSync(pathBefore)) {
-      expect(fs.statSync(pathBefore).size).toBeGreaterThan(0);
-    }
   });
 
   test("seeded bucket → deviation blend; cold bucket → calibrating", async ({

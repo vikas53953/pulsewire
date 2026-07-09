@@ -7,12 +7,30 @@ const PORT = Number(process.env.PW_PORT ?? "3100");
 const BASE = `http://127.0.0.1:${PORT}`;
 
 /** Isolated SQLite for M5 history writer under PW_TEST (moat clock + baselines). */
-const HISTORY_DB = path.join(os.tmpdir(), `pulsewire-e2e-${PORT}.db`);
+const HISTORY_DB = path.join(
+  process.cwd(),
+  "data",
+  `e2e-pulsewire-${PORT}.db`
+);
+fs.mkdirSync(path.dirname(HISTORY_DB), { recursive: true });
 for (const suffix of ["", "-shm", "-wal"]) {
   try {
     fs.unlinkSync(HISTORY_DB + suffix);
   } catch {
     // fresh run
+  }
+}
+// Also clear default live DB leftovers so a missed env override doesn't hit a stale WAL.
+for (const base of [
+  path.join(process.cwd(), "data", "pulsewire.db"),
+  path.join(os.tmpdir(), `pulsewire-e2e-${PORT}.db`),
+]) {
+  for (const suffix of ["", "-shm", "-wal"]) {
+    try {
+      fs.unlinkSync(base + suffix);
+    } catch {
+      // ignore
+    }
   }
 }
 

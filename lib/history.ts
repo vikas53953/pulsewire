@@ -21,7 +21,9 @@ const globalForDb = globalThis as unknown as {
 };
 
 export function resolveHistoryDbPath(): string {
-  if (process.env.PULSEWIRE_DB_PATH) return process.env.PULSEWIRE_DB_PATH;
+  // Bracket access — Next webpack can inline process.env.FOO as undefined at compile time.
+  const override = process.env["PULSEWIRE_DB_PATH"];
+  if (override && override.trim()) return override.trim();
   // Prefer project-local data/ so restarts keep history
   const dir = path.join(process.cwd(), "data");
   if (!fs.existsSync(dir)) {
@@ -38,15 +40,34 @@ function dbPath(): string {
   return resolveHistoryDbPath();
 }
 
+function ensureParentDir(filePath: string): void {
+  const dir = path.dirname(filePath);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+}
+
 export function getHistoryDb(): Database.Database {
   const resolved = dbPath();
   if (globalForDb.__pulsewireDb && globalForDb.__pulsewireDbPath === resolved) {
     return globalForDb.__pulsewireDb;
   }
 
+  // Stale WAL from a prior journal mode can make the DB appear readonly.
+  if (globalForDb.__pulsewireDb) {
+    try {
+      globalForDb.__pulsewireDb.close();
+    } catch {
+      // ignore
+    }
+    globalForDb.__pulsewireDb = undefined;
+    globalForDb.__pulsewireDbPath = undefined;
+  }
+
+  ensureParentDir(resolved);
   const db = new Database(resolved);
-  // DELETE journal keeps a single on-disk file (easier for restart/exists asserts).
-  db.pragma("journal_mode = DELETE");
+  db.pragma("journal_mode = WAL");
+  db.pragma("busy_timeout = 5000");
   db.exec(`
     CREATE TABLE IF NOT EXISTS section_history (
       id INTEGER PRIMARY KEY AUTOINCREMENT,

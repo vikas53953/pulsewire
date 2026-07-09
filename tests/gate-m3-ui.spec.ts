@@ -35,7 +35,11 @@ test.describe("M3 Bento Zine UI gate", () => {
     const mega = page.locator('[data-tile="highlight"][data-mega="1"]');
     if ((await mega.count()) > 0) {
       await expect(mega.first()).toBeVisible();
-      await expect(page.getByTestId("hot-sticker").or(mega)).toBeVisible();
+      // Prefer sticker on mega; fall back to mega itself (avoid .or() strict clash)
+      const sticker = mega.first().getByTestId("hot-sticker");
+      if ((await sticker.count()) > 0) {
+        await expect(sticker.first()).toBeVisible();
+      }
     } else {
       await expect(page.getByTestId("verdict-hero")).toBeVisible();
     }
@@ -338,8 +342,9 @@ test.describe("M3 Bento Zine UI gate", () => {
   });
 
   test("evidence screenshots desktop 1280 + mobile 360", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/", { waitUntil: "domcontentloaded" });
     await waitForShell(page);
+    await expect(page.getByTestId("score-chips")).toBeVisible();
     const name = test.info().project.name;
     await page.screenshot({
       path: `test-results/evidence-${name}.png`,

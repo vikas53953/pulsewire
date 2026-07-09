@@ -12,12 +12,13 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-### Check data (readable)
+### Optional LLM
 
-Open [http://localhost:3000/](http://localhost:3000/) — Markets 4h list with timestamps and 🔥 merges.
+Copy `.env.example` → `.env.local` and set `LLM_API_KEY`. Without it, raw-mode + merge still works (2 min retry TTL).
 
-API: [http://localhost:3000/api/highlights?section=markets&window=4h](http://localhost:3000/api/highlights?section=markets&window=4h)
+### Docs
 
-For LLM summaries (optional in M2): copy `.env.example` → `.env.local` and set `LLM_API_KEY`. Without it, raw-mode + merge still works (2 min retry TTL).
-
-See `SPEC-pulsewire-hot-news-app.md` and `PROJECT-MAP.md`.
+- `SPEC-pulsewire-hot-news-app.md` — product/tech spec
+- `M3-design-brief-bento-zine.md` — locked UI contract
+- `PROJECT-MAP.md` — plain-English file map
+- `implementation-notes.md` — deviations and quiet choices

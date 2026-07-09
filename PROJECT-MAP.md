@@ -1,10 +1,19 @@
 # PulseWire project map (plain English)
 
 - `app/` — Next.js App Router pages and API routes the browser hits.
-- `app/page.tsx` — Temporary M1/M2 proof page (Markets 4h list + gate banner). Real UI is M3 after design lock.
-- `app/layout.tsx` — Shared HTML shell, fonts, and dark theme defaults.
-- `app/globals.css` — Global styles and Tailwind layers.
+- `app/page.tsx` — Renders the Bento Zine dashboard (`PulseWireApp`).
+- `app/layout.tsx` — Shared HTML shell + early theme script (no flash).
+- `app/globals.css` — Bento Zine design tokens, tile press, skeleton shimmer.
 - `app/api/highlights/route.ts` — `GET /api/highlights` (force-dynamic). Returns hot highlights JSON for a section + time window.
+- `components/PulseWireApp.tsx` — Client shell: section/window state, fetch, auto-refresh, theme.
+- `components/Header.tsx` — PULSE[WIRE] logo, RAW sticker, time pills, night toggle.
+- `components/SectionTabs.tsx` — Horizontal-scroll section pills (⚡ All default).
+- `components/TimePills.tsx` — Segmented 1h/4h/12h/24h control.
+- `components/BentoGrid.tsx` — Mega + 2/3-col grid, loading skeleton, quiet-hour empty, stale banner.
+- `components/HighlightTile.tsx` — One story tile (mega/teal/lav/card) + tone assignment.
+- `components/StatusBar.tsx` — Updated-ago footer + manual ↻ refresh.
+- `components/ThemeToggle.tsx` — ◐ Night Zine / light toggle.
+- `components/Sticker.tsx` — Yellow rotated badge (🔥 N SOURCES, RAW).
 - `lib/feeds.config.ts` — Hybrid feeds: Google News India-edition topic/search + direct top-story RSS per section.
 - `lib/feed-engine.ts` — Fetches RSS in parallel (8s timeout), parses items, keeps last 24h, resolves Google redirect URLs when possible.
 - `lib/resolve-url.ts` — Best-effort Google News → publisher URL resolver (falls back to Google link).
@@ -13,8 +22,10 @@
 - `lib/llm.ts` — One batched Grok call per section (summarize + dedupe); raw-mode on failure.
 - `lib/highlights.ts` — Orchestrates fetch → merge → LLM → cache → window slice.
 - `lib/cache.ts` — In-memory Map cache with dual TTL (10m LLM / ~2m raw-mode).
+- `lib/time.ts` — Relative age + source label helpers for tiles.
 - `lib/types.ts` — Shared TypeScript types for sections, windows, and API shapes.
 - `.env.example` — Env var names (no secrets). Copy to `.env.local` for LLM.
 - `SPEC-pulsewire-hot-news-app.md` — Product/tech spec this build follows.
-- `implementation-notes.md` — Deviations from the spec (feed swaps, etc.).
+- `M3-design-brief-bento-zine.md` — Locked visual contract for the UI (Bento Zine).
+- `implementation-notes.md` — Deviations from the spec (feed swaps, light default, etc.).
 - `PROJECT-MAP.md` — This file.

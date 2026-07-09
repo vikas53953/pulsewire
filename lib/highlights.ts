@@ -43,6 +43,8 @@ async function buildFromPool(
     rawMode = true;
   }
 
+  items = items.map((item) => ({ ...item, section }));
+
   return {
     section,
     generatedAt: new Date().toISOString(),

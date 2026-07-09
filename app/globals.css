@@ -3,11 +3,23 @@
 @tailwind utilities;
 
 :root {
-  --bg: #0b0f14;
-  --fg: #e8eef5;
-  --muted: #8b9bb0;
-  --accent: #3dd68c;
-  --line: #1c2733;
+  --paper: #eceadf;
+  --ink: #141414;
+  --card: #ffffff;
+  --mega: #ff4d4d;
+  --teal: #bdf3e6;
+  --lav: #e4dcff;
+  --sticker: #ffd23f;
+  --shadow: #141414;
+  --mega-fg: #ffffff;
+}
+
+html.night {
+  --paper: #141414;
+  --ink: #eceadf;
+  --card: #1e1e1e;
+  --shadow: #000000;
+  --mega-fg: #ffffff;
 }
 
 html,
@@ -15,13 +27,86 @@ body {
   margin: 0;
   padding: 0;
   min-height: 100%;
-  background: var(--bg);
-  color: var(--fg);
-  font-family: "IBM Plex Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
-body {
-  background-image:
-    radial-gradient(ellipse 80% 50% at 50% -20%, #132033 0%, transparent 60%),
-    linear-gradient(180deg, #0b0f14 0%, #0e141c 100%);
+* {
+  box-sizing: border-box;
+}
+
+/* Hard zine focus ring */
+:focus-visible {
+  outline: 3px solid var(--sticker);
+  outline-offset: 2px;
+}
+
+.pw-tile {
+  border: 2px solid var(--ink);
+  border-radius: 16px;
+  box-shadow: 4px 4px 0 var(--shadow);
+  transition: transform 120ms ease, box-shadow 120ms ease, opacity 200ms ease;
+}
+
+.pw-tile:active:not(.pw-tile--dead) {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--shadow);
+}
+
+.pw-tile--dead {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.pw-fade-in {
+  animation: pwFade 200ms ease both;
+}
+
+@keyframes pwFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pwShimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+.pw-skeleton {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--paper) 70%, var(--ink)) 0%,
+    var(--card) 50%,
+    color-mix(in srgb, var(--paper) 70%, var(--ink)) 100%
+  );
+  background-size: 200% 100%;
+  animation: pwShimmer 1.2s linear infinite;
+}
+
+.pw-no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.pw-no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pw-tile {
+    transition: none;
+  }
+  .pw-fade-in,
+  .pw-skeleton {
+    animation: none;
+  }
 }

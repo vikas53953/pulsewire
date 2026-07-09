@@ -93,12 +93,30 @@ export async function POST(request: NextRequest) {
 
   if (body.action === "reopen") {
     const before = countHistorySamples();
+    const resolved = resolveHistoryDbPath();
+    const db = getHistoryDb();
+    try {
+      db.pragma("wal_checkpoint(TRUNCATE)");
+    } catch {
+      // ignore if not in WAL
+    }
     closeHistoryDbForTests();
+
+    // Fresh connection (simulates process restart) — must see same rows.
+    const Database = (await import("better-sqlite3")).default;
+    const fresh = new Database(resolved);
+    const row = fresh
+      .prepare(`SELECT COUNT(*) AS n FROM section_history`)
+      .get() as { n: number };
+    fresh.close();
+
+    // Restore singleton for subsequent tests
     getHistoryDb();
     return NextResponse.json({
       reopened: true,
+      path: resolved,
       countBefore: before,
-      countAfter: countHistorySamples(),
+      countAfter: row.n,
     });
   }
 

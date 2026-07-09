@@ -46,16 +46,16 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  const overrideBust = Boolean(
+    overrides.llmFail ||
+      overrides.feedsDown ||
+      overrides.empty ||
+      overrides.quiet ||
+      overrides.hotMarkets
+  );
+
   try {
     setTestOverrides(overrides);
-
-    const overrideBust = Boolean(
-      overrides.llmFail ||
-        overrides.feedsDown ||
-        overrides.empty ||
-        overrides.quiet ||
-        overrides.hotMarkets
-    );
 
     if (forceRefresh || overrideBust) {
       console.info(
@@ -89,5 +89,7 @@ export async function GET(request: NextRequest) {
     );
   } finally {
     clearTestOverrides();
+    // Override-shaped pools must not poison the shared cache for later tests.
+    if (overrideBust) clearCache();
   }
 }

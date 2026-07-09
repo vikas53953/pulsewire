@@ -5,10 +5,12 @@ import {
   getHistoryDb,
   istBucketParts,
   resetHistoryForTests,
+  resolveHistoryDbPath,
   seedHistoryForTests,
 } from "@/lib/history";
 import { mad, median, sigmoid } from "@/lib/baseline";
 import { isTestMode } from "@/lib/test-mode";
+import fs from "fs";
 
 export const dynamic = "force-dynamic";
 
@@ -18,14 +20,12 @@ export async function GET() {
     return NextResponse.json({ error: "PW_TEST only" }, { status: 404 });
   }
   try {
-    const db = getHistoryDb();
-    const path =
-      process.env.PULSEWIRE_DB_PATH ||
-      (db as unknown as { name?: string }).name ||
-      null;
+    getHistoryDb();
+    const path = resolveHistoryDbPath();
     return NextResponse.json({
       enabled: true,
       path,
+      exists: fs.existsSync(path),
       count: countHistorySamples(),
       bucket: istBucketParts(),
     });

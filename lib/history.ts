@@ -20,7 +20,7 @@ const globalForDb = globalThis as unknown as {
   __pulsewireDbPath?: string;
 };
 
-function dbPath(): string {
+export function resolveHistoryDbPath(): string {
   if (process.env.PULSEWIRE_DB_PATH) return process.env.PULSEWIRE_DB_PATH;
   // Prefer project-local data/ so restarts keep history
   const dir = path.join(process.cwd(), "data");
@@ -32,6 +32,10 @@ function dbPath(): string {
     }
   }
   return path.join(dir, "pulsewire.db");
+}
+
+function dbPath(): string {
+  return resolveHistoryDbPath();
 }
 
 export function getHistoryDb(): Database.Database {

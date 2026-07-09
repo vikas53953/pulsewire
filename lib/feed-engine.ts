@@ -3,6 +3,11 @@ import Parser from "rss-parser";
 import { FEEDS, feedsForSection } from "./feeds.config";
 import { resolveArticleUrls } from "./resolve-url";
 import { stripPublisherSuffix } from "./similarity";
+import {
+  fixtureItemsForSection,
+  isFeedsDownForced,
+  isTestMode,
+} from "./test-mode";
 import type { FeedConfig, RawFeedItem, SectionId } from "./types";
 import { windowToMs, type TimeWindow } from "./types";
 
@@ -135,6 +140,27 @@ export interface SectionFetchResult {
 export async function fetchSectionPool(
   section: Exclude<SectionId, "all">
 ): Promise<SectionFetchResult> {
+  if (isTestMode()) {
+    if (isFeedsDownForced()) {
+      return {
+        items: [],
+        feedsAttempted: 2,
+        feedsSucceeded: 0,
+        sourcesUnreachable: true,
+      };
+    }
+    const items = fixtureItemsForSection(section).sort(
+      (a, b) =>
+        new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
+    );
+    return {
+      items,
+      feedsAttempted: 2,
+      feedsSucceeded: 2,
+      sourcesUnreachable: false,
+    };
+  }
+
   const feeds = feedsForSection(section);
   const now = Date.now();
   const results = await Promise.all(feeds.map((feed) => fetchOneFeed(feed, now)));

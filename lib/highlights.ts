@@ -179,6 +179,7 @@ export async function getHighlights(options: {
         stale: false,
         rawMode: cached.entry.rawMode,
         sourcesUnreachable: cached.entry.sourcesUnreachable,
+        cacheMiss: false,
         items: sliceForWindow(cached.entry, window),
       };
     }
@@ -195,6 +196,7 @@ export async function getHighlights(options: {
         stale: true,
         rawMode: cached.entry.rawMode,
         sourcesUnreachable: cached.entry.sourcesUnreachable,
+        cacheMiss: false,
         items: sliceForWindow(cached.entry, window),
       };
     }
@@ -212,6 +214,7 @@ export async function getHighlights(options: {
     stale: false,
     rawMode: entry.rawMode,
     sourcesUnreachable: entry.sourcesUnreachable,
+    cacheMiss: true,
     items: sliceForWindow(entry, window),
   };
 }

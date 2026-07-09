@@ -11,7 +11,18 @@ type HighlightTileProps = {
   tone: TileTone;
   showSection: boolean;
   mega?: boolean;
+  index?: number;
 };
+
+function tileTestId(item: HighlightItem, index: number): string {
+  const section = item.section ?? "x";
+  const slug = item.text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 48);
+  return `tile-${section}-${index}-${slug || "item"}`;
+}
 
 function toneStyles(tone: TileTone): { bg: string; fg: string } {
   switch (tone) {
@@ -32,22 +43,28 @@ export function HighlightTile({
   tone,
   showSection,
   mega = false,
+  index = 0,
 }: HighlightTileProps) {
   const href = item.sources[0]?.url;
   const clickable = Boolean(href);
   const { bg, fg } = toneStyles(tone);
   const sourceNames = item.sources.map((s) => s.name);
   const showSticker = mega && item.hot && item.sources.length >= 2;
+  const testId = tileTestId(item, index);
 
   const body = (
     <>
       {showSticker ? (
-        <span className="absolute -top-2.5 right-2.5 z-10">
+        <span
+          className="absolute -top-2.5 right-2.5 z-10"
+          data-testid="hot-sticker"
+        >
           <Sticker>{`🔥 ${item.sources.length} SOURCES`}</Sticker>
         </span>
       ) : null}
 
       <p
+        data-testid="tile-text"
         className={`m-0 font-black ${
           mega ? "text-[24px] leading-[1.15]" : "text-[14px] leading-[1.3]"
         }`}
@@ -72,9 +89,22 @@ export function HighlightTile({
     mega ? "min-h-[140px]" : "min-h-[120px]"
   } ${clickable ? "" : "pw-tile--dead"}`;
 
+  const dataAttrs = {
+    "data-testid": testId,
+    "data-tile": "highlight",
+    "data-section": item.section ?? "",
+    "data-hot": item.hot ? "1" : "0",
+    "data-mega": mega ? "1" : "0",
+  };
+
   if (!clickable) {
     return (
-      <div className={className} style={{ background: bg }} aria-disabled>
+      <div
+        className={className}
+        style={{ background: bg }}
+        aria-disabled
+        {...dataAttrs}
+      >
         {body}
       </div>
     );
@@ -85,8 +115,9 @@ export function HighlightTile({
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className={className}
+      className={`${className} focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)]`}
       style={{ background: bg, color: fg }}
+      {...dataAttrs}
     >
       {body}
     </a>

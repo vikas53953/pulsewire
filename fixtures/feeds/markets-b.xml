@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Fixture B Markets</title>
+    <link>https://fixture.pulsewire.test/markets</link>
+    <description>Second source — duplicate 9h title for merge / 🔥 testing</description>
+    <item>
+      <title>Markets afternoon briefing three hours ago</title>
+      <link>https://fixture.pulsewire.test/markets/3h</link>
+      <pubDate>AGE:3h</pubDate>
+    </item>
+    <item>
+      <title>RBI holds rates as inflation cools; banks lead market rebound</title>
+      <link>https://fixture.pulsewire.test/markets/9h-b</link>
+      <pubDate>AGE:9h5m</pubDate>
+    </item>
+  </channel>
+</rss>

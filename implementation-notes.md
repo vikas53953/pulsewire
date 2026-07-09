@@ -61,24 +61,24 @@ Built exactly per `M3-design-brief-bento-zine.md`.
 
 ## BUG-1 / BUG-2 fixes + M4 (done)
 
-### BUG-1 — slow tabs / stale tiles
-- Background warmer (`instrumentation.ts` + `lib/warmer.ts`) warms **all sections** on boot and every `CACHE_TTL_MINUTES`.
-- Client clears tiles immediately on tab change, keys `BentoGrid` by `section|window`, and keeps an in-memory per-section/window response cache for instant back-navigation.
-- Never paints Section A under Section B’s active tab.
+### BUG-1 — root cause
+Tab clicks felt slow because each first visit to a section triggered a cold RSS+LLM path (5–15s), and the UI kept painting the previous section’s tiles until the new response arrived. Fix: fleet-wide background warmer on boot + every `CACHE_TTL_MINUTES`; client clears tiles and shows skeleton immediately on tab change (`key={section-window}`); in-memory client cache makes revisits instant with soft revalidate.
 
-### BUG-2 — identical 1h/4h/12h/24h
-- Cache stores a deep **24h pool** (`POOL_CAP=80`); window filter + cap run at request time via `rankAndCapForWindow`.
-- Merged highlights keep the **earliest** source `publishedAt` (not newest / not `generatedAt`).
-- Sort priority inside a window: 🔥 source-count desc → then recency.
-- Wider windows reserve up to 3 slots for stories older than the previous tier so a busy 1h burst cannot hide the rest of the day when no 🔥 merges exist.
-- Per-feed cap raised 12 → 30 so older items survive into the pool.
-- `?refresh=1` clears cache and logs `[pulsewire] cache-miss …` on the server.
+### BUG-2 — root cause
+Windows looked identical because (1) the cache was effectively window-shaped / shallow so older stories never survived, and (2) even with a deep pool, recency-sort + cap-10 let a burst of fresh minors fill all slots in every window. Fix: cache a deep 24h pool; slice+rank at request time (🔥 source-count desc → recency, with older-tier reserve slots); preserve earliest source `publishedAt` on merges; `?refresh=1` clears cache, sets `cacheMiss: true`, logs `[pulsewire] cache-miss …`, and returns `X-PulseWire-Cache: MISS`.
 
 ### Quiet M4 choices
 - Warmer also started from the API route as a safety net if instrumentation is late.
 - In-flight refresh de-duped per section via `setRefreshing` so boot warm + first request don’t double-fetch.
 
-## Deferred (v1.1 — not built)
+## M3.5 — Playwright automated gate (done)
+
+- `PW_TEST=1` serves `lib/test-mode.ts` fixtures (ages 10m/50m/3h/9h-dup/20h) + stubbed LLM; `pwLlmFail` / `pwFeedsDown` / `pwEmpty` query overrides for state tests.
+- Specs: `tests/bugs.spec.ts`, `tests/gate-m1-m2.spec.ts`, `tests/gate-m3-ui.spec.ts`.
+- CI: `.github/workflows/e2e.yml` with HTML report artifacts.
+- Standing rule: every future milestone ships with Playwright specs; suite is cumulative.
+
+## Deferred (v1.1 — not built until gate green)
 - NEW stickers since last visit (localStorage)
 - WhatsApp share on tiles
 - PWA install + offline last bento

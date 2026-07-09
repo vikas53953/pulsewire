@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { clearCache } from "@/lib/cache";
 import { getHighlights } from "@/lib/highlights";
+import {
+  clearTestOverrides,
+  parseTestOverrides,
+  setTestOverrides,
+} from "@/lib/test-mode";
 import { startBackgroundWarmer } from "@/lib/warmer";
 import { isSectionId, isTimeWindow } from "@/lib/types";
 
@@ -15,6 +20,7 @@ export async function GET(request: NextRequest) {
   const sectionParam = searchParams.get("section") ?? "all";
   const windowParam = searchParams.get("window") ?? "4h";
   const forceRefresh = searchParams.get("refresh") === "1";
+  const overrides = parseTestOverrides(searchParams);
 
   if (!isSectionId(sectionParam)) {
     return NextResponse.json(
@@ -33,9 +39,11 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    if (forceRefresh) {
+    setTestOverrides(overrides);
+
+    if (forceRefresh || overrides.llmFail || overrides.feedsDown || overrides.empty) {
       console.info(
-        `[pulsewire] cache-miss ?refresh=1 clearing section=${sectionParam}`
+        `[pulsewire] cache-miss ${forceRefresh ? "manual refresh" : "test override"} section=${sectionParam}`
       );
       clearCache(sectionParam);
       if (sectionParam === "all") {
@@ -46,12 +54,17 @@ export async function GET(request: NextRequest) {
     const payload = await getHighlights({
       section: sectionParam,
       window: windowParam,
-      forceRefresh,
+      forceRefresh:
+        forceRefresh ||
+        Boolean(overrides.llmFail || overrides.feedsDown || overrides.empty),
     });
 
     return NextResponse.json(payload, {
       headers: {
         "Cache-Control": "no-store, max-age=0",
+        ...(payload.cacheMiss
+          ? { "X-PulseWire-Cache": "MISS" }
+          : { "X-PulseWire-Cache": "HIT" }),
       },
     });
   } catch (error) {
@@ -61,5 +74,7 @@ export async function GET(request: NextRequest) {
       { error: "Failed to load highlights", detail: message },
       { status: 500 }
     );
+  } finally {
+    clearTestOverrides();
   }
 }

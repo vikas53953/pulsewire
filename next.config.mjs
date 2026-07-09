@@ -4,6 +4,10 @@ const nextConfig = {
   experimental: {
     instrumentationHook: true,
   },
+  // Surface runtime overrides (Playwright sets PULSEWIRE_DB_PATH on webServer).
+  env: {
+    PULSEWIRE_DB_PATH: process.env.PULSEWIRE_DB_PATH || "",
+  },
   // better-sqlite3 is a native Node addon — keep it external (Next 14 webpack)
   webpack: (config, { isServer }) => {
     if (isServer) {

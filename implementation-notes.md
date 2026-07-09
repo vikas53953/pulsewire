@@ -85,6 +85,7 @@ Windows looked identical because (1) the cache was effectively window-shaped / s
 - Score chips replace section tabs (Markets-first order). Lens: Since you left (default 2nd+ visit) / Windows.
 - Ranking: heat desc + age-diversity for 4h+ + fewer-stronger (floor 15% of top heat, cap 9).
 - Full flash headlines (≤160 chars). Quiet = designed hero, not empty apology.
+- **Boot-window velocity suppression:** clusters whose every `firstSeen` falls within 5 min of process boot score velocity=1 (breadth only). Prevents false 🔴 after restart/deploy (same trap on Vercel cold starts).
 - No SQLite yet — M5 starts history writer day one.
 
 ## v1.1 — NEW stickers + X Pulse (done)

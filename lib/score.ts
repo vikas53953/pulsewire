@@ -1,3 +1,4 @@
+import { isBootWindowCluster, processBootAt } from "./boot";
 import type { HighlightItem, SectionScore, TrafficLevel } from "./types";
 import type { ContentSectionId } from "./types";
 import { sectionLabel } from "./types";
@@ -5,11 +6,20 @@ import { sectionLabel } from "./types";
 const K = 8;
 const HOUR_MS = 60 * 60 * 1000;
 
-/** Max sources whose firstSeen fall inside any rolling 60-minute span. */
+/**
+ * Max sources whose firstSeen fall inside any rolling 60-minute span.
+ * Boot-window clusters (all sources observed at cold start) → velocity 1
+ * so we count breadth only — prevents false 🔴 after restart/deploy.
+ */
 export function computeVelocity(
   firstSeens: string[],
-  now = Date.now()
+  now = Date.now(),
+  bootAt = processBootAt()
 ): number {
+  if (isBootWindowCluster(firstSeens, bootAt)) {
+    return 1;
+  }
+
   const times = firstSeens
     .map((iso) => new Date(iso).getTime())
     .filter((t) => Number.isFinite(t) && t <= now)
@@ -62,6 +72,8 @@ export function enrichItemHeat(
     new Date(a).getTime() <= new Date(b).getTime() ? a : b
   );
   const breadth = Math.max(1, new Set(item.sources.map((s) => s.name)).size);
+  // Ensure boot clock is stamped before first score (deploy / cold start)
+  processBootAt();
   const velocity = computeVelocity(firstSeens, now);
   const ageHours = Math.max(
     0,

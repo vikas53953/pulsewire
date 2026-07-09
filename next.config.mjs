@@ -4,9 +4,7 @@ const nextConfig = {
   experimental: {
     instrumentationHook: true,
   },
-  // better-sqlite3 is a native Node addon — keep it external
-  serverExternalPackages: ["better-sqlite3"],
-  // Next 14 alias
+  // better-sqlite3 is a native Node addon — keep it external (Next 14 webpack)
   webpack: (config, { isServer }) => {
     if (isServer) {
       config.externals = config.externals || [];

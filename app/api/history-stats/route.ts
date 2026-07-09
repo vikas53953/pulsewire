@@ -20,12 +20,16 @@ export async function GET() {
     return NextResponse.json({ error: "PW_TEST only" }, { status: 404 });
   }
   try {
-    getHistoryDb();
-    const path = resolveHistoryDbPath();
+    const db = getHistoryDb();
+    const resolved = resolveHistoryDbPath();
+    const listed = db.prepare("PRAGMA database_list").all() as {
+      file: string;
+    }[];
+    const file = (listed.find((r) => r.file)?.file || resolved).trim();
     return NextResponse.json({
       enabled: true,
-      path,
-      exists: fs.existsSync(path),
+      path: file || resolved,
+      exists: Boolean(file && fs.existsSync(file)),
       count: countHistorySamples(),
       bucket: istBucketParts(),
     });

@@ -45,7 +45,8 @@ export function getHistoryDb(): Database.Database {
   }
 
   const db = new Database(resolved);
-  db.pragma("journal_mode = WAL");
+  // DELETE journal keeps a single on-disk file (easier for restart/exists asserts).
+  db.pragma("journal_mode = DELETE");
   db.exec(`
     CREATE TABLE IF NOT EXISTS section_history (
       id INTEGER PRIMARY KEY AUTOINCREMENT,

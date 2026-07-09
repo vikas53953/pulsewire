@@ -92,8 +92,10 @@ Windows looked identical because (1) the cache was effectively window-shaped / s
 - SQLite `section_history` via `better-sqlite3` (`data/pulsewire.db`, override `PULSEWIRE_DB_PATH`). Writer runs on every `scoreSection` cycle (warm + request) — starts the 60-day moat clock immediately.
 - Baseline = median + MAD of `sectionRaw` for IST **hour × weekday**, trailing 60 days. `PulseScore_v1 = 0.6*v0 + 0.4*sigmoid(deviation)*100`. Bucket &lt;14 samples → v0 + `calibrating` (chip shows `~`).
 - Velocity sparkline on 🔴 chips (`velocitySpark` heat series).
-- Under `PW_TEST=1`, writer is off unless `PW_HISTORY=1` (Playwright webServer sets both + isolated temp DB).
+- Under `PW_TEST=1`, writer is off unless `PW_HISTORY=1` (Playwright webServer sets both + isolated `data/e2e-pulsewire-*.db`).
 - Gate: `tests/gate-m5-baselines.spec.ts` (persist + reopen, seeded blend, calibrating UI, median/MAD math).
+- Quiet choice (spec silent): persist-survive proof uses `db.backup()` + reopen of the copy (closing the live WAL handle under Next was flaky).
+- **Ops note:** Playwright config deletes leftover `data/pulsewire.db*` before e2e — don't run the suite against a live moat-clock DB you care about without copying it first.
 
 ## v1.1 — NEW stickers + X Pulse (done)
 

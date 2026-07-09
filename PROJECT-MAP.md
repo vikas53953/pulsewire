@@ -44,7 +44,7 @@
 - `lib/last-visit.ts` — localStorage last-visit helpers for NEW stickers.
 - `lib/x-pulse.ts` — X Pulse via Grok Responses API + x_search; monthly cap; PW_TEST fixtures.
 - `fixtures/feeds/` — Committed sample RSS documenting controlled ages; runtime serves in-memory fixtures.
-- `tests/` — Playwright gate: bugs, gate-m1-m2, gate-m3-ui, gate-v11, gate-m4-verdict.
+- `tests/` — Playwright gate: bugs, gate-m1-m2, gate-m3-ui, gate-v11, gate-m4-verdict, gate-m5-baselines, boot-velocity.
 - `SPEC-v2-verdict-engine.md` — Locked product pivot: status page / Pulse Score / verdict hero.
 - `playwright.config.ts` — webServer with PW_TEST=1; projects 1280×900 and 360×740.
 - `.github/workflows/e2e.yml` — CI: install, build, test:e2e, upload HTML report + traces.

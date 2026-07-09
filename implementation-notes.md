@@ -95,7 +95,7 @@ Windows looked identical because (1) the cache was effectively window-shaped / s
 - Under `PW_TEST=1`, writer is off unless `PW_HISTORY=1` (Playwright webServer sets both + isolated `data/e2e-pulsewire-*.db`).
 - Gate: `tests/gate-m5-baselines.spec.ts` (persist + reopen, seeded blend, calibrating UI, median/MAD math).
 - Quiet choice (spec silent): persist-survive proof uses `db.backup()` + reopen of the copy (closing the live WAL handle under Next was flaky).
-- **Ops note:** Playwright config deletes leftover `data/pulsewire.db*` before e2e — don't run the suite against a live moat-clock DB you care about without copying it first.
+- Playwright only wipes `data/e2e-pulsewire-*.db` — live `data/pulsewire.db` is never deleted by the suite (moat clock).
 
 ## v1.1 — NEW stickers + X Pulse (done)
 

@@ -1,7 +1,20 @@
 import { defineConfig, devices } from "@playwright/test";
+import fs from "fs";
+import os from "os";
+import path from "path";
 
 const PORT = Number(process.env.PW_PORT ?? "3100");
 const BASE = `http://127.0.0.1:${PORT}`;
+
+/** Isolated SQLite for M5 history writer under PW_TEST (moat clock + baselines). */
+const HISTORY_DB = path.join(os.tmpdir(), `pulsewire-e2e-${PORT}.db`);
+for (const suffix of ["", "-shm", "-wal"]) {
+  try {
+    fs.unlinkSync(HISTORY_DB + suffix);
+  } catch {
+    // fresh run
+  }
+}
 
 export default defineConfig({
   testDir: "./tests",
@@ -47,6 +60,9 @@ export default defineConfig({
     env: {
       ...process.env,
       PW_TEST: "1",
+      // Enable history writer under fixtures so M5 gate can assert persistence.
+      PW_HISTORY: "1",
+      PULSEWIRE_DB_PATH: HISTORY_DB,
       RAW_CACHE_TTL_MS: "300",
       CACHE_TTL_MINUTES: "10",
       MAX_ITEMS_PER_SECTION: "10",

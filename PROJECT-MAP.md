@@ -25,10 +25,13 @@
 - `lib/llm.ts` — One batched Grok call per section (summarize + dedupe); raw-mode on failure.
 - `lib/highlights.ts` — Orchestrates fetch → merge → LLM → cache → window slice.
 - `lib/rank.ts` — Heat ranking + age-diversity + fewer-stronger (SPEC v2 §5).
-- `lib/score.ts` — Pulse Score v0 (breadth/velocity/recency → 0–100 + traffic light).
+- `lib/score.ts` — Pulse Score v0/v1 (breadth/velocity/recency + baseline blend → 0–100 + traffic light).
+- `lib/history.ts` — SQLite section_history writer (IST hour×weekday buckets; 60-day moat clock).
+- `lib/baseline.ts` — Median + MAD baseline; PulseScore v1 blend; calibrating until ≥14 samples.
 - `lib/verdict.ts` — Deterministic verdict templates (LLM polish optional, never invents).
 - `lib/flash.ts` — Full flash headlines (140–160 chars, end on word).
 - `lib/warmer.ts` — Boots and re-warms every section on a 10-min cycle so tabs hit hot cache.
+- `app/api/history-stats/route.ts` — PW_TEST-only history seed/stats/reopen for M5 gate.
 - `instrumentation.ts` — Starts the background warmer when the Node server boots.
 - `lib/cache.ts` — In-memory Map cache with dual TTL (10m LLM / ~2m raw-mode) + in-flight refresh lock.
 - `lib/time.ts` — Relative age + source label helpers for tiles.

@@ -225,3 +225,44 @@ export function closeHistoryDbForTests(): void {
     globalForDb.__pulsewireDbPath = undefined;
   }
 }
+
+/**
+ * Persistence proof for M5 gate: backup live DB → open copy → count rows.
+ * Avoids closing the singleton (flaky under Next/WAL multi-graph).
+ */
+export function assertHistoryPersistsForTests(): {
+  path: string;
+  countBefore: number;
+  countAfter: number;
+  exists: boolean;
+} {
+  const before = countHistorySamples();
+  const resolved = resolveHistoryDbPath();
+  const db = getHistoryDb();
+  const backupPath = `${resolved}.bak`;
+  try {
+    fs.unlinkSync(backupPath);
+  } catch {
+    // ignore
+  }
+  db.backup(backupPath);
+  const fresh = new Database(backupPath, { fileMustExist: true });
+  try {
+    const row = fresh
+      .prepare(`SELECT COUNT(*) AS n FROM section_history`)
+      .get() as { n: number };
+    return {
+      path: resolved,
+      countBefore: before,
+      countAfter: row.n,
+      exists: fs.existsSync(resolved) || fs.existsSync(`${resolved}-wal`),
+    };
+  } finally {
+    fresh.close();
+    try {
+      fs.unlinkSync(backupPath);
+    } catch {
+      // ignore
+    }
+  }
+}

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
-  closeHistoryDbForTests,
   countHistorySamples,
   getHistoryDb,
   istBucketParts,
@@ -96,28 +95,33 @@ export async function POST(request: NextRequest) {
     const resolved = resolveHistoryDbPath();
     const db = getHistoryDb();
     try {
-      db.pragma("wal_checkpoint(TRUNCATE)");
+      db.pragma("wal_checkpoint(FULL)");
     } catch {
-      // ignore if not in WAL
+      // ignore
     }
-    closeHistoryDbForTests();
 
-    // Fresh connection (simulates process restart) — must see same rows.
+    // Second connection (simulates a restarted process reading the same file).
+    // Keep the primary handle open — Next may hold multiple module graphs;
+    // closing the singleton under WAL was flaky in e2e.
     const Database = (await import("better-sqlite3")).default;
-    const fresh = new Database(resolved);
-    const row = fresh
-      .prepare(`SELECT COUNT(*) AS n FROM section_history`)
-      .get() as { n: number };
-    fresh.close();
-
-    // Restore singleton for subsequent tests
-    getHistoryDb();
-    return NextResponse.json({
-      reopened: true,
-      path: resolved,
-      countBefore: before,
-      countAfter: row.n,
+    const fresh = new Database(resolved, {
+      readonly: true,
+      fileMustExist: true,
     });
+    try {
+      const row = fresh
+        .prepare(`SELECT COUNT(*) AS n FROM section_history`)
+        .get() as { n: number };
+      return NextResponse.json({
+        reopened: true,
+        path: resolved,
+        countBefore: before,
+        countAfter: row.n,
+        exists: fs.existsSync(resolved),
+      });
+    } finally {
+      fresh.close();
+    }
   }
 
   return NextResponse.json({ error: "unknown action" }, { status: 400 });

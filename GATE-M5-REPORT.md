@@ -28,16 +28,15 @@ Boot-velocity (`tests/boot-velocity.spec.ts`): quiet fixture never false-red aft
 
 ## 2. `pulsewire.db` row count
 
-Moat clock started on live restart **2026-07-09T19:36:51Z**.
+Moat clock (current live file) restarted **2026-07-09T19:45:50Z** after fixing a gate finding (see §4.6).
 
 | Observation | Value |
 |---|---|
 | Path | `data/pulsewire.db` (WAL) |
-| Rows after ~10 forced refresh cycles | **77** (11 × 7 sections) |
-| Span | `19:36:51Z` → `19:37:07Z` |
-| Multi-hour run | **Not yet** — leave `npm run dev` up; re-check with the verify block below |
+| Rows at gate re-check | rising under warmer + 2-min tick (`pulsewire-moat-tick` tmux) |
+| Multi-hour run | **In progress on :3000** — Playwright no longer deletes this file. Re-check with verify step 2 after several hours. |
 
-> Playwright e2e clears `data/pulsewire.db*` at suite start. Copy the file before running tests if you need the live moat series.
+Earlier 77-row sample (19:36Z) was wiped by a Playwright config bug that deleted the live DB; that wipe is removed.
 
 ---
 
@@ -60,6 +59,8 @@ Quiet fixture + empty history → every chip shows score + 🟡 + **`~`**.
 4. **Stale `next dev` process** — long-lived server from pre-M5 kept answering on :3000 after code landed; history writes went to a deleted inode. **Fix:** hard-restart `npm run dev` after M5 merge; confirm log line `history-db open path=.../data/pulsewire.db`.
 
 5. **Wrong browser port** — app listens on **3000**, not 3001 (`ERR_CONNECTION_REFUSED` on 3001 is expected).
+
+6. **Playwright wiped the live moat DB** — `playwright.config.ts` deleted `data/pulsewire.db*` before every e2e run, so the multi-hour row count could never accumulate. **Fix:** only wipe isolated `data/e2e-pulsewire-*.db` (and tmp leftovers). Live `pulsewire.db` is untouched.
 
 ---
 

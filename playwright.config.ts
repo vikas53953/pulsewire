@@ -13,24 +13,19 @@ const HISTORY_DB = path.join(
   `e2e-pulsewire-${PORT}.db`
 );
 fs.mkdirSync(path.dirname(HISTORY_DB), { recursive: true });
-for (const suffix of ["", "-shm", "-wal"]) {
+// Only wipe the isolated e2e DB — never touch live data/pulsewire.db (moat clock).
+for (const suffix of ["", "-shm", "-wal", ".bak"]) {
   try {
     fs.unlinkSync(HISTORY_DB + suffix);
   } catch {
     // fresh run
   }
 }
-// Also clear default live DB leftovers so a missed env override doesn't hit a stale WAL.
-for (const base of [
-  path.join(process.cwd(), "data", "pulsewire.db"),
-  path.join(os.tmpdir(), `pulsewire-e2e-${PORT}.db`),
-]) {
-  for (const suffix of ["", "-shm", "-wal"]) {
-    try {
-      fs.unlinkSync(base + suffix);
-    } catch {
-      // ignore
-    }
+for (const suffix of ["", "-shm", "-wal"]) {
+  try {
+    fs.unlinkSync(path.join(os.tmpdir(), `pulsewire-e2e-${PORT}.db`) + suffix);
+  } catch {
+    // ignore
   }
 }
 

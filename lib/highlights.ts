@@ -1,4 +1,11 @@
-import { getCache, getMaxItems, setCache, type CacheEntry } from "./cache";
+import {
+  getCache,
+  getMaxItems,
+  getRefreshing,
+  setCache,
+  setRefreshing,
+  type CacheEntry,
+} from "./cache";
 import { fetchAllPools, fetchSectionPool, filterByWindow } from "./feed-engine";
 import { CONTENT_SECTIONS } from "./feeds.config";
 import { summarizeAndDedupe } from "./llm";
@@ -7,6 +14,7 @@ import {
   clusterBySimilarity,
   clustersToRawHighlights,
 } from "./merge";
+import { rankAndCapForWindow } from "./rank";
 import type {
   HighlightItem,
   HighlightsResponse,
@@ -14,15 +22,16 @@ import type {
   SectionId,
   TimeWindow,
 } from "./types";
-import { windowToMs } from "./types";
+
+/** Keep a large 24h pool in cache; window + cap applied at request time. */
+const POOL_CAP = 80;
 
 async function buildFromPool(
   section: Exclude<SectionId, "all">,
   pool: RawFeedItem[],
   sourcesUnreachable: boolean
 ): Promise<CacheEntry> {
-  const maxItems = Math.max(getMaxItems() * 3, 30);
-  const capped = pool.slice(0, maxItems);
+  const capped = pool.slice(0, POOL_CAP);
   const clusters = clusterBySimilarity(capped, 0.6);
 
   let items: HighlightItem[];
@@ -33,13 +42,13 @@ async function buildFromPool(
   );
 
   if (!llm.rawMode && llm.highlights.length > 0) {
-    items = applyLlmHighlights(clusters, llm.highlights, maxItems);
+    items = applyLlmHighlights(clusters, llm.highlights, POOL_CAP);
     rawMode = false;
   } else {
     if (llm.error) {
       console.warn(`[pulsewire] raw mode for ${section}: ${llm.error}`);
     }
-    items = clustersToRawHighlights(clusters, maxItems);
+    items = clustersToRawHighlights(clusters, POOL_CAP);
     rawMode = true;
   }
 
@@ -55,80 +64,96 @@ async function buildFromPool(
   };
 }
 
-async function refreshSection(
+export async function refreshSection(
   section: Exclude<SectionId, "all">
 ): Promise<CacheEntry> {
-  const result = await fetchSectionPool(section);
-  const entry = await buildFromPool(
-    section,
-    result.items,
-    result.sourcesUnreachable
-  );
-  setCache(section, entry);
-  return entry;
+  const existing = getRefreshing(section);
+  if (existing) return existing;
+
+  const promise = (async () => {
+    const result = await fetchSectionPool(section);
+    const entry = await buildFromPool(
+      section,
+      result.items,
+      result.sourcesUnreachable
+    );
+    setCache(section, entry);
+    return entry;
+  })().finally(() => setRefreshing(section, undefined));
+
+  setRefreshing(section, promise);
+  return promise;
 }
 
-async function refreshAll(): Promise<CacheEntry> {
-  const { bySection } = await fetchAllPools();
+function buildAllFromSections(
+  bySection: Record<Exclude<SectionId, "all">, CacheEntry>
+): CacheEntry {
   const perSection: HighlightItem[] = [];
   let anyReachable = false;
   let anyLlm = false;
 
   for (const section of CONTENT_SECTIONS) {
-    const result = bySection[section];
-    const sectionEntry = await buildFromPool(
-      section,
-      result.items,
-      result.sourcesUnreachable
-    );
-    setCache(section, sectionEntry);
-
-    if (!result.sourcesUnreachable) anyReachable = true;
+    const sectionEntry = bySection[section];
+    if (!sectionEntry) continue;
+    if (!sectionEntry.sourcesUnreachable) anyReachable = true;
     if (!sectionEntry.rawMode) anyLlm = true;
-
-    // All tab: top 4 from each section (hot first already)
-    perSection.push(...sectionEntry.items.slice(0, 4));
+    perSection.push(...sectionEntry.items.slice(0, 12));
   }
 
   perSection.sort((a, b) => {
+    const aSources = a.hot ? a.sources.length : 0;
+    const bSources = b.hot ? b.sources.length : 0;
+    if (aSources !== bSources) return bSources - aSources;
     if (a.hot !== b.hot) return a.hot ? -1 : 1;
     return (
       new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
     );
   });
 
-  const entry: CacheEntry = {
+  return {
     section: "all",
     generatedAt: new Date().toISOString(),
-    items: perSection.slice(0, getMaxItems() * 2),
+    items: perSection.slice(0, POOL_CAP),
     rawMode: !anyLlm,
     sourcesUnreachable: !anyReachable,
     poolCount: perSection.length,
   };
-  setCache("all", entry);
-  return entry;
+}
+
+export async function refreshAll(): Promise<CacheEntry> {
+  const existing = getRefreshing("all");
+  if (existing) return existing;
+
+  const promise = (async () => {
+    const { bySection } = await fetchAllPools();
+    const entries = {} as Record<Exclude<SectionId, "all">, CacheEntry>;
+
+    // Build sections sequentially for LLM rate limits; feeds already fetched in parallel
+    for (const section of CONTENT_SECTIONS) {
+      const result = bySection[section];
+      const sectionEntry = await buildFromPool(
+        section,
+        result.items,
+        result.sourcesUnreachable
+      );
+      setCache(section, sectionEntry);
+      entries[section] = sectionEntry;
+    }
+
+    const entry = buildAllFromSections(entries);
+    setCache("all", entry);
+    return entry;
+  })().finally(() => setRefreshing("all", undefined));
+
+  setRefreshing("all", promise);
+  return promise;
 }
 
 function sliceForWindow(
   entry: CacheEntry,
   window: TimeWindow
 ): HighlightItem[] {
-  const maxAge = windowToMs(window);
-  const now = Date.now();
-  const filtered = entry.items.filter((item) => {
-    const age = now - new Date(item.publishedAt).getTime();
-    return age >= 0 && age <= maxAge;
-  });
-
-  // Keep 🔥 pinned, then recency
-  filtered.sort((a, b) => {
-    if (a.hot !== b.hot) return a.hot ? -1 : 1;
-    return (
-      new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
-    );
-  });
-
-  return filtered.slice(0, getMaxItems());
+  return rankAndCapForWindow(entry.items, window, getMaxItems());
 }
 
 export async function getHighlights(options: {
@@ -138,9 +163,15 @@ export async function getHighlights(options: {
 }): Promise<HighlightsResponse> {
   const { section, window, forceRefresh = false } = options;
 
+  if (forceRefresh) {
+    console.info(
+      `[pulsewire] cache-miss force refresh section=${section} window=${window}`
+    );
+  }
+
   if (!forceRefresh) {
     const cached = getCache(section);
-    if (cached.entry && cached.fresh) {
+    if (cached.entry && cached.fresh && cached.entry.items.length > 0) {
       return {
         section,
         window,
@@ -152,7 +183,10 @@ export async function getHighlights(options: {
       };
     }
 
-    if (cached.entry) {
+    if (cached.entry && cached.entry.items.length > 0) {
+      console.info(
+        `[pulsewire] cache-stale SWR section=${section} ageMs=${cached.ageMs}`
+      );
       void (section === "all" ? refreshAll() : refreshSection(section));
       return {
         section,
@@ -164,6 +198,8 @@ export async function getHighlights(options: {
         items: sliceForWindow(cached.entry, window),
       };
     }
+
+    console.info(`[pulsewire] cache-miss cold section=${section}`);
   }
 
   const entry =

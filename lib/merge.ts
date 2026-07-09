@@ -1,6 +1,7 @@
 import type { HighlightItem, RawFeedItem } from "./types";
 import { isLikelyDuplicate, stripPublisherSuffix } from "./similarity";
 import { trimTitle } from "./feed-engine";
+import { earliestPublishedAt } from "./rank";
 
 export interface MergedCluster {
   ids: string[];
@@ -31,59 +32,52 @@ export function clusterBySimilarity(
 
     for (const other of sorted) {
       if (used.has(other.id)) continue;
-      // Prefer cross-source merges; same-source near-dupes still merge
       if (isLikelyDuplicate(item.title, other.title, threshold)) {
         group.push(other);
         used.add(other.id);
       }
     }
 
-    const sources = new Set(group.map((g) => g.source));
     clusters.push({
       ids: group.map((g) => g.id),
       items: group,
       representative: group[0],
-      merged: sources.size >= 2 || group.length >= 2,
+      merged: false,
     });
   }
 
-  // Only mark hot when 2+ distinct sources
   return clusters.map((c) => {
     const sources = new Set(c.items.map((i) => i.source));
     return { ...c, merged: sources.size >= 2 };
   });
 }
 
+function clusterToHighlight(cluster: MergedCluster): HighlightItem {
+  const sources = [];
+  const seen = new Set<string>();
+  for (const item of cluster.items) {
+    const key = `${item.source}|${item.url}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    sources.push({ name: item.source, url: item.url });
+  }
+
+  return {
+    text: trimTitle(stripPublisherSuffix(cluster.representative.title)),
+    sources,
+    publishedAt: earliestPublishedAt(cluster.items.map((i) => i.publishedAt)),
+    hot: cluster.merged,
+  };
+}
+
+/** Keep the full 24h cluster set — window cap happens at request time. */
 export function clustersToRawHighlights(
   clusters: MergedCluster[],
   maxItems: number
 ): HighlightItem[] {
   const hot = clusters.filter((c) => c.merged);
   const rest = clusters.filter((c) => !c.merged);
-
-  const ordered = [...hot, ...rest].slice(0, maxItems);
-
-  return ordered.map((cluster) => {
-    const sources = [];
-    const seen = new Set<string>();
-    for (const item of cluster.items) {
-      const key = `${item.source}|${item.url}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      sources.push({ name: item.source, url: item.url });
-    }
-
-    const newest = cluster.items.reduce((a, b) =>
-      new Date(a.publishedAt) >= new Date(b.publishedAt) ? a : b
-    );
-
-    return {
-      text: trimTitle(stripPublisherSuffix(cluster.representative.title)),
-      sources,
-      publishedAt: newest.publishedAt,
-      hot: cluster.merged,
-    };
-  });
+  return [...hot, ...rest].slice(0, maxItems).map(clusterToHighlight);
 }
 
 export function applyLlmHighlights(
@@ -116,28 +110,25 @@ export function applyLlmHighlights(
       sources.push({ name: item.source, url: item.url });
     }
 
-    const newest = items.reduce((a, b) =>
-      new Date(a.publishedAt) >= new Date(b.publishedAt) ? a : b
-    );
-
     const distinctSources = new Set(sources.map((s) => s.name));
     highlights.push({
       text: row.text.trim(),
       sources,
-      publishedAt: newest.publishedAt,
+      publishedAt: earliestPublishedAt(items.map((i) => i.publishedAt)),
       hot: row.merged || distinctSources.size >= 2,
     });
   }
 
-  // Append any leftover clusters not covered by LLM
   for (const cluster of clusters) {
     if (cluster.ids.every((id) => usedIds.has(id))) continue;
     if (cluster.ids.some((id) => usedIds.has(id))) continue;
-    const [fallback] = clustersToRawHighlights([cluster], 1);
-    if (fallback) highlights.push(fallback);
+    highlights.push(clusterToHighlight(cluster));
   }
 
   highlights.sort((a, b) => {
+    const aSources = a.hot ? a.sources.length : 0;
+    const bSources = b.hot ? b.sources.length : 0;
+    if (aSources !== bSources) return bSources - aSources;
     if (a.hot !== b.hot) return a.hot ? -1 : 1;
     return (
       new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()

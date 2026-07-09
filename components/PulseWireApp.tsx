@@ -15,6 +15,12 @@ import { TIME_WINDOWS } from "@/lib/types";
 const AUTO_REFRESH_MS = 10 * 60_000;
 const THEME_KEY = "pulsewire-theme";
 
+type ClientCache = Map<string, HighlightsResponse>;
+
+function clientKey(section: SectionId, timeWindow: TimeWindow): string {
+  return `${section}|${timeWindow}`;
+}
+
 async function fetchHighlights(
   section: SectionId,
   timeWindow: TimeWindow,
@@ -59,6 +65,7 @@ export function PulseWireApp() {
   const [night, setNight] = useState(readInitialNight);
   const [error, setError] = useState<string | null>(null);
   const requestId = useRef(0);
+  const clientCache = useRef<ClientCache>(new Map());
 
   useEffect(() => {
     document.documentElement.classList.toggle("night", night);
@@ -69,19 +76,57 @@ export function PulseWireApp() {
     }
   }, [night]);
 
+  const showFor = useCallback(
+    (nextSection: SectionId, nextWindow: TimeWindow) => {
+      const cached = clientCache.current.get(clientKey(nextSection, nextWindow));
+      if (cached) {
+        setData(cached);
+        setLoading(false);
+        return true;
+      }
+      // Never show another section's tiles under this tab — skeleton immediately
+      setData(null);
+      setLoading(true);
+      return false;
+    },
+    []
+  );
+
   const load = useCallback(
-    async (opts?: { refresh?: boolean; soft?: boolean }) => {
+    async (
+      targetSection: SectionId,
+      targetWindow: TimeWindow,
+      opts?: { refresh?: boolean; soft?: boolean }
+    ) => {
       const id = ++requestId.current;
       const refresh = Boolean(opts?.refresh);
       const soft = Boolean(opts?.soft);
 
-      if (!soft) setLoading(true);
-      else setRefreshing(true);
+      if (refresh) {
+        // Bust client cache for this section across windows
+        for (const key of Array.from(clientCache.current.keys())) {
+          if (key.startsWith(`${targetSection}|`)) {
+            clientCache.current.delete(key);
+          }
+        }
+      }
+
+      if (!soft && !clientCache.current.has(clientKey(targetSection, targetWindow))) {
+        setLoading(true);
+        setData(null);
+      } else if (soft) {
+        setRefreshing(true);
+      }
       setError(null);
 
       try {
-        const payload = await fetchHighlights(section, timeWindow, refresh);
+        const payload = await fetchHighlights(
+          targetSection,
+          targetWindow,
+          refresh
+        );
         if (id !== requestId.current) return;
+        clientCache.current.set(clientKey(targetSection, targetWindow), payload);
         setData(payload);
       } catch (err) {
         if (id !== requestId.current) return;
@@ -94,37 +139,54 @@ export function PulseWireApp() {
         }
       }
     },
-    [section, timeWindow]
+    []
   );
 
+  // Initial + whenever section/window changes
   useEffect(() => {
-    void load();
-  }, [load]);
+    const hit = showFor(section, timeWindow);
+    void load(section, timeWindow, { soft: hit });
+  }, [section, timeWindow, load, showFor]);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
-      void load({ soft: true });
+      void load(section, timeWindow, { soft: true });
     }, AUTO_REFRESH_MS);
     return () => window.clearInterval(timer);
-  }, [load]);
+  }, [load, section, timeWindow]);
+
+  const onSectionChange = (next: SectionId) => {
+    if (next === section) return;
+    setSection(next);
+  };
+
+  const onWindowChange = (next: TimeWindow) => {
+    if (next === timeWindow) return;
+    setTimeWindow(next);
+  };
 
   const showStale =
     Boolean(data?.stale) || Boolean(data?.sourcesUnreachable);
+
+  // Only show tiles that belong to the active section (guards against race frames)
+  const visibleItems =
+    data && data.section === section ? data.items : [];
+  const showSkeleton = loading || !data || data.section !== section;
 
   return (
     <div className="mx-auto min-h-screen w-full max-w-zine px-3 py-4 sm:px-5 sm:py-6">
       <div className="flex flex-col gap-4">
         <Header
           window={timeWindow}
-          onWindowChange={setTimeWindow}
+          onWindowChange={onWindowChange}
           night={night}
           onToggleNight={() => setNight((v) => !v)}
-          rawMode={Boolean(data?.rawMode)}
+          rawMode={Boolean(data?.rawMode && data.section === section)}
         />
 
-        <SectionTabs value={section} onChange={setSection} />
+        <SectionTabs value={section} onChange={onSectionChange} />
 
-        <StaleBanner show={showStale && !loading} />
+        <StaleBanner show={showStale && !showSkeleton} />
 
         {error ? (
           <div className="pw-tile bg-[var(--card)] p-4 text-[13px] font-bold uppercase tracking-wide text-[var(--ink)]">
@@ -132,7 +194,7 @@ export function PulseWireApp() {
             <button
               type="button"
               className="ml-3 underline"
-              onClick={() => void load({ refresh: true })}
+              onClick={() => void load(section, timeWindow, { refresh: true })}
             >
               Retry
             </button>
@@ -140,17 +202,22 @@ export function PulseWireApp() {
         ) : null}
 
         <BentoGrid
-          items={data?.items ?? []}
-          loading={loading && !data}
+          key={`${section}-${timeWindow}`}
+          items={visibleItems}
+          loading={showSkeleton}
           section={section}
           window={timeWindow}
-          onTryWiderWindow={() => setTimeWindow(nextWiderWindow(timeWindow))}
+          onTryWiderWindow={() => onWindowChange(nextWiderWindow(timeWindow))}
         />
 
         <StatusBar
-          generatedAt={data?.generatedAt ?? null}
+          generatedAt={
+            data && data.section === section ? data.generatedAt : null
+          }
           refreshing={refreshing}
-          onRefresh={() => void load({ refresh: true, soft: true })}
+          onRefresh={() =>
+            void load(section, timeWindow, { refresh: true, soft: true })
+          }
         />
       </div>
     </div>

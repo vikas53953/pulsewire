@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { clearCache } from "@/lib/cache";
 import { getHighlights } from "@/lib/highlights";
+import { startBackgroundWarmer } from "@/lib/warmer";
 import { isSectionId, isTimeWindow } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+
+// Ensure warmer is running even if instrumentation hasn't fired yet
+startBackgroundWarmer();
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
@@ -30,7 +34,13 @@ export async function GET(request: NextRequest) {
 
   try {
     if (forceRefresh) {
+      console.info(
+        `[pulsewire] cache-miss ?refresh=1 clearing section=${sectionParam}`
+      );
       clearCache(sectionParam);
+      if (sectionParam === "all") {
+        clearCache();
+      }
     }
 
     const payload = await getHighlights({

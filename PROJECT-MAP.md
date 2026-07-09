@@ -21,7 +21,10 @@
 - `lib/merge.ts` — Clusters duplicates, pins 🔥 multi-source stories, maps LLM output back to sources.
 - `lib/llm.ts` — One batched Grok call per section (summarize + dedupe); raw-mode on failure.
 - `lib/highlights.ts` — Orchestrates fetch → merge → LLM → cache → window slice.
-- `lib/cache.ts` — In-memory Map cache with dual TTL (10m LLM / ~2m raw-mode).
+- `lib/rank.ts` — Window filter + 🔥-then-recency ranking + older-slot reserve for wide windows.
+- `lib/warmer.ts` — Boots and re-warms every section on a 10-min cycle so tabs hit hot cache.
+- `instrumentation.ts` — Starts the background warmer when the Node server boots.
+- `lib/cache.ts` — In-memory Map cache with dual TTL (10m LLM / ~2m raw-mode) + in-flight refresh lock.
 - `lib/time.ts` — Relative age + source label helpers for tiles.
 - `lib/types.ts` — Shared TypeScript types for sections, windows, and API shapes.
 - `.env.example` — Env var names (no secrets). Copy to `.env.local` for LLM.

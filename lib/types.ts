@@ -64,6 +64,8 @@ export interface SectionScore {
   topBreadth?: number;
   topVelocity?: number;
   topSpanMinutes?: number;
+  /** Tiny heat series for 🔴 chip sparkline (newest last). */
+  velocitySpark?: number[];
 }
 
 export interface VerdictPayload {

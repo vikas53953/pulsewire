@@ -1,4 +1,6 @@
+import { blendWithBaseline } from "./baseline";
 import { isBootWindowCluster, processBootAt } from "./boot";
+import { writeHistorySample } from "./history";
 import type { HighlightItem, SectionScore, TrafficLevel } from "./types";
 import type { ContentSectionId } from "./types";
 import { sectionLabel } from "./types";
@@ -101,13 +103,40 @@ export function sectionRawFromHeats(heats: number[]): number {
 export function scoreSection(
   section: ContentSectionId,
   items: HighlightItem[],
-  now = Date.now()
+  now = Date.now(),
+  opts?: { persistHistory?: boolean }
 ): SectionScore {
   const enriched = items.map((i) => enrichItemHeat(i, now));
   const heats = enriched.map((i) => i.heat ?? 0);
   const raw = sectionRawFromHeats(heats);
-  const score = saturateScore(raw);
+  const scoreV0 = saturateScore(raw);
   const top = [...enriched].sort((a, b) => (b.heat ?? 0) - (a.heat ?? 0))[0];
+  const topBreadth = top
+    ? new Set(top.sources.map((s) => s.name)).size
+    : 0;
+
+  // Moat clock: write every score cycle (warm + request). Skip in PW_TEST
+  // unless explicitly enabled so fixtures stay deterministic.
+  const shouldPersist =
+    opts?.persistHistory ??
+    (process.env.PW_TEST !== "1" || process.env.PW_HISTORY === "1");
+  if (shouldPersist) {
+    writeHistorySample({
+      section,
+      sectionRaw: raw,
+      clusterCount: enriched.length,
+      topBreadth,
+      at: new Date(now),
+    });
+  }
+
+  const blended = blendWithBaseline({
+    section,
+    sectionRaw: raw,
+    scoreV0,
+    at: new Date(now),
+  });
+  const score = blended.score;
 
   let topSpanMinutes: number | undefined;
   if (top) {
@@ -124,18 +153,31 @@ export function scoreSection(
     }
   }
 
+  // Tiny sparkline series for 🔴 chips (last N heats in section, newest last)
+  const velocitySpark =
+    trafficLevel(score) === "red"
+      ? enriched
+          .slice()
+          .sort(
+            (a, b) =>
+              new Date(a.publishedAt).getTime() -
+              new Date(b.publishedAt).getTime()
+          )
+          .slice(-6)
+          .map((i) => Math.round((i.heat ?? 0) * 10) / 10)
+      : undefined;
+
   return {
     section,
     score,
     level: trafficLevel(score),
-    calibrating: false,
+    calibrating: blended.calibrating,
     topHeat: top?.heat,
     topText: top?.text,
-    topBreadth: top
-      ? new Set(top.sources.map((s) => s.name)).size
-      : undefined,
+    topBreadth: topBreadth || undefined,
     topVelocity: top?.velocity,
     topSpanMinutes,
+    velocitySpark,
   };
 }
 

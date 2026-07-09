@@ -15,6 +15,40 @@ const LEVEL_DOT: Record<string, string> = {
   red: "🔴",
 };
 
+/** Tiny zine sparkline for 🔴 chips — heat series, newest on the right. */
+function Spark({ values }: { values: number[] }) {
+  if (!values.length) return null;
+  const max = Math.max(...values, 0.1);
+  const w = 28;
+  const h = 10;
+  const pts = values
+    .map((v, i) => {
+      const x = values.length === 1 ? w / 2 : (i / (values.length - 1)) * w;
+      const y = h - (v / max) * (h - 1) - 0.5;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(" ");
+  return (
+    <svg
+      data-testid="velocity-spark"
+      width={w}
+      height={h}
+      viewBox={`0 0 ${w} ${h}`}
+      className="ml-1 inline-block align-middle"
+      aria-hidden
+    >
+      <polyline
+        points={pts}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 export function ScoreChips({ scores, active, onSelect }: ScoreChipsProps) {
   const byId = new Map(scores.map((s) => [s.section, s]));
 
@@ -44,6 +78,7 @@ export function ScoreChips({ scores, active, onSelect }: ScoreChipsProps) {
         const value = score?.score ?? 0;
         const level = score?.level ?? "green";
         const selected = active === id;
+        const calibrating = Boolean(score?.calibrating);
         return (
           <button
             key={id}
@@ -53,9 +88,10 @@ export function ScoreChips({ scores, active, onSelect }: ScoreChipsProps) {
             data-testid={`chip-${id}`}
             data-level={level}
             data-score={value}
+            data-calibrating={calibrating ? "1" : "0"}
             title={
-              score?.calibrating
-                ? `${id} calibrating`
+              calibrating
+                ? `${id} pulse ${value} · calibrating (need 14 samples in this hour×weekday)`
                 : `${id} pulse ${value}`
             }
             onClick={() => onSelect(id)}
@@ -67,6 +103,17 @@ export function ScoreChips({ scores, active, onSelect }: ScoreChipsProps) {
           >
             {sectionChip(id)} {value}
             {LEVEL_DOT[level]}
+            {calibrating ? (
+              <span
+                data-testid={`calibrating-${id}`}
+                className="ml-1 text-[9px] opacity-60"
+              >
+                ~
+              </span>
+            ) : null}
+            {level === "red" && score?.velocitySpark?.length ? (
+              <Spark values={score.velocitySpark} />
+            ) : null}
           </button>
         );
       })}

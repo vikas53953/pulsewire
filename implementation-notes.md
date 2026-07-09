@@ -86,7 +86,14 @@ Windows looked identical because (1) the cache was effectively window-shaped / s
 - Ranking: heat desc + age-diversity for 4h+ + fewer-stronger (floor 15% of top heat, cap 9).
 - Full flash headlines (≤160 chars). Quiet = designed hero, not empty apology.
 - **Boot-window velocity suppression:** clusters whose every `firstSeen` falls within 5 min of process boot score velocity=1 (breadth only). Prevents false 🔴 after restart/deploy (same trap on Vercel cold starts).
-- No SQLite yet — M5 starts history writer day one.
+
+## M5 — Baselines & history (done)
+
+- SQLite `section_history` via `better-sqlite3` (`data/pulsewire.db`, override `PULSEWIRE_DB_PATH`). Writer runs on every `scoreSection` cycle (warm + request) — starts the 60-day moat clock immediately.
+- Baseline = median + MAD of `sectionRaw` for IST **hour × weekday**, trailing 60 days. `PulseScore_v1 = 0.6*v0 + 0.4*sigmoid(deviation)*100`. Bucket &lt;14 samples → v0 + `calibrating` (chip shows `~`).
+- Velocity sparkline on 🔴 chips (`velocitySpark` heat series).
+- Under `PW_TEST=1`, writer is off unless `PW_HISTORY=1` (Playwright webServer sets both + isolated temp DB).
+- Gate: `tests/gate-m5-baselines.spec.ts` (persist + reopen, seeded blend, calibrating UI, median/MAD math).
 
 ## v1.1 — NEW stickers + X Pulse (done)
 

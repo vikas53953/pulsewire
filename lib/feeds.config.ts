@@ -1,11 +1,22 @@
 import type { FeedConfig } from "./types";
 
+const GN = "hl=en-IN&gl=IN&ceid=IN:en";
+
+function googleTopic(topic: string): string {
+  return `https://news.google.com/rss/headlines/section/topic/${topic}?${GN}`;
+}
+
+function googleSearch(query: string): string {
+  return `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&${GN}`;
+}
+
 /**
- * Curated breaking / top-story feeds only.
+ * Hybrid feed list: Google News India-edition topic/search feeds as the broad net,
+ * plus 2–3 direct top-story feeds as the fast lane.
  * Dead feeds swapped at build time are noted in implementation-notes.md.
  */
 export const FEEDS: FeedConfig[] = [
-  // India
+  // India — direct + Google NATION
   {
     section: "india",
     name: "NDTV",
@@ -26,12 +37,12 @@ export const FEEDS: FeedConfig[] = [
   },
   {
     section: "india",
-    name: "The Hindu",
-    url: "https://www.thehindu.com/news/national/feeder/default.rss",
+    name: "Google News India",
+    url: googleTopic("NATION"),
     weight: 1,
   },
 
-  // Markets
+  // Markets — direct + Google BUSINESS
   {
     section: "markets",
     name: "Moneycontrol",
@@ -50,8 +61,14 @@ export const FEEDS: FeedConfig[] = [
     url: "https://www.livemint.com/rss/markets",
     weight: 1,
   },
+  {
+    section: "markets",
+    name: "Google News Business",
+    url: googleTopic("BUSINESS"),
+    weight: 1,
+  },
 
-  // Economy
+  // Economy — direct + Google search
   {
     section: "economy",
     name: "Economic Times",
@@ -70,8 +87,14 @@ export const FEEDS: FeedConfig[] = [
     url: "https://www.livemint.com/rss/economy",
     weight: 1,
   },
+  {
+    section: "economy",
+    name: "Google News Economy",
+    url: googleSearch("India economy when:1d"),
+    weight: 1,
+  },
 
-  // Politics
+  // Politics — direct + Google search
   {
     section: "politics",
     name: "The Hindu",
@@ -90,8 +113,14 @@ export const FEEDS: FeedConfig[] = [
     url: "https://feeds.feedburner.com/ndtvnews-india-news",
     weight: 1,
   },
+  {
+    section: "politics",
+    name: "Google News Politics",
+    url: googleSearch("India politics when:1d"),
+    weight: 1,
+  },
 
-  // Sports
+  // Sports — direct + Google SPORTS
   {
     section: "sports",
     name: "ESPNcricinfo",
@@ -110,8 +139,14 @@ export const FEEDS: FeedConfig[] = [
     url: "https://feeds.feedburner.com/ndtvsports-latest",
     weight: 1,
   },
+  {
+    section: "sports",
+    name: "Google News Sports",
+    url: googleTopic("SPORTS"),
+    weight: 1,
+  },
 
-  // World
+  // World — direct + Google WORLD
   {
     section: "world",
     name: "BBC",
@@ -127,11 +162,11 @@ export const FEEDS: FeedConfig[] = [
   {
     section: "world",
     name: "Google News World",
-    url: "https://news.google.com/rss/headlines/section/topic/WORLD?hl=en-IN&gl=IN&ceid=IN:en",
+    url: googleTopic("WORLD"),
     weight: 1,
   },
 
-  // Tech
+  // Tech — direct + Google TECHNOLOGY
   {
     section: "tech",
     name: "TechCrunch",
@@ -147,7 +182,7 @@ export const FEEDS: FeedConfig[] = [
   {
     section: "tech",
     name: "Google News Tech",
-    url: "https://news.google.com/rss/headlines/section/topic/TECHNOLOGY?hl=en-IN&gl=IN&ceid=IN:en",
+    url: googleTopic("TECHNOLOGY"),
     weight: 1,
   },
 ];

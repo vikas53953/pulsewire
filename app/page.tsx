@@ -25,6 +25,7 @@ export default async function HomePage() {
     isOlderThanWindow(item.publishedAt, 4)
   );
   const missingTs = data.items.filter((item) => !item.publishedAt);
+  const hotCount = data.items.filter((item) => item.hot).length;
   const gatePass =
     data.items.length > 0 && older.length === 0 && missingTs.length === 0;
 
@@ -38,7 +39,7 @@ export default async function HomePage() {
           ⚡ PulseWire
         </h1>
         <p className="mt-2 text-sm text-[var(--muted)]">
-          M1 feed engine gate check — Markets · last 4h
+          M2 plumbing check — Markets · last 4h (UI design locked at M3)
         </p>
       </header>
 
@@ -50,13 +51,20 @@ export default async function HomePage() {
         }`}
       >
         <p className="font-semibold">
-          Gate: {gatePass ? "PASS" : "FAIL"}
+          Data gate: {gatePass ? "PASS" : "FAIL"}
         </p>
         <p className="mt-1 opacity-90">
-          {data.items.length} items · older-than-4h: {older.length} · missing
-          timestamps: {missingTs.length} · stale: {String(data.stale)} ·
-          rawMode: {String(data.rawMode)}
+          {data.items.length} items · 🔥 merged: {hotCount} · older-than-4h:{" "}
+          {older.length} · stale: {String(data.stale)} · rawMode:{" "}
+          {String(data.rawMode)}
         </p>
+        {data.rawMode ? (
+          <p className="mt-2 text-xs opacity-80">
+            Raw mode active (no LLM key or LLM failed). Add{" "}
+            <code>LLM_API_KEY</code> to <code>.env.local</code> — raw cache TTL
+            is ~2 min so Grok retries quickly after recovery.
+          </p>
+        ) : null}
       </section>
 
       <section className="space-y-3">
@@ -77,11 +85,13 @@ export default async function HomePage() {
                   rel="noreferrer"
                   className="block text-sm leading-snug text-[var(--fg)] hover:text-[var(--accent)]"
                 >
+                  {item.hot ? <span aria-hidden>🔥 </span> : null}
                   {item.text}
                 </a>
                 <p className="mt-1 text-xs text-[var(--muted)]">
-                  {item.sources.map((s) => s.name).join(" · ")} ·{" "}
-                  {ageLabel(item.publishedAt)} ·{" "}
+                  {item.sources.map((s) => s.name).join(" · ")}
+                  {item.hot ? ` · covered by ${item.sources.length} sources` : ""}{" "}
+                  · {ageLabel(item.publishedAt)} ·{" "}
                   <code className="text-[10px]">{item.publishedAt}</code>
                 </p>
               </li>
@@ -91,15 +101,12 @@ export default async function HomePage() {
       </section>
 
       <section className="space-y-2 text-xs text-[var(--muted)]">
-        <p>
-          Raw JSON (may look blank in some browsers — use View Source or the
-          list above):
-        </p>
+        <p>API:</p>
         <a
           className="inline-block text-[var(--accent)] underline-offset-2 hover:underline"
-          href="/api/highlights?section=markets&window=4h"
+          href="/api/highlights?section=markets&window=4h&refresh=1"
         >
-          /api/highlights?section=markets&amp;window=4h
+          /api/highlights?section=markets&amp;window=4h&amp;refresh=1
         </a>
       </section>
     </main>

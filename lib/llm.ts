@@ -1,0 +1,148 @@
+import type { RawFeedItem } from "./types";
+
+const SYSTEM_PROMPT = `You are a wire-desk editor. You receive raw news items. Return ONLY valid JSON:
+{ "highlights": [ { "ids": [merged item ids], "text": "<one factual sentence, max 20 words, no opinion, no clickbait>", "merged": true|false } ] }
+Rules: merge items that describe the same event; never invent facts not present
+in the input; keep numbers and names exact; write in neutral English.`;
+
+export interface LlmHighlightRow {
+  ids: string[];
+  text: string;
+  merged: boolean;
+}
+
+export interface LlmResult {
+  highlights: LlmHighlightRow[];
+  rawMode: boolean;
+  error?: string;
+}
+
+function getEnv(name: string, fallback = ""): string {
+  return (process.env[name] ?? fallback).trim();
+}
+
+export function isLlmConfigured(): boolean {
+  return Boolean(getEnv("LLM_API_KEY"));
+}
+
+function stripFences(text: string): string {
+  const trimmed = text.trim();
+  const fenced = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+  return fenced ? fenced[1].trim() : trimmed;
+}
+
+function parseLlmJson(text: string): LlmHighlightRow[] | null {
+  try {
+    const parsed = JSON.parse(stripFences(text)) as {
+      highlights?: Array<{ ids?: unknown; text?: unknown; merged?: unknown }>;
+    };
+    if (!parsed?.highlights || !Array.isArray(parsed.highlights)) return null;
+
+    const rows: LlmHighlightRow[] = [];
+    for (const row of parsed.highlights) {
+      if (!row || typeof row.text !== "string") continue;
+      const ids = Array.isArray(row.ids)
+        ? row.ids.filter((id): id is string => typeof id === "string")
+        : [];
+      if (ids.length === 0) continue;
+      rows.push({
+        ids,
+        text: row.text.trim(),
+        merged: Boolean(row.merged) || ids.length > 1,
+      });
+    }
+    return rows.length ? rows : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * One batched LLM call per section refresh. On any failure → rawMode.
+ */
+export async function summarizeAndDedupe(
+  items: RawFeedItem[]
+): Promise<LlmResult> {
+  if (!items.length) {
+    return { highlights: [], rawMode: true, error: "empty input" };
+  }
+
+  if (!isLlmConfigured()) {
+    return {
+      highlights: [],
+      rawMode: true,
+      error: "LLM_API_KEY not set",
+    };
+  }
+
+  const baseUrl = getEnv("LLM_BASE_URL", "https://api.x.ai/v1").replace(
+    /\/$/,
+    ""
+  );
+  const model = getEnv("LLM_MODEL", "grok-4.5");
+  const apiKey = getEnv("LLM_API_KEY");
+
+  const payload = items.map((item) => ({
+    id: item.id,
+    title: item.title,
+    snippet: item.snippet,
+    source: item.source,
+    publishedAt: item.publishedAt,
+  }));
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 45_000);
+
+  try {
+    const res = await fetch(`${baseUrl}/chat/completions`, {
+      method: "POST",
+      signal: controller.signal,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        temperature: 0.2,
+        response_format: { type: "json_object" },
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          {
+            role: "user",
+            content: JSON.stringify({ items: payload }),
+          },
+        ],
+      }),
+    });
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      return {
+        highlights: [],
+        rawMode: true,
+        error: `LLM HTTP ${res.status}: ${body.slice(0, 200)}`,
+      };
+    }
+
+    const data = (await res.json()) as {
+      choices?: Array<{ message?: { content?: string } }>;
+    };
+    const content = data.choices?.[0]?.message?.content ?? "";
+    const highlights = parseLlmJson(content);
+    if (!highlights) {
+      return {
+        highlights: [],
+        rawMode: true,
+        error: "LLM returned unparseable JSON",
+      };
+    }
+
+    return { highlights, rawMode: false };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(`[pulsewire] LLM failed: ${message}`);
+    return { highlights: [], rawMode: true, error: message };
+  } finally {
+    clearTimeout(timer);
+  }
+}

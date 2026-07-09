@@ -1,11 +1,12 @@
 import { getCache, getMaxItems, setCache, type CacheEntry } from "./cache";
-import {
-  fetchAllPools,
-  fetchSectionPool,
-  filterByWindow,
-  toRawHighlights,
-} from "./feed-engine";
+import { fetchAllPools, fetchSectionPool, filterByWindow } from "./feed-engine";
 import { CONTENT_SECTIONS } from "./feeds.config";
+import { summarizeAndDedupe } from "./llm";
+import {
+  applyLlmHighlights,
+  clusterBySimilarity,
+  clustersToRawHighlights,
+} from "./merge";
 import type {
   HighlightItem,
   HighlightsResponse,
@@ -13,22 +14,40 @@ import type {
   SectionId,
   TimeWindow,
 } from "./types";
+import { windowToMs } from "./types";
 
-function buildFromPool(
+async function buildFromPool(
   section: Exclude<SectionId, "all">,
   pool: RawFeedItem[],
   sourcesUnreachable: boolean
-): CacheEntry {
-  // M1: raw titles only. M2 will replace with LLM + merge.
-  const items = toRawHighlights(pool, Math.max(getMaxItems() * 3, 30)).map(
-    (item) => item
+): Promise<CacheEntry> {
+  const maxItems = Math.max(getMaxItems() * 3, 30);
+  const capped = pool.slice(0, maxItems);
+  const clusters = clusterBySimilarity(capped, 0.6);
+
+  let items: HighlightItem[];
+  let rawMode = true;
+
+  const llm = await summarizeAndDedupe(
+    clusters.flatMap((c) => c.items).slice(0, 40)
   );
+
+  if (!llm.rawMode && llm.highlights.length > 0) {
+    items = applyLlmHighlights(clusters, llm.highlights, maxItems);
+    rawMode = false;
+  } else {
+    if (llm.error) {
+      console.warn(`[pulsewire] raw mode for ${section}: ${llm.error}`);
+    }
+    items = clustersToRawHighlights(clusters, maxItems);
+    rawMode = true;
+  }
 
   return {
     section,
     generatedAt: new Date().toISOString(),
     items,
-    rawMode: true,
+    rawMode,
     sourcesUnreachable,
     poolCount: pool.length,
   };
@@ -38,7 +57,7 @@ async function refreshSection(
   section: Exclude<SectionId, "all">
 ): Promise<CacheEntry> {
   const result = await fetchSectionPool(section);
-  const entry = buildFromPool(
+  const entry = await buildFromPool(
     section,
     result.items,
     result.sourcesUnreachable
@@ -51,10 +70,11 @@ async function refreshAll(): Promise<CacheEntry> {
   const { bySection } = await fetchAllPools();
   const perSection: HighlightItem[] = [];
   let anyReachable = false;
+  let anyLlm = false;
 
   for (const section of CONTENT_SECTIONS) {
     const result = bySection[section];
-    const sectionEntry = buildFromPool(
+    const sectionEntry = await buildFromPool(
       section,
       result.items,
       result.sourcesUnreachable
@@ -62,22 +82,24 @@ async function refreshAll(): Promise<CacheEntry> {
     setCache(section, sectionEntry);
 
     if (!result.sourcesUnreachable) anyReachable = true;
+    if (!sectionEntry.rawMode) anyLlm = true;
 
-    // All tab: top 4 newest from each section (within 24h pool)
-    const top = toRawHighlights(result.items, 4);
-    perSection.push(...top);
+    // All tab: top 4 from each section (hot first already)
+    perSection.push(...sectionEntry.items.slice(0, 4));
   }
 
-  perSection.sort(
-    (a, b) =>
+  perSection.sort((a, b) => {
+    if (a.hot !== b.hot) return a.hot ? -1 : 1;
+    return (
       new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
-  );
+    );
+  });
 
   const entry: CacheEntry = {
     section: "all",
     generatedAt: new Date().toISOString(),
     items: perSection.slice(0, getMaxItems() * 2),
-    rawMode: true,
+    rawMode: !anyLlm,
     sourcesUnreachable: !anyReachable,
     poolCount: perSection.length,
   };
@@ -89,19 +111,19 @@ function sliceForWindow(
   entry: CacheEntry,
   window: TimeWindow
 ): HighlightItem[] {
-  const maxAge =
-    window === "1h"
-      ? 3_600_000
-      : window === "4h"
-        ? 14_400_000
-        : window === "12h"
-          ? 43_200_000
-          : 86_400_000;
-
+  const maxAge = windowToMs(window);
   const now = Date.now();
   const filtered = entry.items.filter((item) => {
     const age = now - new Date(item.publishedAt).getTime();
     return age >= 0 && age <= maxAge;
+  });
+
+  // Keep 🔥 pinned, then recency
+  filtered.sort((a, b) => {
+    if (a.hot !== b.hot) return a.hot ? -1 : 1;
+    return (
+      new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
+    );
   });
 
   return filtered.slice(0, getMaxItems());
@@ -128,7 +150,6 @@ export async function getHighlights(options: {
       };
     }
 
-    // Stale-while-revalidate: serve stale immediately if present
     if (cached.entry) {
       void (section === "all" ? refreshAll() : refreshSection(section));
       return {
@@ -157,5 +178,4 @@ export async function getHighlights(options: {
   };
 }
 
-// Re-export for tests / debugging
 export { filterByWindow };

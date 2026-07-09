@@ -53,7 +53,6 @@ export function getHistoryDb(): Database.Database {
     return globalForDb.__pulsewireDb;
   }
 
-  // Stale WAL from a prior journal mode can make the DB appear readonly.
   if (globalForDb.__pulsewireDb) {
     try {
       globalForDb.__pulsewireDb.close();
@@ -65,17 +64,8 @@ export function getHistoryDb(): Database.Database {
   }
 
   ensureParentDir(resolved);
-  // Drop leftover WAL/SHM from prior runs so journal_mode can switch cleanly.
-  for (const suffix of ["-wal", "-shm"]) {
-    try {
-      fs.unlinkSync(resolved + suffix);
-    } catch {
-      // ignore
-    }
-  }
   const db = new Database(resolved);
-  // DELETE journal: single file on disk — restart/reopen asserts stay simple under Next.
-  db.pragma("journal_mode = DELETE");
+  db.pragma("journal_mode = WAL");
   db.pragma("busy_timeout = 5000");
   db.exec(`
     CREATE TABLE IF NOT EXISTS section_history (

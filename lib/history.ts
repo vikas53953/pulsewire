@@ -217,7 +217,16 @@ export function seedHistoryForTests(samples: HistorySample[]): void {
 
 export function closeHistoryDbForTests(): void {
   if (globalForDb.__pulsewireDb) {
-    globalForDb.__pulsewireDb.close();
+    try {
+      globalForDb.__pulsewireDb.pragma("wal_checkpoint(FULL)");
+    } catch {
+      // ignore
+    }
+    try {
+      globalForDb.__pulsewireDb.close();
+    } catch {
+      // ignore
+    }
     globalForDb.__pulsewireDb = undefined;
     globalForDb.__pulsewireDbPath = undefined;
   }

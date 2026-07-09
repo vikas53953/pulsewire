@@ -230,12 +230,12 @@ export function closeHistoryDbForTests(): void {
  * Persistence proof for M5 gate: backup live DB → open copy → count rows.
  * Avoids closing the singleton (flaky under Next/WAL multi-graph).
  */
-export function assertHistoryPersistsForTests(): {
+export async function assertHistoryPersistsForTests(): Promise<{
   path: string;
   countBefore: number;
   countAfter: number;
   exists: boolean;
-} {
+}> {
   const before = countHistorySamples();
   const resolved = resolveHistoryDbPath();
   const db = getHistoryDb();
@@ -245,7 +245,7 @@ export function assertHistoryPersistsForTests(): {
   } catch {
     // ignore
   }
-  db.backup(backupPath);
+  await db.backup(backupPath);
   const fresh = new Database(backupPath, { fileMustExist: true });
   try {
     const row = fresh

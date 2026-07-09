@@ -5,7 +5,13 @@ import { BentoGrid, StaleBanner } from "@/components/BentoGrid";
 import { Header } from "@/components/Header";
 import { SectionTabs } from "@/components/SectionTabs";
 import { StatusBar } from "@/components/StatusBar";
+import {
+  isNewerThanLastVisit,
+  readLastVisit,
+  writeLastVisit,
+} from "@/lib/last-visit";
 import type {
+  HighlightItem,
   HighlightsResponse,
   SectionId,
   TimeWindow,
@@ -19,6 +25,16 @@ type ClientCache = Map<string, HighlightsResponse>;
 
 function clientKey(section: SectionId, timeWindow: TimeWindow): string {
   return `${section}|${timeWindow}`;
+}
+
+function markNewItems(
+  items: HighlightItem[],
+  lastVisit: number | null
+): HighlightItem[] {
+  return items.map((item) => ({
+    ...item,
+    isNew: isNewerThanLastVisit(item.publishedAt, lastVisit),
+  }));
 }
 
 async function fetchHighlights(
@@ -66,6 +82,14 @@ export function PulseWireApp() {
   const [error, setError] = useState<string | null>(null);
   const requestId = useRef(0);
   const clientCache = useRef<ClientCache>(new Map());
+  const lastVisitRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    lastVisitRef.current = readLastVisit();
+    const onHide = () => writeLastVisit(Date.now());
+    window.addEventListener("pagehide", onHide);
+    return () => window.removeEventListener("pagehide", onHide);
+  }, []);
 
   useEffect(() => {
     document.documentElement.classList.toggle("night", night);
@@ -80,11 +104,13 @@ export function PulseWireApp() {
     (nextSection: SectionId, nextWindow: TimeWindow) => {
       const cached = clientCache.current.get(clientKey(nextSection, nextWindow));
       if (cached) {
-        setData(cached);
+        setData({
+          ...cached,
+          items: markNewItems(cached.items, lastVisitRef.current),
+        });
         setLoading(false);
         return true;
       }
-      // Never show another section's tiles under this tab — skeleton immediately
       setData(null);
       setLoading(true);
       return false;
@@ -103,7 +129,6 @@ export function PulseWireApp() {
       const soft = Boolean(opts?.soft);
 
       if (refresh) {
-        // Bust client cache for this section across windows
         for (const key of Array.from(clientCache.current.keys())) {
           if (key.startsWith(`${targetSection}|`)) {
             clientCache.current.delete(key);
@@ -111,7 +136,10 @@ export function PulseWireApp() {
         }
       }
 
-      if (!soft && !clientCache.current.has(clientKey(targetSection, targetWindow))) {
+      if (
+        !soft &&
+        !clientCache.current.has(clientKey(targetSection, targetWindow))
+      ) {
         setLoading(true);
         setData(null);
       } else if (soft) {
@@ -126,8 +154,15 @@ export function PulseWireApp() {
           refresh
         );
         if (id !== requestId.current) return;
-        clientCache.current.set(clientKey(targetSection, targetWindow), payload);
-        setData(payload);
+        const withNew = {
+          ...payload,
+          items: markNewItems(payload.items, lastVisitRef.current),
+        };
+        clientCache.current.set(
+          clientKey(targetSection, targetWindow),
+          withNew
+        );
+        setData(withNew);
       } catch (err) {
         if (id !== requestId.current) return;
         const message = err instanceof Error ? err.message : String(err);
@@ -142,7 +177,6 @@ export function PulseWireApp() {
     []
   );
 
-  // Initial + whenever section/window changes
   useEffect(() => {
     const hit = showFor(section, timeWindow);
     void load(section, timeWindow, { soft: hit });
@@ -168,7 +202,6 @@ export function PulseWireApp() {
   const showStale =
     Boolean(data?.stale) || Boolean(data?.sourcesUnreachable);
 
-  // Only show tiles that belong to the active section (guards against race frames)
   const visibleItems =
     data && data.section === section ? data.items : [];
   const showSkeleton = loading || !data || data.section !== section;
@@ -217,6 +250,11 @@ export function PulseWireApp() {
           refreshing={refreshing}
           onRefresh={() =>
             void load(section, timeWindow, { refresh: true, soft: true })
+          }
+          xPulseUsage={
+            section === "xpulse" && data?.section === "xpulse"
+              ? data.xPulseUsage
+              : undefined
           }
         />
       </div>

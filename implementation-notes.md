@@ -78,9 +78,20 @@ Windows looked identical because (1) the cache was effectively window-shaped / s
 - CI: `.github/workflows/e2e.yml` with HTML report artifacts.
 - Standing rule: every future milestone ships with Playwright specs; suite is cumulative.
 
-## Deferred (v1.1 — not built until gate green)
-- NEW stickers since last visit (localStorage)
+## v1.1 — NEW stickers + X Pulse (done)
+
+### NEW stickers
+- `localStorage` key `pulsewire-last-visit` stores the previous session end (`pagehide`).
+- Tiles with `publishedAt` after that timestamp get a red **NEW** sticker (client-side `isNew`).
+- First visit (no key) → zero NEW stickers (nothing to compare against).
+
+### X Pulse
+- New section tab `xpulse` (`⚡ X Pulse`).
+- Uses xAI **Responses API** + built-in `x_search` tool (Live Search successor) — not the official X API.
+- Monthly hard cap via `X_PULSE_MONTHLY_CAP` (default 60); usage shown in footer on that tab.
+- `PW_TEST=1` serves fixture pulses (no live x_search). Specs in `tests/gate-v11.spec.ts`.
+
+### Still deferred
 - WhatsApp share on tiles
 - PWA install + offline last bento
 - 60-second brief / swipe cards
-- ⚡ X Pulse via Grok Live Search (with hard monthly cap)

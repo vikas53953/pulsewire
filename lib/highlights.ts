@@ -16,18 +16,20 @@ import {
 } from "./merge";
 import { rankAndCapForWindow } from "./rank";
 import type {
+  ContentSectionId,
   HighlightItem,
   HighlightsResponse,
   RawFeedItem,
   SectionId,
   TimeWindow,
 } from "./types";
+import { getXPulseHighlights } from "./x-pulse";
 
 /** Keep a large 24h pool in cache; window + cap applied at request time. */
 const POOL_CAP = 80;
 
 async function buildFromPool(
-  section: Exclude<SectionId, "all">,
+  section: ContentSectionId,
   pool: RawFeedItem[],
   sourcesUnreachable: boolean
 ): Promise<CacheEntry> {
@@ -65,7 +67,7 @@ async function buildFromPool(
 }
 
 export async function refreshSection(
-  section: Exclude<SectionId, "all">
+  section: ContentSectionId
 ): Promise<CacheEntry> {
   const existing = getRefreshing(section);
   if (existing) return existing;
@@ -86,7 +88,7 @@ export async function refreshSection(
 }
 
 function buildAllFromSections(
-  bySection: Record<Exclude<SectionId, "all">, CacheEntry>
+  bySection: Record<ContentSectionId, CacheEntry>
 ): CacheEntry {
   const perSection: HighlightItem[] = [];
   let anyReachable = false;
@@ -126,7 +128,7 @@ export async function refreshAll(): Promise<CacheEntry> {
 
   const promise = (async () => {
     const { bySection } = await fetchAllPools();
-    const entries = {} as Record<Exclude<SectionId, "all">, CacheEntry>;
+    const entries = {} as Record<ContentSectionId, CacheEntry>;
 
     // Build sections sequentially for LLM rate limits; feeds already fetched in parallel
     for (const section of CONTENT_SECTIONS) {
@@ -162,6 +164,10 @@ export async function getHighlights(options: {
   forceRefresh?: boolean;
 }): Promise<HighlightsResponse> {
   const { section, window, forceRefresh = false } = options;
+
+  if (section === "xpulse") {
+    return getXPulseHighlights({ window, forceRefresh });
+  }
 
   if (forceRefresh) {
     console.info(

@@ -1,19 +1,19 @@
-import type { FeedConfig, RawFeedItem, SectionId } from "./types";
+import type { ContentSectionId, FeedConfig, RawFeedItem } from "./types";
 
 export function isTestMode(): boolean {
   return process.env.PW_TEST === "1";
 }
 
 export function isLlmFailForced(): boolean {
-  return process.env.PW_LLM_FAIL === "1" || getOverrides().llmFail;
+  return process.env.PW_LLM_FAIL === "1" || Boolean(getOverrides().llmFail);
 }
 
 export function isFeedsDownForced(): boolean {
-  return process.env.PW_FEEDS_DOWN === "1" || getOverrides().feedsDown;
+  return process.env.PW_FEEDS_DOWN === "1" || Boolean(getOverrides().feedsDown);
 }
 
 export function isEmptyForced(): boolean {
-  return getOverrides().empty;
+  return Boolean(getOverrides().empty);
 }
 
 export interface TestOverrides {
@@ -55,7 +55,7 @@ function ago(minutes: number, now = Date.now()): string {
 }
 
 function item(
-  section: Exclude<SectionId, "all">,
+  section: ContentSectionId,
   source: string,
   title: string,
   minutesAgo: number,
@@ -79,7 +79,7 @@ function item(
  * Ages: 10m, 50m, 3h, 9h (cross-source duplicate), 20h + section-specific fillers.
  */
 export function fixtureItemsForSection(
-  section: Exclude<SectionId, "all">
+  section: ContentSectionId
 ): RawFeedItem[] {
   if (isFeedsDownForced() || isEmptyForced()) return [];
 

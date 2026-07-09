@@ -49,19 +49,28 @@ export function HighlightTile({
   const clickable = Boolean(href);
   const { bg, fg } = toneStyles(tone);
   const sourceNames = item.sources.map((s) => s.name);
-  const showSticker = mega && item.hot && item.sources.length >= 2;
+  const showHotSticker = mega && item.hot && item.sources.length >= 2;
+  const showNewSticker = Boolean(item.isNew);
   const testId = tileTestId(item, index);
 
   const body = (
     <>
-      {showSticker ? (
-        <span
-          className="absolute -top-2.5 right-2.5 z-10"
-          data-testid="hot-sticker"
-        >
-          <Sticker>{`🔥 ${item.sources.length} SOURCES`}</Sticker>
+      {(showHotSticker || showNewSticker) && (
+        <span className="absolute -top-2.5 right-2.5 z-10 flex flex-col items-end gap-1">
+          {showHotSticker ? (
+            <span data-testid="hot-sticker">
+              <Sticker>{`🔥 ${item.sources.length} SOURCES`}</Sticker>
+            </span>
+          ) : null}
+          {showNewSticker ? (
+            <span data-testid="new-sticker">
+              <Sticker className="!bg-[var(--mega)] !text-[var(--mega-fg)]">
+                NEW
+              </Sticker>
+            </span>
+          ) : null}
         </span>
-      ) : null}
+      )}
 
       <p
         data-testid="tile-text"

@@ -8,7 +8,7 @@ import {
   isFeedsDownForced,
   isTestMode,
 } from "./test-mode";
-import type { FeedConfig, RawFeedItem, SectionId } from "./types";
+import type { ContentSectionId, FeedConfig, RawFeedItem } from "./types";
 import { windowToMs, type TimeWindow } from "./types";
 
 const FEED_TIMEOUT_MS = 8_000;
@@ -138,7 +138,7 @@ export interface SectionFetchResult {
 }
 
 export async function fetchSectionPool(
-  section: Exclude<SectionId, "all">
+  section: ContentSectionId
 ): Promise<SectionFetchResult> {
   if (isTestMode()) {
     if (isFeedsDownForced()) {
@@ -182,7 +182,7 @@ export async function fetchSectionPool(
 }
 
 export async function fetchAllPools(): Promise<{
-  bySection: Record<Exclude<SectionId, "all">, SectionFetchResult>;
+  bySection: Record<ContentSectionId, SectionFetchResult>;
 }> {
   const sections = [
     "india",
@@ -200,7 +200,7 @@ export async function fetchAllPools(): Promise<{
 
   return {
     bySection: Object.fromEntries(entries) as Record<
-      Exclude<SectionId, "all">,
+      ContentSectionId,
       SectionFetchResult
     >,
   };

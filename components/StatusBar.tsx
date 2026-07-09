@@ -4,6 +4,7 @@ type StatusBarProps = {
   generatedAt: string | null;
   refreshing: boolean;
   onRefresh: () => void;
+  xPulseUsage?: { month: string; used: number; cap: number };
 };
 
 function updatedLabel(generatedAt: string | null): string {
@@ -20,11 +21,18 @@ export function StatusBar({
   generatedAt,
   refreshing,
   onRefresh,
+  xPulseUsage,
 }: StatusBarProps) {
   return (
     <footer className="flex flex-wrap items-center justify-center gap-2 border-t-2 border-[var(--ink)] pt-4 text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--ink)]">
       <span>
         {updatedLabel(generatedAt)} · auto-refresh 10 min
+        {xPulseUsage ? (
+          <span data-testid="xpulse-usage">
+            {" "}
+            · X Pulse {xPulseUsage.used}/{xPulseUsage.cap} this month
+          </span>
+        ) : null}
       </span>
       <button
         type="button"

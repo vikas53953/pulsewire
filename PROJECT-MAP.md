@@ -32,8 +32,10 @@
 - `M3-design-brief-bento-zine.md` — Locked visual contract for the UI (Bento Zine).
 - `implementation-notes.md` — Deviations from the spec (feed swaps, light default, etc.).
 - `lib/test-mode.ts` — PW_TEST=1 fixture pool + per-request overrides (llm fail / feeds down / empty).
+- `lib/last-visit.ts` — localStorage last-visit helpers for NEW stickers.
+- `lib/x-pulse.ts` — X Pulse via Grok Responses API + x_search; monthly cap; PW_TEST fixtures.
 - `fixtures/feeds/` — Committed sample RSS documenting controlled ages; runtime serves in-memory fixtures.
-- `tests/` — Playwright gate: bugs.spec, gate-m1-m2, gate-m3-ui (chromium desktop + mobile).
+- `tests/` — Playwright gate: bugs, gate-m1-m2, gate-m3-ui, gate-v11 (NEW + X Pulse).
 - `playwright.config.ts` — webServer with PW_TEST=1; projects 1280×900 and 360×740.
 - `.github/workflows/e2e.yml` — CI: install, build, test:e2e, upload HTML report + traces.
 - `PROJECT-MAP.md` — This file.

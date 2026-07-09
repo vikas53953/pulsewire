@@ -38,7 +38,7 @@ test.describe("M3 Bento Zine UI gate", () => {
   test("every tab × window renders without pageerror", async ({ page }) => {
     test.skip(
       test.info().project.name !== "chromium-desktop",
-      "32 combos once"
+      "all section×window combos once"
     );
 
     const errors: string[] = [];
@@ -79,7 +79,7 @@ test.describe("M3 Bento Zine UI gate", () => {
     );
 
     // --- loading skeleton (hold first API response until we assert) ---
-    let releaseFirst: (() => void) | null = null;
+    let releaseFirst = () => {};
     const firstGate = new Promise<void>((resolve) => {
       releaseFirst = resolve;
     });
@@ -95,7 +95,7 @@ test.describe("M3 Bento Zine UI gate", () => {
     await expect(page.getByTestId("bento-skeleton")).toBeVisible({
       timeout: 2_000,
     });
-    releaseFirst?.();
+    releaseFirst();
     await waitForGrid(page);
     await page.unrouteAll({ behavior: "ignoreErrors" });
 

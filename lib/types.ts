@@ -6,12 +6,15 @@ export type SectionId =
   | "politics"
   | "sports"
   | "world"
-  | "tech";
+  | "tech"
+  | "xpulse";
+
+export type ContentSectionId = Exclude<SectionId, "all" | "xpulse">;
 
 export type TimeWindow = "1h" | "4h" | "12h" | "24h";
 
 export interface FeedConfig {
-  section: Exclude<SectionId, "all">;
+  section: ContentSectionId;
   name: string;
   url: string;
   weight: number;
@@ -29,7 +32,7 @@ export interface RawFeedItem {
   source: string;
   url: string;
   publishedAt: string;
-  section: Exclude<SectionId, "all">;
+  section: ContentSectionId;
 }
 
 export interface HighlightItem {
@@ -37,8 +40,10 @@ export interface HighlightItem {
   sources: SourceRef[];
   publishedAt: string;
   hot: boolean;
-  /** Present on All-tab items so the tile can show which section it came from. */
+  /** Present on All-tab / X Pulse items so the tile can show which section it came from. */
   section?: Exclude<SectionId, "all">;
+  /** Client-only: published after last visit (NEW sticker). */
+  isNew?: boolean;
 }
 
 export interface HighlightsResponse {
@@ -50,6 +55,8 @@ export interface HighlightsResponse {
   sourcesUnreachable?: boolean;
   /** True when this response forced a cache rebuild (?refresh=1 / cold miss). */
   cacheMiss?: boolean;
+  /** Present on X Pulse responses — monthly Live Search budget. */
+  xPulseUsage?: { month: string; used: number; cap: number };
   items: HighlightItem[];
 }
 
@@ -62,6 +69,7 @@ export const SECTIONS: { id: SectionId; label: string }[] = [
   { id: "sports", label: "Sports" },
   { id: "world", label: "World" },
   { id: "tech", label: "Tech" },
+  { id: "xpulse", label: "X Pulse" },
 ];
 
 export const TIME_WINDOWS: TimeWindow[] = ["1h", "4h", "12h", "24h"];

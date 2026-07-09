@@ -1,7 +1,7 @@
 import type { HighlightItem, SectionId } from "./types";
 
 export interface CacheEntry {
-  section: Exclude<SectionId, "all"> | "all";
+  section: SectionId;
   generatedAt: string;
   items: HighlightItem[];
   rawMode: boolean;

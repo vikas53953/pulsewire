@@ -18,7 +18,11 @@ export function SectionTabs({ value, onChange }: SectionTabsProps) {
       {SECTIONS.map((section) => {
         const active = section.id === value;
         const label =
-          section.id === "all" ? `⚡ ${section.label}` : section.label;
+          section.id === "all"
+            ? `⚡ ${section.label}`
+            : section.id === "xpulse"
+              ? `⚡ ${section.label}`
+              : section.label;
         return (
           <button
             key={section.id}

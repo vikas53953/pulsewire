@@ -8,8 +8,12 @@ import { windowToMs, type TimeWindow } from "./types";
 
 const FEED_TIMEOUT_MS = 8_000;
 const MAX_POOL_MS = windowToMs("24h");
-/** Cap items kept per individual feed before merge (keeps LLM batch small). */
-const PER_FEED_CAP = 12;
+/**
+ * Cap items kept per individual feed before merge.
+ * Must be deep enough that wider windows (12h/24h) still see older stories
+ * after the newest burst — not only the last ~1h of a busy feed.
+ */
+const PER_FEED_CAP = 30;
 
 const parser = new Parser({
   timeout: FEED_TIMEOUT_MS,

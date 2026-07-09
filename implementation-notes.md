@@ -59,6 +59,28 @@ Built exactly per `M3-design-brief-bento-zine.md`.
 - Section name on All-tab tiles uses the section id lowercase (`india`, `markets`, …) — brief asked for section name, not a display map.
 - Night Zine: teal/lav tile text stays `#141414` (not inverted `--ink`) so pastel accents keep AA contrast; brief kept those accent colors unchanged but was silent on their foreground.
 
-## Not yet
+## BUG-1 / BUG-2 fixes + M4 (done)
 
-- M4 polish pass (SWR edge cases, screenshot evidence pack if needed beyond M3)
+### BUG-1 — slow tabs / stale tiles
+- Background warmer (`instrumentation.ts` + `lib/warmer.ts`) warms **all sections** on boot and every `CACHE_TTL_MINUTES`.
+- Client clears tiles immediately on tab change, keys `BentoGrid` by `section|window`, and keeps an in-memory per-section/window response cache for instant back-navigation.
+- Never paints Section A under Section B’s active tab.
+
+### BUG-2 — identical 1h/4h/12h/24h
+- Cache stores a deep **24h pool** (`POOL_CAP=80`); window filter + cap run at request time via `rankAndCapForWindow`.
+- Merged highlights keep the **earliest** source `publishedAt` (not newest / not `generatedAt`).
+- Sort priority inside a window: 🔥 source-count desc → then recency.
+- Wider windows reserve up to 3 slots for stories older than the previous tier so a busy 1h burst cannot hide the rest of the day when no 🔥 merges exist.
+- Per-feed cap raised 12 → 30 so older items survive into the pool.
+- `?refresh=1` clears cache and logs `[pulsewire] cache-miss …` on the server.
+
+### Quiet M4 choices
+- Warmer also started from the API route as a safety net if instrumentation is late.
+- In-flight refresh de-duped per section via `setRefreshing` so boot warm + first request don’t double-fetch.
+
+## Deferred (v1.1 — not built)
+- NEW stickers since last visit (localStorage)
+- WhatsApp share on tiles
+- PWA install + offline last bento
+- 60-second brief / swipe cards
+- ⚡ X Pulse via Grok Live Search (with hard monthly cap)

@@ -52,15 +52,26 @@ export function getCache(section: string): {
   const stored = cache.get(cacheKey(section));
   if (!stored) return { entry: null, fresh: false, ageMs: 0 };
 
+  // Placeholder from in-flight warm (epoch generatedAt + empty) is not usable
+  if (
+    stored.entry.items.length === 0 &&
+    new Date(stored.entry.generatedAt).getTime() === 0
+  ) {
+    return { entry: null, fresh: false, ageMs: 0 };
+  }
+
   const ageMs = Date.now() - stored.storedAt;
   const fresh = ageMs < ttlMs(stored.entry.rawMode);
   return { entry: stored.entry, fresh, ageMs };
 }
 
 export function setCache(section: string, entry: CacheEntry): void {
-  cache.set(cacheKey(section), {
+  const key = cacheKey(section);
+  const prev = cache.get(key);
+  cache.set(key, {
     entry,
     storedAt: Date.now(),
+    refreshing: prev?.refreshing,
   });
 }
 
@@ -82,8 +93,24 @@ export function setRefreshing(
   section: string,
   promise: Promise<CacheEntry> | undefined
 ): void {
-  const stored = cache.get(cacheKey(section));
-  if (!stored) return;
+  const key = cacheKey(section);
+  const stored = cache.get(key);
+  if (!stored) {
+    if (!promise) return;
+    cache.set(key, {
+      entry: {
+        section: section as CacheEntry["section"],
+        generatedAt: new Date(0).toISOString(),
+        items: [],
+        rawMode: true,
+        sourcesUnreachable: false,
+        poolCount: 0,
+      },
+      storedAt: 0,
+      refreshing: promise,
+    });
+    return;
+  }
   if (promise) {
     stored.refreshing = promise;
   } else {

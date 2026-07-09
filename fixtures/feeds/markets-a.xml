@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Fixture A Markets</title>
+    <link>https://fixture.pulsewire.test/markets</link>
+    <description>Committed sample RSS — ages relative to wall clock at serve time via lib/test-mode.ts</description>
+    <item>
+      <title>Markets breaking update at ten minutes</title>
+      <link>https://fixture.pulsewire.test/markets/10m</link>
+      <pubDate>AGE:10m</pubDate>
+    </item>
+    <item>
+      <title>Markets mid-hour market note at fifty minutes</title>
+      <link>https://fixture.pulsewire.test/markets/50m</link>
+      <pubDate>AGE:50m</pubDate>
+    </item>
+    <item>
+      <title>RBI holds rates as inflation cools; banks lead market rebound</title>
+      <link>https://fixture.pulsewire.test/markets/9h-a</link>
+      <pubDate>AGE:9h</pubDate>
+    </item>
+    <item>
+      <title>Markets overnight wrap from twenty hours ago</title>
+      <link>https://fixture.pulsewire.test/markets/20h</link>
+      <pubDate>AGE:20h</pubDate>
+    </item>
+  </channel>
+</rss>

@@ -28,9 +28,13 @@ if (!globalForCache.__pulsewireCache) {
 }
 
 function ttlMs(rawMode: boolean): number {
+  // PW_TEST may set RAW_CACHE_TTL_MS for sub-minute expiry assertions
+  if (rawMode && process.env.RAW_CACHE_TTL_MS) {
+    return Math.max(50, Number(process.env.RAW_CACHE_TTL_MS));
+  }
   if (rawMode) {
     const minutes = Number(process.env.RAW_CACHE_TTL_MINUTES ?? "2");
-    return Math.max(1, minutes) * 60_000;
+    return Math.max(0.05, minutes) * 60_000;
   }
   const minutes = Number(process.env.CACHE_TTL_MINUTES ?? "10");
   return Math.max(1, minutes) * 60_000;

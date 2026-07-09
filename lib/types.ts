@@ -48,6 +48,8 @@ export interface HighlightsResponse {
   stale: boolean;
   rawMode: boolean;
   sourcesUnreachable?: boolean;
+  /** True when this response forced a cache rebuild (?refresh=1 / cold miss). */
+  cacheMiss?: boolean;
   items: HighlightItem[];
 }
 

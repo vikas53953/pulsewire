@@ -23,7 +23,8 @@ export function TimePills({ value, onChange }: TimePillsProps) {
             type="button"
             onClick={() => onChange(w)}
             aria-pressed={active}
-            className={`min-h-11 min-w-[44px] px-3 text-[12px] font-black uppercase tracking-wide transition-colors duration-[120ms] ${
+            data-testid={`pill-${w}`}
+            className={`min-h-11 min-w-[44px] px-3 text-[12px] font-black uppercase tracking-wide transition-colors duration-[120ms] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)] ${
               active
                 ? "bg-[var(--ink)] text-[var(--paper)]"
                 : "bg-transparent text-[var(--ink)]"

@@ -31,4 +31,9 @@
 - `SPEC-pulsewire-hot-news-app.md` — Product/tech spec this build follows.
 - `M3-design-brief-bento-zine.md` — Locked visual contract for the UI (Bento Zine).
 - `implementation-notes.md` — Deviations from the spec (feed swaps, light default, etc.).
+- `lib/test-mode.ts` — PW_TEST=1 fixture pool + per-request overrides (llm fail / feeds down / empty).
+- `fixtures/feeds/` — Committed sample RSS documenting controlled ages; runtime serves in-memory fixtures.
+- `tests/` — Playwright gate: bugs.spec, gate-m1-m2, gate-m3-ui (chromium desktop + mobile).
+- `playwright.config.ts` — webServer with PW_TEST=1; projects 1280×900 and 360×740.
+- `.github/workflows/e2e.yml` — CI: install, build, test:e2e, upload HTML report + traces.
 - `PROJECT-MAP.md` — This file.

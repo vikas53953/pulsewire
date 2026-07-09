@@ -1,3 +1,4 @@
+import { isLlmFailForced, isTestMode } from "./test-mode";
 import type { RawFeedItem } from "./types";
 
 const SYSTEM_PROMPT = `You are a wire-desk editor. You receive raw news items. Return ONLY valid JSON:
@@ -60,11 +61,39 @@ function parseLlmJson(text: string): LlmHighlightRow[] | null {
 /**
  * One batched LLM call per section refresh. On any failure → rawMode.
  */
+function stubLlm(items: RawFeedItem[]): LlmResult {
+  // Deterministic stub: group by exact title, rewrite as one-line highlight
+  const byTitle = new Map<string, RawFeedItem[]>();
+  for (const item of items) {
+    const key = item.title.trim().toLowerCase();
+    const list = byTitle.get(key) ?? [];
+    list.push(item);
+    byTitle.set(key, list);
+  }
+  const highlights: LlmHighlightRow[] = [];
+  for (const group of Array.from(byTitle.values())) {
+    const sources = new Set(group.map((g) => g.source));
+    highlights.push({
+      ids: group.map((g) => g.id),
+      text: group[0].title.slice(0, 110),
+      merged: sources.size >= 2,
+    });
+  }
+  return { highlights, rawMode: false };
+}
+
 export async function summarizeAndDedupe(
   items: RawFeedItem[]
 ): Promise<LlmResult> {
   if (!items.length) {
     return { highlights: [], rawMode: true, error: "empty input" };
+  }
+
+  if (isTestMode()) {
+    if (isLlmFailForced()) {
+      return { highlights: [], rawMode: true, error: "PW_LLM_FAIL forced" };
+    }
+    return stubLlm(items);
   }
 
   if (!isLlmConfigured()) {

@@ -32,7 +32,11 @@ export function Header({
             Wire
           </span>
         </h1>
-        {rawMode ? <Sticker>RAW</Sticker> : null}
+        {rawMode ? (
+          <span data-testid="raw-sticker">
+            <Sticker>RAW</Sticker>
+          </span>
+        ) : null}
       </div>
 
       <div className="flex items-center gap-2">

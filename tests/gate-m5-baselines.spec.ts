@@ -31,7 +31,13 @@ test.describe("M5 baselines & history", () => {
     expect(s1.enabled).toBeTruthy();
     expect(s1.count).toBeGreaterThan(0);
     const pathBefore = s1.path as string;
-    expect(fs.existsSync(pathBefore)).toBeTruthy();
+    expect(pathBefore).toBeTruthy();
+    // Server-side exists flag (Playwright process may not share the same FS view
+    // in some runners; reopen below is the real restart proof).
+    expect(s1.exists).toBe(true);
+    if (fs.existsSync(pathBefore)) {
+      expect(fs.statSync(pathBefore).size).toBeGreaterThan(0);
+    }
 
     // Second cycle adds more rows
     await request.get(

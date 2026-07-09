@@ -1,6 +1,6 @@
 import type { HighlightItem, RawFeedItem } from "./types";
 import { isLikelyDuplicate, stripPublisherSuffix } from "./similarity";
-import { trimTitle } from "./feed-engine";
+import { flashHeadline } from "./flash";
 import { earliestPublishedAt } from "./rank";
 
 export interface MergedCluster {
@@ -59,14 +59,26 @@ function clusterToHighlight(cluster: MergedCluster): HighlightItem {
     const key = `${item.source}|${item.url}`;
     if (seen.has(key)) continue;
     seen.add(key);
-    sources.push({ name: item.source, url: item.url });
+    sources.push({
+      name: item.source,
+      url: item.url,
+      firstSeen: item.publishedAt,
+    });
   }
 
+  const publishedAt = earliestPublishedAt(
+    cluster.items.map((i) => i.publishedAt)
+  );
+  const firstSeen = earliestPublishedAt(
+    sources.map((s) => s.firstSeen || publishedAt)
+  );
+
   return {
-    text: trimTitle(stripPublisherSuffix(cluster.representative.title)),
+    text: flashHeadline(stripPublisherSuffix(cluster.representative.title)),
     sources,
-    publishedAt: earliestPublishedAt(cluster.items.map((i) => i.publishedAt)),
+    publishedAt,
     hot: cluster.merged,
+    firstSeen,
   };
 }
 
@@ -107,15 +119,23 @@ export function applyLlmHighlights(
       const key = `${item.source}|${item.url}`;
       if (seen.has(key)) continue;
       seen.add(key);
-      sources.push({ name: item.source, url: item.url });
+      sources.push({
+        name: item.source,
+        url: item.url,
+        firstSeen: item.publishedAt,
+      });
     }
 
     const distinctSources = new Set(sources.map((s) => s.name));
+    const publishedAt = earliestPublishedAt(items.map((i) => i.publishedAt));
     highlights.push({
-      text: row.text.trim(),
+      text: flashHeadline(row.text.trim()),
       sources,
-      publishedAt: earliestPublishedAt(items.map((i) => i.publishedAt)),
+      publishedAt,
       hot: row.merged || distinctSources.size >= 2,
+      firstSeen: earliestPublishedAt(
+        sources.map((s) => s.firstSeen || publishedAt)
+      ),
     });
   }
 

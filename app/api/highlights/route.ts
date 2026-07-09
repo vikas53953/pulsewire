@@ -7,18 +7,19 @@ import {
   setTestOverrides,
 } from "@/lib/test-mode";
 import { startBackgroundWarmer } from "@/lib/warmer";
-import { isSectionId, isTimeWindow } from "@/lib/types";
+import { isLens, isSectionId, isTimeWindow } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-// Ensure warmer is running even if instrumentation hasn't fired yet
 startBackgroundWarmer();
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
   const sectionParam = searchParams.get("section") ?? "all";
   const windowParam = searchParams.get("window") ?? "4h";
+  const lensParam = searchParams.get("lens") ?? "window";
+  const sinceParam = searchParams.get("since") ?? undefined;
   const forceRefresh = searchParams.get("refresh") === "1";
   const overrides = parseTestOverrides(searchParams);
 
@@ -38,25 +39,37 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  if (!isLens(lensParam)) {
+    return NextResponse.json(
+      { error: "Invalid lens. Use window or since" },
+      { status: 400 }
+    );
+  }
+
   try {
     setTestOverrides(overrides);
 
-    if (forceRefresh || overrides.llmFail || overrides.feedsDown || overrides.empty) {
+    const overrideBust = Boolean(
+      overrides.llmFail ||
+        overrides.feedsDown ||
+        overrides.empty ||
+        overrides.quiet ||
+        overrides.hotMarkets
+    );
+
+    if (forceRefresh || overrideBust) {
       console.info(
         `[pulsewire] cache-miss ${forceRefresh ? "manual refresh" : "test override"} section=${sectionParam}`
       );
-      clearCache(sectionParam);
-      if (sectionParam === "all") {
-        clearCache();
-      }
+      clearCache();
     }
 
     const payload = await getHighlights({
       section: sectionParam,
       window: windowParam,
-      forceRefresh:
-        forceRefresh ||
-        Boolean(overrides.llmFail || overrides.feedsDown || overrides.empty),
+      lens: lensParam,
+      since: sinceParam,
+      forceRefresh: forceRefresh || overrideBust,
     });
 
     return NextResponse.json(payload, {

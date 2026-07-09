@@ -78,6 +78,15 @@ Windows looked identical because (1) the cache was effectively window-shaped / s
 - CI: `.github/workflows/e2e.yml` with HTML report artifacts.
 - Standing rule: every future milestone ships with Playwright specs; suite is cumulative.
 
+## M4 — Verdict Engine (done, SPEC v2)
+
+- Pulse Score v0 from in-memory 24h pool: `(2×breadth + 3×velocity) × recencyDecay`, saturated with K=8.
+- Rule-based verdict hero; LLM may polish only (never invent). Works in RAW.
+- Score chips replace section tabs (Markets-first order). Lens: Since you left (default 2nd+ visit) / Windows.
+- Ranking: heat desc + age-diversity for 4h+ + fewer-stronger (floor 15% of top heat, cap 9).
+- Full flash headlines (≤160 chars). Quiet = designed hero, not empty apology.
+- No SQLite yet — M5 starts history writer day one.
+
 ## v1.1 — NEW stickers + X Pulse (done)
 
 ### NEW stickers

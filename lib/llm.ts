@@ -1,10 +1,11 @@
 import { isLlmFailForced, isTestMode } from "./test-mode";
 import type { RawFeedItem } from "./types";
 
-const SYSTEM_PROMPT = `You are a wire-desk editor. You receive raw news items. Return ONLY valid JSON:
-{ "highlights": [ { "ids": [merged item ids], "text": "<one factual sentence, max 20 words, no opinion, no clickbait>", "merged": true|false } ] }
+const SYSTEM_PROMPT = `You are a wire-desk editor for PulseWire. You receive raw news items. Return ONLY valid JSON:
+{ "highlights": [ { "ids": [merged item ids], "text": "<one full flash headline, 140-160 chars max, who+what+why it matters, no opinion, no clickbait>", "merged": true|false } ] }
 Rules: merge items that describe the same event; never invent facts not present
-in the input; keep numbers and names exact; write in neutral English.`;
+in the input; keep numbers and names exact; write a COMPLETE readable headline
+(not a truncated teaser); end on a full word; neutral English.`;
 
 export interface LlmHighlightRow {
   ids: string[];
@@ -75,7 +76,7 @@ function stubLlm(items: RawFeedItem[]): LlmResult {
     const sources = new Set(group.map((g) => g.source));
     highlights.push({
       ids: group.map((g) => g.id),
-      text: group[0].title.slice(0, 110),
+      text: group[0].title.slice(0, 160),
       merged: sources.size >= 2,
     });
   }

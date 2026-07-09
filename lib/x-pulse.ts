@@ -296,39 +296,42 @@ export async function refreshXPulse(): Promise<CacheEntry> {
 export async function getXPulseHighlights(options: {
   window: TimeWindow;
   forceRefresh?: boolean;
-}): Promise<HighlightsResponse> {
+}): Promise<Omit<HighlightsResponse, "verdict" | "scores"> & Partial<HighlightsResponse>> {
   const { window, forceRefresh = false } = options;
 
   if (forceRefresh) {
     console.info(`[pulsewire] cache-miss force refresh section=xpulse window=${window}`);
   }
 
+  const base = {
+    section: "xpulse" as const,
+    window,
+    lens: "window" as const,
+    xPulseUsage: getXPulseUsage(),
+  };
+
   if (!forceRefresh) {
     const cached = getCache("xpulse");
     if (cached.entry && cached.fresh) {
       return {
-        section: "xpulse",
-        window,
+        ...base,
         generatedAt: cached.entry.generatedAt,
         stale: false,
         rawMode: cached.entry.rawMode,
         sourcesUnreachable: cached.entry.sourcesUnreachable,
         cacheMiss: false,
-        xPulseUsage: getXPulseUsage(),
         items: rankAndCapForWindow(cached.entry.items, window, getMaxItems()),
       };
     }
     if (cached.entry && cached.entry.items.length > 0) {
       void refreshXPulse();
       return {
-        section: "xpulse",
-        window,
+        ...base,
         generatedAt: cached.entry.generatedAt,
         stale: true,
         rawMode: cached.entry.rawMode,
         sourcesUnreachable: cached.entry.sourcesUnreachable,
         cacheMiss: false,
-        xPulseUsage: getXPulseUsage(),
         items: rankAndCapForWindow(cached.entry.items, window, getMaxItems()),
       };
     }
@@ -336,14 +339,12 @@ export async function getXPulseHighlights(options: {
 
   const entry = await refreshXPulse();
   return {
-    section: "xpulse",
-    window,
+    ...base,
     generatedAt: entry.generatedAt,
     stale: false,
     rawMode: entry.rawMode,
     sourcesUnreachable: entry.sourcesUnreachable,
     cacheMiss: true,
-    xPulseUsage: getXPulseUsage(),
     items: rankAndCapForWindow(entry.items, window, getMaxItems()),
   };
 }

@@ -55,7 +55,7 @@ test.describe("M1/M2 API gate", () => {
     expect(matches[0].sources.length).toBeGreaterThanOrEqual(2);
   });
 
-  test("raw fallback: LLM fail → rawMode, items, titles ≤110; short TTL re-attempt", async ({
+  test("raw fallback: LLM fail → rawMode, items, titles ≤160; short TTL re-attempt", async ({
     request,
   }) => {
     const first = await api(request, "tech", "4h", {
@@ -66,7 +66,7 @@ test.describe("M1/M2 API gate", () => {
     expect(first.json.cacheMiss).toBe(true);
     expect(first.json.items.length).toBeGreaterThan(0);
     for (const item of first.json.items) {
-      expect(item.text.length).toBeLessThanOrEqual(110);
+      expect(item.text.length).toBeLessThanOrEqual(160);
     }
 
     const hit = await api(request, "tech", "4h");

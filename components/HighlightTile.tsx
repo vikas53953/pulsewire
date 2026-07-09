@@ -90,6 +90,29 @@ export function HighlightTile({
         {" · "}
         {relativeAge(item.publishedAt)}
         {showSection && item.section ? ` · ${item.section}` : ""}
+        {item.velocity != null && item.velocity >= 3 ? (
+          <span data-testid="heat-chip">
+            {" · "}▲ {item.velocity} src
+            {item.sources.length >= 2
+              ? `/${Math.max(
+                  1,
+                  Math.round(
+                    (Math.max(
+                      ...item.sources.map((s) =>
+                        new Date(s.firstSeen || item.publishedAt).getTime()
+                      )
+                    ) -
+                      Math.min(
+                        ...item.sources.map((s) =>
+                          new Date(s.firstSeen || item.publishedAt).getTime()
+                        )
+                      )) /
+                      60_000
+                  )
+                )}m`
+              : ""}
+          </span>
+        ) : null}
       </p>
     </>
   );
@@ -133,11 +156,13 @@ export function HighlightTile({
   );
 }
 
-/** Deterministic bento assignment per design brief §3. */
+/** Deterministic bento assignment — mega = top heat (SPEC v2). */
 export function assignTileTones(
   items: HighlightItem[]
 ): { item: HighlightItem; tone: TileTone; mega: boolean }[] {
   const sorted = [...items].sort((a, b) => {
+    const heatDiff = (b.heat ?? 0) - (a.heat ?? 0);
+    if (heatDiff !== 0) return heatDiff;
     const aMerged = a.hot ? a.sources.length : 0;
     const bMerged = b.hot ? b.sources.length : 0;
     if (aMerged !== bMerged) return bMerged - aMerged;

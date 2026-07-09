@@ -7,8 +7,11 @@
 - `app/api/highlights/route.ts` — `GET /api/highlights` (force-dynamic). Returns hot highlights JSON for a section + time window.
 - `components/PulseWireApp.tsx` — Client shell: section/window state, fetch, auto-refresh, theme.
 - `components/Header.tsx` — PULSE[WIRE] logo, RAW sticker, time pills, night toggle.
-- `components/SectionTabs.tsx` — Horizontal-scroll section pills (⚡ All default).
-- `components/TimePills.tsx` — Segmented 1h/4h/12h/24h control.
+- `components/ScoreChips.tsx` — NOC score chips (MKT 87🔴…) — tap to filter; replaces section tabs.
+- `components/VerdictHero.tsx` — Rule-based verdict line (the hero).
+- `components/LensToggle.tsx` — Since you left / Windows lens + time pills.
+- `components/SectionTabs.tsx` — Legacy tab pills (retired from shell; kept for reference).
+- `components/TimePills.tsx` — Segmented 1h/4h/12h/24h (shown under Windows lens).
 - `components/BentoGrid.tsx` — Mega + 2/3-col grid, loading skeleton, quiet-hour empty, stale banner.
 - `components/HighlightTile.tsx` — One story tile (mega/teal/lav/card) + tone assignment.
 - `components/StatusBar.tsx` — Updated-ago footer + manual ↻ refresh.
@@ -21,7 +24,10 @@
 - `lib/merge.ts` — Clusters duplicates, pins 🔥 multi-source stories, maps LLM output back to sources.
 - `lib/llm.ts` — One batched Grok call per section (summarize + dedupe); raw-mode on failure.
 - `lib/highlights.ts` — Orchestrates fetch → merge → LLM → cache → window slice.
-- `lib/rank.ts` — Window filter + 🔥-then-recency ranking + older-slot reserve for wide windows.
+- `lib/rank.ts` — Heat ranking + age-diversity + fewer-stronger (SPEC v2 §5).
+- `lib/score.ts` — Pulse Score v0 (breadth/velocity/recency → 0–100 + traffic light).
+- `lib/verdict.ts` — Deterministic verdict templates (LLM polish optional, never invents).
+- `lib/flash.ts` — Full flash headlines (140–160 chars, end on word).
 - `lib/warmer.ts` — Boots and re-warms every section on a 10-min cycle so tabs hit hot cache.
 - `instrumentation.ts` — Starts the background warmer when the Node server boots.
 - `lib/cache.ts` — In-memory Map cache with dual TTL (10m LLM / ~2m raw-mode) + in-flight refresh lock.
@@ -35,7 +41,8 @@
 - `lib/last-visit.ts` — localStorage last-visit helpers for NEW stickers.
 - `lib/x-pulse.ts` — X Pulse via Grok Responses API + x_search; monthly cap; PW_TEST fixtures.
 - `fixtures/feeds/` — Committed sample RSS documenting controlled ages; runtime serves in-memory fixtures.
-- `tests/` — Playwright gate: bugs, gate-m1-m2, gate-m3-ui, gate-v11 (NEW + X Pulse).
+- `tests/` — Playwright gate: bugs, gate-m1-m2, gate-m3-ui, gate-v11, gate-m4-verdict.
+- `SPEC-v2-verdict-engine.md` — Locked product pivot: status page / Pulse Score / verdict hero.
 - `playwright.config.ts` — webServer with PW_TEST=1; projects 1280×900 and 360×740.
 - `.github/workflows/e2e.yml` — CI: install, build, test:e2e, upload HTML report + traces.
 - `PROJECT-MAP.md` — This file.

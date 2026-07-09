@@ -2,6 +2,7 @@
 
 type StatusBarProps = {
   generatedAt: string | null;
+  lastVisit?: number | null;
   refreshing: boolean;
   onRefresh: () => void;
   xPulseUsage?: { month: string; used: number; cap: number };
@@ -17,16 +18,28 @@ function updatedLabel(generatedAt: string | null): string {
   return `updated ${mins}m ago`;
 }
 
+function leftLabel(lastVisit: number | null | undefined): string | null {
+  if (lastVisit == null) return null;
+  const mins = Math.max(0, Math.round((Date.now() - lastVisit) / 60_000));
+  if (mins < 1) return "you left just now";
+  if (mins < 60) return `you left ${mins}m ago`;
+  return `you left ${Math.round(mins / 60)}h ago`;
+}
+
 export function StatusBar({
   generatedAt,
+  lastVisit,
   refreshing,
   onRefresh,
   xPulseUsage,
 }: StatusBarProps) {
+  const left = leftLabel(lastVisit);
   return (
     <footer className="flex flex-wrap items-center justify-center gap-2 border-t-2 border-[var(--ink)] pt-4 text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--ink)]">
       <span>
-        {updatedLabel(generatedAt)} · auto-refresh 10 min
+        {updatedLabel(generatedAt)}
+        {left ? ` · ${left}` : ""}
+        {" · auto-refresh 10 min"}
         {xPulseUsage ? (
           <span data-testid="xpulse-usage">
             {" "}

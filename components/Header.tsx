@@ -2,20 +2,26 @@
 
 import { Sticker } from "@/components/Sticker";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { TimePills } from "@/components/TimePills";
-import type { TimeWindow } from "@/lib/types";
+import { LensToggle } from "@/components/LensToggle";
+import type { Lens, TimeWindow } from "@/lib/types";
 
 type HeaderProps = {
+  lens: Lens;
   window: TimeWindow;
+  onLensChange: (lens: Lens) => void;
   onWindowChange: (window: TimeWindow) => void;
+  hasLastVisit: boolean;
   night: boolean;
   onToggleNight: () => void;
   rawMode: boolean;
 };
 
 export function Header({
+  lens,
   window,
+  onLensChange,
   onWindowChange,
+  hasLastVisit,
   night,
   onToggleNight,
   rawMode,
@@ -39,8 +45,14 @@ export function Header({
         ) : null}
       </div>
 
-      <div className="flex items-center gap-2">
-        <TimePills value={window} onChange={onWindowChange} />
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <LensToggle
+          lens={lens}
+          window={window}
+          onLensChange={onLensChange}
+          onWindowChange={onWindowChange}
+          hasLastVisit={hasLastVisit}
+        />
         <ThemeToggle night={night} onToggle={onToggleNight} />
       </div>
     </header>

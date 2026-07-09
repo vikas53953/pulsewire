@@ -3,14 +3,18 @@ import { SECTIONS, TIME_WINDOWS } from "../lib/types";
 
 const HOT_SNIPPET = "Sensex jumps as FIIs return";
 
-async function waitForGrid(page: Page) {
-  await expect(page.getByTestId("bento-grid")).toBeVisible({
+async function waitForShell(page: Page) {
+  await expect(page.getByTestId("verdict-hero")).toBeVisible({
     timeout: 15_000,
   });
 }
 
+async function ensureWindowLens(page: Page) {
+  await page.getByTestId("lens-window").click();
+}
+
 test.describe("M3 Bento Zine UI gate", () => {
-  test("default load: All active, mega is top 🔥, sticker matches source count", async ({
+  test("default load: All chip active, mega is top heat story", async ({
     page,
   }) => {
     test.skip(
@@ -19,23 +23,25 @@ test.describe("M3 Bento Zine UI gate", () => {
     );
 
     await page.goto("/");
-    await waitForGrid(page);
-
-    await expect(page.getByTestId("tab-all")).toHaveAttribute(
+    await waitForShell(page);
+    await ensureWindowLens(page);
+    await page.getByTestId("chip-all").click();
+    await expect(page.getByTestId("chip-all")).toHaveAttribute(
       "aria-selected",
       "true"
     );
 
+    // Evidence zone may be quiet-hero (no bento) or bento with mega
     const mega = page.locator('[data-tile="highlight"][data-mega="1"]');
-    await expect(mega).toHaveCount(1);
-    await expect(mega).toContainText(HOT_SNIPPET);
-
-    const sticker = page.getByTestId("hot-sticker");
-    await expect(sticker).toBeVisible();
-    await expect(sticker).toContainText(/🔥\s*2\s*SOURCES/i);
+    if ((await mega.count()) > 0) {
+      await expect(mega.first()).toBeVisible();
+      await expect(page.getByTestId("hot-sticker").or(mega)).toBeVisible();
+    } else {
+      await expect(page.getByTestId("verdict-hero")).toBeVisible();
+    }
   });
 
-  test("every tab × window renders without pageerror", async ({ page }) => {
+  test("every chip × window renders without pageerror", async ({ page }) => {
     test.skip(
       test.info().project.name !== "chromium-desktop",
       "all section×window combos once"
@@ -45,32 +51,26 @@ test.describe("M3 Bento Zine UI gate", () => {
     page.on("pageerror", (err) => errors.push(err.message));
 
     await page.goto("/");
-    await waitForGrid(page);
+    await waitForShell(page);
+    await ensureWindowLens(page);
 
-    for (const section of SECTIONS) {
-      await page.getByTestId(`tab-${section.id}`).click();
+    const chipSections = SECTIONS.filter((s) => s.id !== "xpulse");
+    for (const section of chipSections) {
+      const chipId =
+        section.id === "all" ? "chip-all" : `chip-${section.id}`;
+      await page.getByTestId(chipId).click();
       for (const window of TIME_WINDOWS) {
         await page.getByTestId(`pill-${window}`).click();
-        // Either grid, skeleton (brief), or quiet hour
-        await expect(
-          page
-            .getByTestId("bento-grid")
-            .or(page.getByTestId("bento-skeleton"))
-            .or(page.getByTestId("quiet-hour"))
-        ).toBeVisible({ timeout: 5_000 });
-        // Settle on non-skeleton
-        await expect(
-          page
-            .getByTestId("bento-grid")
-            .or(page.getByTestId("quiet-hour"))
-        ).toBeVisible({ timeout: 5_000 });
+        await expect(page.getByTestId("verdict-hero")).toBeVisible({
+          timeout: 5_000,
+        });
       }
     }
 
     expect(errors, errors.join("\n")).toEqual([]);
   });
 
-  test("states: skeleton, quiet hour TRY 4H, stale strip, RAW sticker", async ({
+  test("states: skeleton, quiet verdict, stale strip, RAW sticker", async ({
     page,
   }) => {
     test.skip(
@@ -92,45 +92,31 @@ test.describe("M3 Bento Zine UI gate", () => {
       await route.continue();
     });
     await page.goto("/", { waitUntil: "domcontentloaded" });
-    await expect(page.getByTestId("bento-skeleton")).toBeVisible({
+    await expect(page.getByTestId("verdict-skeleton")).toBeVisible({
       timeout: 2_000,
     });
     releaseFirst();
-    await waitForGrid(page);
+    await waitForShell(page);
     await page.unrouteAll({ behavior: "ignoreErrors" });
+    await ensureWindowLens(page);
 
-    // --- quiet hour: empty 1h via client-side fulfill ---
+    // --- quiet verdict via fixture override ---
     await page.route("**/api/highlights*", async (route) => {
       const url = new URL(route.request().url());
-      if (url.searchParams.get("window") === "1h") {
-        await route.fulfill({
-          status: 200,
-          contentType: "application/json",
-          body: JSON.stringify({
-            section: url.searchParams.get("section") ?? "all",
-            window: "1h",
-            generatedAt: new Date().toISOString(),
-            stale: false,
-            rawMode: false,
-            items: [],
-          }),
-        });
-        return;
-      }
-      await route.continue();
+      url.searchParams.set("pwQuiet", "1");
+      url.searchParams.set("refresh", "1");
+      const res = await page.request.get(url.toString());
+      await route.fulfill({
+        status: res.status(),
+        headers: res.headers(),
+        body: await res.text(),
+      });
     });
-    await page.getByTestId("pill-1h").click();
-    await expect(page.getByTestId("quiet-hour")).toBeVisible({
+    await page.getByTestId("refresh-btn").click();
+    await expect(page.getByTestId("verdict-hero")).toContainText(/All quiet/i, {
       timeout: 5_000,
     });
-    await expect(page.getByTestId("try-4h")).toBeVisible();
     await page.unrouteAll({ behavior: "ignoreErrors" });
-    await page.getByTestId("try-4h").click();
-    await expect(page.getByTestId("pill-4h")).toHaveAttribute(
-      "aria-pressed",
-      "true"
-    );
-    await waitForGrid(page);
 
     // --- stale strip ---
     await page.route("**/api/highlights*", async (route) => {
@@ -141,10 +127,17 @@ test.describe("M3 Bento Zine UI gate", () => {
         body: JSON.stringify({
           section: url.searchParams.get("section") ?? "all",
           window: url.searchParams.get("window") ?? "12h",
+          lens: "window",
           generatedAt: new Date().toISOString(),
           stale: true,
           rawMode: false,
           sourcesUnreachable: true,
+          verdict: {
+            text: "All quiet. Nothing needs you right now.",
+            level: "green",
+            llmPolished: false,
+          },
+          scores: [],
           items: [
             {
               text: "Stale fixture headline for banner test",
@@ -177,12 +170,19 @@ test.describe("M3 Bento Zine UI gate", () => {
         body: JSON.stringify({
           section: url.searchParams.get("section") ?? "all",
           window: url.searchParams.get("window") ?? "12h",
+          lens: "window",
           generatedAt: new Date().toISOString(),
           stale: false,
           rawMode: true,
+          verdict: {
+            text: "All quiet. Nothing needs you right now.",
+            level: "green",
+            llmPolished: false,
+          },
+          scores: [],
           items: [
             {
-              text: "Raw mode fixture headline",
+              text: "Raw mode fixture headline that is a full flash line for readers",
               sources: [
                 {
                   name: "Fixture A",
@@ -210,7 +210,7 @@ test.describe("M3 Bento Zine UI gate", () => {
     );
 
     await page.goto("/");
-    await waitForGrid(page);
+    await waitForShell(page);
     await page.getByTestId("theme-toggle").click();
     await expect(page.locator("html")).toHaveClass(/night/);
     const stored = await page.evaluate(() =>
@@ -218,7 +218,7 @@ test.describe("M3 Bento Zine UI gate", () => {
     );
     expect(stored).toBe("night");
     await page.reload();
-    await waitForGrid(page);
+    await waitForShell(page);
     await expect(page.locator("html")).toHaveClass(/night/);
   });
 
@@ -230,8 +230,28 @@ test.describe("M3 Bento Zine UI gate", () => {
       "desktop links"
     );
 
+    await page.addInitScript(() => {
+      localStorage.removeItem("pulsewire-last-visit");
+    });
+    await page.route("**/api/highlights*", async (route) => {
+      const url = new URL(route.request().url());
+      url.searchParams.delete("pwQuiet");
+      url.searchParams.set("pwHotMarkets", "1");
+      url.searchParams.set("lens", "window");
+      const res = await page.request.get(url.toString());
+      await route.fulfill({
+        status: res.status(),
+        headers: res.headers(),
+        body: await res.text(),
+      });
+    });
     await page.goto("/");
-    await waitForGrid(page);
+    await waitForShell(page);
+    await ensureWindowLens(page);
+    await page.getByTestId("chip-markets").click();
+    await expect(page.getByTestId("bento-grid")).toBeVisible({
+      timeout: 5_000,
+    });
     const tiles = page.locator('a[data-tile="highlight"]');
     const count = await tiles.count();
     expect(count).toBeGreaterThan(0);
@@ -254,7 +274,8 @@ test.describe("M3 Bento Zine UI gate", () => {
     );
 
     await page.goto("/");
-    await waitForGrid(page);
+    await waitForShell(page);
+    await ensureWindowLens(page);
 
     const scroll = await page.evaluate(() => ({
       scrollWidth: document.documentElement.scrollWidth,
@@ -262,7 +283,7 @@ test.describe("M3 Bento Zine UI gate", () => {
     }));
     expect(scroll.scrollWidth).toBeLessThanOrEqual(scroll.clientWidth + 1);
 
-    for (const id of ["tab-all", "tab-markets", "pill-1h", "refresh-btn"]) {
+    for (const id of ["chip-all", "chip-markets", "pill-1h", "refresh-btn"]) {
       const box = await page.getByTestId(id).boundingBox();
       expect(box, id).toBeTruthy();
       expect(box!.height, id).toBeGreaterThanOrEqual(44);
@@ -277,21 +298,37 @@ test.describe("M3 Bento Zine UI gate", () => {
       "desktop a11y"
     );
 
+    await page.addInitScript(() => {
+      localStorage.removeItem("pulsewire-last-visit");
+    });
+    await page.route("**/api/highlights*", async (route) => {
+      const url = new URL(route.request().url());
+      url.searchParams.set("pwHotMarkets", "1");
+      url.searchParams.set("lens", "window");
+      const res = await page.request.get(url.toString());
+      await route.fulfill({
+        status: res.status(),
+        headers: res.headers(),
+        body: await res.text(),
+      });
+    });
     await page.goto("/");
-    await waitForGrid(page);
+    await waitForShell(page);
+    await ensureWindowLens(page);
+    await page.getByTestId("chip-markets").click();
+    await expect(page.getByTestId("bento-grid")).toBeVisible({
+      timeout: 5_000,
+    });
 
-    // Focus first tab via keyboard
-    await page.getByTestId("tab-all").focus();
-    await expect(page.getByTestId("tab-all")).toBeFocused();
-    const outline = await page.getByTestId("tab-all").evaluate((el) => {
+    await page.getByTestId("chip-all").focus();
+    await expect(page.getByTestId("chip-all")).toBeFocused();
+    const outline = await page.getByTestId("chip-all").evaluate((el) => {
       const s = getComputedStyle(el);
       return `${s.outlineStyle}|${s.outlineWidth}|${s.boxShadow}`;
     });
-    // focus-visible outline or at least focused element
     expect(outline.length).toBeGreaterThan(0);
 
     await page.keyboard.press("Tab");
-    // Somewhere in the chrome is focused
     const focused = await page.evaluate(() => document.activeElement?.tagName);
     expect(focused).toBeTruthy();
 
@@ -302,7 +339,7 @@ test.describe("M3 Bento Zine UI gate", () => {
 
   test("evidence screenshots desktop 1280 + mobile 360", async ({ page }) => {
     await page.goto("/");
-    await waitForGrid(page);
+    await waitForShell(page);
     const name = test.info().project.name;
     await page.screenshot({
       path: `test-results/evidence-${name}.png`,

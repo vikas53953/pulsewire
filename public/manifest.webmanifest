@@ -1,0 +1,17 @@
+{
+  "name": "PulseWire",
+  "short_name": "PulseWire",
+  "description": "Status page for whether you need the news.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F7F3E8",
+  "theme_color": "#141414",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

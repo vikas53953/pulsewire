@@ -97,6 +97,13 @@ Windows looked identical because (1) the cache was effectively window-shaped / s
 - Quiet choice (spec silent): persist-survive proof uses `db.backup()` + reopen of the copy (closing the live WAL handle under Next was flaky).
 - Playwright only wipes `data/e2e-pulsewire-*.db` — live `data/pulsewire.db` is never deleted by the suite (moat clock).
 
+## v3 — Brief · Vibe · Radar (done)
+
+- **Brief:** tile tap → overlay; `clusterId`; SQLite `briefs`; RAW = title+sources only.
+- **Vibe:** Reddit rising + X Pulse side-by-side (`/api/vibe`). Instagram permanently OOS.
+- **Radar:** 60s tripwire poller; CLEAR/TRIPPED; red verdict hint; PWA manifest+SW stub (push = M6).
+- Gate: `tests/gate-v3.spec.ts`. Cost notes in `GATE-V3-REPORT.md` / `SPEC-v3-radar-vibe-brief.md`.
+
 ## v1.1 — NEW stickers + X Pulse (done)
 
 ### NEW stickers

@@ -4,13 +4,20 @@ import type {
   ContentSectionId,
   HighlightItem,
   SectionId,
+  SocialTrendsPack,
   TrendItem,
   TrendPack,
   TrendPlane,
 } from "./types";
 import { sectionLabel } from "./types";
 
-const TREND_PER_PLANE = 3;
+/** Desk mix: lean — 1–2 social, a few wires. */
+const MIX_WIRES = 3;
+const MIX_SOCIAL = 2;
+
+/** Full board: show the whole social picture. */
+const FULL_REDDIT_CAP = 40;
+const FULL_X_CAP = 20;
 
 function toTrendItem(
   title: string,
@@ -42,6 +49,29 @@ export function signalMatchesSection(
   return false;
 }
 
+function itemKey(item: { url?: string; title: string }): string {
+  const u = (item.url || "").trim().toLowerCase();
+  if (u) return `u:${u}`;
+  return `t:${item.title.trim().toLowerCase()}`;
+}
+
+/** Exclude anything already shown in the lean mix (URL or near-duplicate title). */
+export function excludeMixDupes(
+  candidates: TrendItem[],
+  mixShown: TrendItem[],
+): TrendItem[] {
+  if (mixShown.length === 0) return candidates;
+  const keys = new Set(mixShown.map(itemKey));
+  return candidates.filter((c) => {
+    if (keys.has(itemKey(c))) return false;
+    return !mixShown.some(
+      (m) =>
+        m.plane === c.plane &&
+        isLikelyDuplicate(m.title, c.title, 0.72),
+    );
+  });
+}
+
 function wiresFromItems(
   items: HighlightItem[],
   section: ContentSectionId,
@@ -70,7 +100,7 @@ function wiresFromItems(
           : section,
       ),
     );
-    if (out.length >= TREND_PER_PLANE) break;
+    if (out.length >= MIX_WIRES) break;
   }
   return out;
 }
@@ -78,6 +108,7 @@ function wiresFromItems(
 function redditForSection(
   signals: SocialSignal[],
   section: ContentSectionId,
+  cap: number,
 ): TrendItem[] {
   const pool = signals
     .filter((s) => s.plane === "reddit" && signalMatchesSection(s, section))
@@ -99,7 +130,7 @@ function redditForSection(
         section,
       ),
     );
-    if (out.length >= TREND_PER_PLANE) break;
+    if (out.length >= cap) break;
   }
   return out;
 }
@@ -112,6 +143,7 @@ function xForSection(
   signals: SocialSignal[],
   wires: HighlightItem[],
   section: ContentSectionId,
+  cap: number,
 ): TrendItem[] {
   const sectionWires = wires.filter(
     (i) => !i.section || i.section === section,
@@ -128,7 +160,6 @@ function xForSection(
       picked.push(sig);
       continue;
     }
-    // Untagged X: only if it clearly matches a wire on this desk
     if (!sig.section && (!sig.sections || sig.sections.length === 0)) {
       const hit = sectionWires.some((w) =>
         isLikelyDuplicate(w.text, sig.title, 0.55),
@@ -141,7 +172,7 @@ function xForSection(
   }
 
   picked.sort((a, b) => (b.velocity ?? 0) - (a.velocity ?? 0));
-  return picked.slice(0, TREND_PER_PLANE).map((sig) =>
+  return picked.slice(0, cap).map((sig) =>
     toTrendItem(
       sig.title,
       sig.url,
@@ -160,8 +191,37 @@ function planeStatus(items: TrendItem[], emptyNote: string): TrendPlane {
   return { status: "ok", items, note: null };
 }
 
+function signalsToTrendItems(
+  signals: SocialSignal[],
+  plane: "reddit" | "x",
+  cap: number,
+): TrendItem[] {
+  const pool = signals
+    .filter((s) => s.plane === plane)
+    .sort((a, b) => (b.velocity ?? 0) - (a.velocity ?? 0));
+  const out: TrendItem[] = [];
+  const seen = new Set<string>();
+  for (const sig of pool) {
+    const key = sig.url || sig.title;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(
+      toTrendItem(
+        sig.title,
+        sig.url,
+        sig.source,
+        sig.publishedAt,
+        plane,
+        sig.section,
+      ),
+    );
+    if (out.length >= cap) break;
+  }
+  return out;
+}
+
 /**
- * Section-scoped mix only. Callers should skip ALL — strip is for a desk chip.
+ * Desk-scoped lean mix (1–2 Reddit / 1–2 X). Callers skip ALL.
  */
 export function buildTrendPack(input: {
   section: SectionId;
@@ -174,8 +234,8 @@ export function buildTrendPack(input: {
   const section = input.section;
   const label = sectionLabel(section);
   const wires = wiresFromItems(input.items, section);
-  const reddit = redditForSection(input.reddit, section);
-  const x = xForSection(input.x, input.items, section);
+  const reddit = redditForSection(input.reddit, section, MIX_SOCIAL);
+  const x = xForSection(input.x, input.items, section, MIX_SOCIAL);
 
   return {
     wires: planeStatus(wires, `Quiet on ${label} wires.`),
@@ -187,5 +247,33 @@ export function buildTrendPack(input: {
       x,
       `Quiet on X for ${label} — no matching pulse yet.`,
     ),
+  };
+}
+
+/**
+ * Full social board — all Reddit + all X across every category.
+ * `excludeFromMix` removes anything already shown in the lean desk mix.
+ */
+export function buildSocialTrendsPack(input: {
+  reddit: SocialSignal[];
+  x: SocialSignal[];
+  excludeFromMix?: TrendItem[];
+}): SocialTrendsPack {
+  const exclude = input.excludeFromMix ?? [];
+  const redditAll = excludeMixDupes(
+    signalsToTrendItems(input.reddit, "reddit", FULL_REDDIT_CAP),
+    exclude.filter((i) => i.plane === "reddit"),
+  );
+  const xAll = excludeMixDupes(
+    signalsToTrendItems(input.x, "x", FULL_X_CAP),
+    exclude.filter((i) => i.plane === "x"),
+  );
+
+  return {
+    reddit: planeStatus(
+      redditAll,
+      "Quiet on Reddit — fetched, nothing trending.",
+    ),
+    x: planeStatus(xAll, "Quiet on X — no earned/cached pulse yet."),
   };
 }

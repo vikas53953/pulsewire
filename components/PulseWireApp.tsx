@@ -7,6 +7,7 @@ import { Header } from "@/components/Header";
 import { RadarStrip } from "@/components/RadarStrip";
 import { ScoreChips } from "@/components/ScoreChips";
 import { StatusBar } from "@/components/StatusBar";
+import { SocialTrendsBoard } from "@/components/SocialTrendsBoard";
 import { TrendStrip } from "@/components/TrendStrip";
 import { VerdictHero } from "@/components/VerdictHero";
 import type { BriefPayload } from "@/lib/brief";
@@ -404,6 +405,13 @@ export function PulseWireApp() {
             onOpenBrief={onOpenBrief}
           />
         ) : null}
+
+        <SocialTrendsBoard
+          pack={
+            data && data.section === section ? data.socialTrends : undefined
+          }
+          loading={showSkeleton}
+        />
 
         <StatusBar
           generatedAt={

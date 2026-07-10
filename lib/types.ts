@@ -123,9 +123,15 @@ export interface TrendPlane {
   note: string | null;
 }
 
-/** On wires · On Reddit · On X — mix without requiring title-match fusion. */
+/** On wires · On Reddit · On X — lean desk mix (1–2 social). */
 export interface TrendPack {
   wires: TrendPlane;
+  reddit: TrendPlane;
+  x: TrendPlane;
+}
+
+/** Full-page social board — all Reddit + all X across categories. */
+export interface SocialTrendsPack {
   reddit: TrendPlane;
   x: TrendPlane;
 }
@@ -156,8 +162,10 @@ export interface HighlightsResponse {
     paused: boolean;
     pauseNote: string | null;
   };
-  /** Visible mix strip — what each plane is fetching right now. */
+  /** Lean desk mix — only when a section chip is active. */
   trend?: TrendPack;
+  /** Full Reddit + X board (all categories); deduped vs lean mix. */
+  socialTrends?: SocialTrendsPack;
   verdict: VerdictPayload;
   scores: SectionScore[];
   items: HighlightItem[];

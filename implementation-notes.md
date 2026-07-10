@@ -151,9 +151,10 @@ Windows looked identical because (1) the cache was effectively window-shaped / s
 
 ## Mix visibility (owner feedback post-M8)
 
-- Desk-scoped **Trend** strip only when a section chip is active (hidden on ALL).
-- Reddit/X columns filter to that desk’s subs / matching pulse — no global dump.
+- Desk-scoped **lean mix** strip only when a section chip is active (hidden on ALL) — 1–2 Reddit / 1–2 X.
+- **Full Trends board** (`socialTrends`): all Reddit + all X across every category, on every view.
+- No duplicacy: items in the lean mix are excluded from the full board.
 - Pulse chips: legend “0–100 = how loud vs a normal hour” + clearer tooltips.
 - Per-tile plane badges **removed** — source/evidence line is enough.
-- Board cap 9 → 16; fusion match 0.62 → 0.55; EARLY orphans max 4; Reddit orphan velocity floor 8 → 4.
-- Quiet choice: keep VIBE tab dissolved; trend strip is the mix surface on a desk.
+- Board cap 9 → 16; fusion match 0.62 → 0.55; EARLY orphans max 4.
+- Quiet choice: keep VIBE tab dissolved; lean mix + full trends replace it.

@@ -31,9 +31,10 @@ for (const suffix of ["", "-shm", "-wal"]) {
 
 export default defineConfig({
   testDir: "./tests",
-  testIgnore: ["**/unit/**", "**/*.test.ts"],
+  testIgnore: ["**/unit/**", "**/*.test.ts", "**/live-sanity/**"],
   fullyParallel: false,
   // @live smokes prove external reality — run via `npm run test:e2e:live`, never CI.
+  // @human suite uses playwright.human.config.ts (npm run test:human).
   grepInvert: process.env.PW_LIVE === "1" ? undefined : /@live/,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,

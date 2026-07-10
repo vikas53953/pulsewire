@@ -2,10 +2,16 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BentoGrid, StaleBanner } from "@/components/BentoGrid";
+import { BriefOverlay } from "@/components/BriefOverlay";
 import { Header } from "@/components/Header";
+import { RadarStrip } from "@/components/RadarStrip";
 import { ScoreChips } from "@/components/ScoreChips";
 import { StatusBar } from "@/components/StatusBar";
 import { VerdictHero } from "@/components/VerdictHero";
+import { VibePanel } from "@/components/VibePanel";
+import type { BriefPayload } from "@/lib/brief";
+import type { RadarStatus } from "@/lib/radar";
+import type { VibeResponse } from "@/lib/vibe";
 import {
   isNewerThanLastVisit,
   readLastVisit,
@@ -18,6 +24,7 @@ import type {
   Lens,
   SectionId,
   TimeWindow,
+  VerdictPayload,
 } from "@/lib/types";
 import { TIME_WINDOWS } from "@/lib/types";
 
@@ -26,6 +33,7 @@ const THEME_KEY = "pulsewire-theme";
 const SESSION_KEY = "pulsewire-session-start";
 
 type ClientCache = Map<string, HighlightsResponse>;
+type ChipId = ContentSectionId | "all" | "vibe" | "radar";
 
 function clientKey(
   section: SectionId,
@@ -108,6 +116,12 @@ export function PulseWireApp() {
   const [night, setNight] = useState(readInitialNight);
   const [error, setError] = useState<string | null>(null);
   const [hasLastVisit, setHasLastVisit] = useState(false);
+  const [briefOpen, setBriefOpen] = useState(false);
+  const [briefLoading, setBriefLoading] = useState(false);
+  const [brief, setBrief] = useState<BriefPayload | null>(null);
+  const [vibe, setVibe] = useState<VibeResponse | null>(null);
+  const [vibeLoading, setVibeLoading] = useState(false);
+  const [radar, setRadar] = useState<RadarStatus | null>(null);
   const requestId = useRef(0);
   const clientCache = useRef<ClientCache>(new Map());
   const lastVisitRef = useRef<number | null>(null);
@@ -117,60 +131,34 @@ export function PulseWireApp() {
     const lv = readLastVisit();
     lastVisitRef.current = lv;
     setHasLastVisit(lv != null);
-    // 2nd+ visit → default to since lens
-    if (lv != null) {
-      setLens("since");
-    }
-    const onHide = () => {
-      writeLastVisit(Date.now());
-      try {
-        const start = Number(sessionStorage.getItem(SESSION_KEY) || "0");
-        if (start > 0) {
-          const secs = Math.round((Date.now() - start) / 1000);
-          console.info(`[pulsewire] session-end secs=${secs}`);
-        }
-      } catch {
-        // ignore
-      }
-    };
+    if (lv != null) setLens("since");
+    const onHide = () => writeLastVisit(Date.now());
     window.addEventListener("pagehide", onHide);
     return () => window.removeEventListener("pagehide", onHide);
   }, []);
 
   useEffect(() => {
-    document.documentElement.classList.toggle("night", night);
     try {
       localStorage.setItem(THEME_KEY, night ? "night" : "light");
     } catch {
       // ignore
     }
+    document.documentElement.classList.toggle("night", night);
   }, [night]);
 
-  const sinceIso =
-    lens === "since" && lastVisitRef.current
-      ? new Date(lastVisitRef.current).toISOString()
-      : null;
+  useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      void navigator.serviceWorker.register("/sw.js").catch(() => {
+        // quiet — installability is best-effort in v3
+      });
+    }
+  }, []);
 
   const showFor = useCallback(
-    (nextSection: SectionId, nextWindow: TimeWindow, nextLens: Lens) => {
+    (s: SectionId, w: TimeWindow, l: Lens) => {
       const since =
-        nextLens === "since" && lastVisitRef.current
-          ? new Date(lastVisitRef.current).toISOString()
-          : null;
-      const cached = clientCache.current.get(
-        clientKey(nextSection, nextWindow, nextLens, since)
-      );
-      if (cached) {
-        setData({
-          ...cached,
-          items: markNewItems(cached.items, lastVisitRef.current),
-        });
-        setLoading(false);
-        return true;
-      }
-      setData(null);
-      setLoading(true);
-      return false;
+        l === "since" ? String(lastVisitRef.current ?? "") : null;
+      return clientCache.current.has(clientKey(s, w, l, since));
     },
     []
   );
@@ -178,50 +166,35 @@ export function PulseWireApp() {
   const load = useCallback(
     async (
       targetSection: SectionId,
-      targetWindow: TimeWindow,
-      targetLens: Lens,
+      nextWindow: TimeWindow,
+      nextLens: Lens,
       opts?: { refresh?: boolean; soft?: boolean }
     ) => {
+      if (targetSection === "vibe" || targetSection === "radar") return;
       const id = ++requestId.current;
-      const refresh = Boolean(opts?.refresh);
-      const soft = Boolean(opts?.soft);
       const since =
-        targetLens === "since" && lastVisitRef.current
-          ? new Date(lastVisitRef.current).toISOString()
+        nextLens === "since" && lastVisitRef.current != null
+          ? String(lastVisitRef.current)
           : null;
-
-      if (refresh) {
-        clientCache.current.clear();
-      }
-
-      const key = clientKey(targetSection, targetWindow, targetLens, since);
-      if (!soft && !clientCache.current.has(key)) {
-        setLoading(true);
-        setData(null);
-      } else if (soft) {
-        setRefreshing(true);
-      }
+      const key = clientKey(targetSection, nextWindow, nextLens, since);
+      if (!opts?.soft) setLoading(true);
+      else setRefreshing(true);
       setError(null);
-
       try {
-        const payload = await fetchHighlights(
+        const json = await fetchHighlights(
           targetSection,
-          targetWindow,
-          targetLens,
+          nextWindow,
+          nextLens,
           since,
-          refresh
+          Boolean(opts?.refresh)
         );
         if (id !== requestId.current) return;
-        const withNew = {
-          ...payload,
-          items: markNewItems(payload.items, lastVisitRef.current),
-        };
-        clientCache.current.set(key, withNew);
-        setData(withNew);
-      } catch (err) {
+        json.items = markNewItems(json.items, lastVisitRef.current);
+        clientCache.current.set(key, json);
+        setData(json);
+      } catch (e) {
         if (id !== requestId.current) return;
-        const message = err instanceof Error ? err.message : String(err);
-        setError(message);
+        setError(e instanceof Error ? e.message : String(e));
       } finally {
         if (id === requestId.current) {
           setLoading(false);
@@ -232,21 +205,95 @@ export function PulseWireApp() {
     []
   );
 
-  useEffect(() => {
-    const hit = showFor(section, timeWindow, lens);
-    void load(section, timeWindow, lens, { soft: hit });
-  }, [section, timeWindow, lens, load, showFor]);
+  const loadVibe = useCallback(async () => {
+    setVibeLoading(true);
+    try {
+      const res = await fetch(`/api/vibe?window=${timeWindow}`, {
+        cache: "no-store",
+      });
+      if (!res.ok) throw new Error(`vibe ${res.status}`);
+      setVibe((await res.json()) as VibeResponse);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setVibeLoading(false);
+    }
+  }, [timeWindow]);
+
+  const loadRadar = useCallback(async () => {
+    try {
+      const res = await fetch("/api/radar", { cache: "no-store" });
+      if (!res.ok) return;
+      setRadar((await res.json()) as RadarStatus);
+    } catch {
+      // quiet
+    }
+  }, []);
 
   useEffect(() => {
+    void loadRadar();
+    const t = window.setInterval(() => void loadRadar(), 60_000);
+    return () => window.clearInterval(t);
+  }, [loadRadar]);
+
+  useEffect(() => {
+    if (section === "vibe") {
+      void loadVibe();
+      return;
+    }
+    if (section === "radar") {
+      void loadRadar();
+      setLoading(false);
+      return;
+    }
+    const hit = showFor(section, timeWindow, lens);
+    void load(section, timeWindow, lens, { soft: hit });
+  }, [section, timeWindow, lens, load, showFor, loadVibe, loadRadar]);
+
+  useEffect(() => {
+    if (section === "vibe" || section === "radar") return;
     const timer = window.setInterval(() => {
       void load(section, timeWindow, lens, { soft: true });
     }, AUTO_REFRESH_MS);
     return () => window.clearInterval(timer);
   }, [load, section, timeWindow, lens]);
 
-  const onChipSelect = (next: ContentSectionId | "all") => {
+  const onChipSelect = (next: ChipId) => {
     if (next === section) return;
     setSection(next);
+  };
+
+  const onOpenBrief = async (item: HighlightItem) => {
+    const clusterId =
+      item.clusterId ||
+      `${item.publishedAt}|${item.text.slice(0, 40)}`;
+    setBriefOpen(true);
+    setBriefLoading(true);
+    setBrief(null);
+    try {
+      const res = await fetch("/api/brief", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clusterId,
+          title: item.text,
+          sources: item.sources.map((s) => ({ name: s.name, url: s.url })),
+        }),
+      });
+      if (!res.ok) throw new Error(`brief ${res.status}`);
+      setBrief((await res.json()) as BriefPayload);
+    } catch {
+      setBrief({
+        clusterId,
+        title: item.text,
+        lines: null,
+        rawMode: true,
+        cached: false,
+        sources: item.sources.map((s) => ({ name: s.name, url: s.url })),
+      });
+    } finally {
+      setBriefLoading(false);
+    }
   };
 
   const showStale =
@@ -254,18 +301,50 @@ export function PulseWireApp() {
 
   const visibleItems =
     data && data.section === section ? data.items : [];
-  const showSkeleton = loading || !data || data.section !== section;
+  const showSkeleton =
+    section !== "vibe" &&
+    section !== "radar" &&
+    (loading || !data || data.section !== section);
 
   const quietTop =
     data?.verdict?.level === "green" && visibleItems[0]
       ? `Top of the quiet: ${visibleItems[0].text}`
       : null;
 
-  // Quiet hero: only verdict + one line, no bento fill
   const quietHero =
+    section !== "vibe" &&
+    section !== "radar" &&
     data?.verdict?.level === "green" &&
     !showSkeleton &&
-    data.scores.every((s) => s.level === "green");
+    (data?.scores ?? []).every((s) => s.level === "green");
+
+  const displayVerdict: VerdictPayload | null = (() => {
+    if (radar?.verdictHint && radar.verdictHint.level === "red") {
+      return radar.verdictHint;
+    }
+    if (section === "radar") {
+      return radar?.verdictHint ?? {
+        text: "Radar clear. No tripwires fired.",
+        level: "green",
+        llmPolished: false,
+      };
+    }
+    if (section === "vibe") {
+      return {
+        text: "Vibe check — what's loud on Reddit vs X.",
+        level: "green",
+        llmPolished: false,
+      };
+    }
+    return showSkeleton ? null : data?.verdict ?? null;
+  })();
+
+  const chipActive: ChipId =
+    section === "xpulse"
+      ? "all"
+      : section === "vibe" || section === "radar"
+        ? section
+        : (section as ContentSectionId | "all");
 
   return (
     <div className="mx-auto min-h-screen w-full max-w-zine px-3 py-4 sm:px-5 sm:py-6">
@@ -281,35 +360,66 @@ export function PulseWireApp() {
           rawMode={Boolean(data?.rawMode && data.section === section)}
         />
 
+        <RadarStrip
+          status={radar}
+          active={section === "radar"}
+          onSelect={() => setSection("radar")}
+        />
+
         <VerdictHero
-          verdict={showSkeleton ? null : data?.verdict ?? null}
+          verdict={displayVerdict}
           quietTop={quietHero ? quietTop : null}
         />
 
         <ScoreChips
           scores={data?.scores ?? []}
-          active={section === "xpulse" ? "all" : (section as ContentSectionId | "all")}
+          active={chipActive}
           onSelect={onChipSelect}
         />
 
-        <StaleBanner show={showStale && !showSkeleton} />
+        <StaleBanner show={showStale && !showSkeleton && section !== "vibe"} />
 
         {error ? (
           <div className="pw-tile bg-[var(--card)] p-4 text-[13px] font-bold uppercase tracking-wide text-[var(--ink)]">
-            Could not load highlights — {error}
+            Could not load — {error}
             <button
               type="button"
               className="ml-3 underline"
-              onClick={() =>
-                void load(section, timeWindow, lens, { refresh: true })
-              }
+              onClick={() => {
+                if (section === "vibe") void loadVibe();
+                else if (section === "radar") void loadRadar();
+                else
+                  void load(section, timeWindow, lens, { refresh: true });
+              }}
             >
               Retry
             </button>
           </div>
         ) : null}
 
-        {!quietHero ? (
+        {section === "vibe" ? (
+          <VibePanel data={vibe} loading={vibeLoading} />
+        ) : null}
+
+        {section === "radar" ? (
+          <div data-testid="radar-panel" className="pw-tile bg-[var(--card)] p-4">
+            {radar?.clear !== false && !(radar?.trips?.length) ? (
+              <p className="m-0 text-[14px] font-bold">
+                Clear. Tripwires watching RBI / NSE / HF blog — push is M6.
+              </p>
+            ) : (
+              <ul className="m-0 list-none space-y-2 p-0">
+                {(radar?.trips ?? []).map((t) => (
+                  <li key={t.id} className="text-[14px] font-black">
+                    🔴 {t.name} — {t.title}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ) : null}
+
+        {section !== "vibe" && section !== "radar" && !quietHero ? (
           <BentoGrid
             key={`${section}-${timeWindow}-${lens}`}
             items={visibleItems}
@@ -319,28 +429,43 @@ export function PulseWireApp() {
             onTryWiderWindow={() =>
               setTimeWindow(nextWiderWindow(timeWindow))
             }
+            onOpenBrief={onOpenBrief}
           />
         ) : null}
 
         <StatusBar
           generatedAt={
-            data && data.section === section ? data.generatedAt : null
+            section === "vibe"
+              ? vibe?.generatedAt ?? null
+              : data && data.section === section
+                ? data.generatedAt
+                : null
           }
           lastVisit={lastVisitRef.current}
-          refreshing={refreshing}
-          onRefresh={() =>
-            void load(section, timeWindow, lens, {
-              refresh: true,
-              soft: true,
-            })
-          }
+          refreshing={refreshing || vibeLoading}
+          onRefresh={() => {
+            if (section === "vibe") void loadVibe();
+            else if (section === "radar") void loadRadar();
+            else
+              void load(section, timeWindow, lens, {
+                refresh: true,
+                soft: true,
+              });
+          }}
           xPulseUsage={
-            section === "xpulse" && data?.section === "xpulse"
+            (section === "xpulse" && data?.section === "xpulse"
               ? data.xPulseUsage
-              : undefined
+              : undefined) || vibe?.xPulseUsage
           }
         />
       </div>
+
+      <BriefOverlay
+        open={briefOpen}
+        loading={briefLoading}
+        brief={brief}
+        onClose={() => setBriefOpen(false)}
+      />
     </div>
   );
 }

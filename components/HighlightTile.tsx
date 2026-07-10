@@ -12,6 +12,8 @@ type HighlightTileProps = {
   showSection: boolean;
   mega?: boolean;
   index?: number;
+  /** v3.1 Brief — tap opens overlay instead of navigating away. */
+  onOpenBrief?: (item: HighlightItem) => void;
 };
 
 function tileTestId(item: HighlightItem, index: number): string {
@@ -44,9 +46,10 @@ export function HighlightTile({
   showSection,
   mega = false,
   index = 0,
+  onOpenBrief,
 }: HighlightTileProps) {
   const href = item.sources[0]?.url;
-  const clickable = Boolean(href);
+  const clickable = Boolean(href) || Boolean(onOpenBrief);
   const { bg, fg } = toneStyles(tone);
   const sourceNames = item.sources.map((s) => s.name);
   const showHotSticker = mega && item.hot && item.sources.length >= 2;
@@ -139,6 +142,22 @@ export function HighlightTile({
       >
         {body}
       </div>
+    );
+  }
+
+  // Brief opener — source link lives in the overlay footer (SPEC v3.1).
+  if (onOpenBrief) {
+    return (
+      <button
+        type="button"
+        className={`${className} w-full cursor-pointer text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)]`}
+        style={{ background: bg, color: fg }}
+        onClick={() => onOpenBrief(item)}
+        {...dataAttrs}
+        data-cluster-id={item.clusterId || ""}
+      >
+        {body}
+      </button>
     );
   }
 

@@ -226,7 +226,7 @@ test.describe("M3 Bento Zine UI gate", () => {
     await expect(page.locator("html")).toHaveClass(/night/);
   });
 
-  test("links: every tile is <a> with target=_blank, rel noopener, href", async ({
+  test("links: tile opens Brief; overlay source is <a target=_blank>", async ({
     page,
   }) => {
     test.skip(
@@ -256,17 +256,16 @@ test.describe("M3 Bento Zine UI gate", () => {
     await expect(page.getByTestId("bento-grid")).toBeVisible({
       timeout: 5_000,
     });
-    const tiles = page.locator('a[data-tile="highlight"]');
-    const count = await tiles.count();
-    expect(count).toBeGreaterThan(0);
-    for (let i = 0; i < count; i++) {
-      const tile = tiles.nth(i);
-      await expect(tile).toHaveAttribute("target", "_blank");
-      const rel = await tile.getAttribute("rel");
-      expect(rel ?? "").toMatch(/noopener/);
-      const href = await tile.getAttribute("href");
-      expect(href && href.length > 0).toBeTruthy();
-    }
+    const tiles = page.locator('[data-tile="highlight"]');
+    expect(await tiles.count()).toBeGreaterThan(0);
+    await tiles.first().click();
+    await expect(page.getByTestId("brief-overlay")).toBeVisible();
+    const src = page.getByTestId("brief-source-link");
+    await expect(src).toHaveAttribute("target", "_blank");
+    const rel = await src.getAttribute("rel");
+    expect(rel ?? "").toMatch(/noopener/);
+    const href = await src.getAttribute("href");
+    expect(href && href.length > 0).toBeTruthy();
   });
 
   test("mobile 360: no horizontal scroll, tap targets ≥44px", async ({
@@ -336,7 +335,7 @@ test.describe("M3 Bento Zine UI gate", () => {
     const focused = await page.evaluate(() => document.activeElement?.tagName);
     expect(focused).toBeTruthy();
 
-    const firstTile = page.locator('a[data-tile="highlight"]').first();
+    const firstTile = page.locator('[data-tile="highlight"]').first();
     await firstTile.focus();
     await expect(firstTile).toBeFocused();
   });

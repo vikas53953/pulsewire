@@ -227,6 +227,28 @@ export async function getHighlights(options: {
   } = options;
   const now = Date.now();
 
+  if (section === "vibe" || section === "radar") {
+    // Dedicated routes: /api/vibe, /api/radar
+    return {
+      section,
+      window,
+      lens: "window",
+      generatedAt: new Date().toISOString(),
+      stale: false,
+      rawMode: true,
+      verdict: {
+        text:
+          section === "vibe"
+            ? "Vibe check — use /api/vibe."
+            : "Radar — use /api/radar.",
+        level: "green",
+        llmPolished: false,
+      },
+      scores: [],
+      items: [],
+    };
+  }
+
   if (section === "xpulse") {
     const xp = await getXPulseHighlights({ window, forceRefresh });
     const bySection = await ensureSectionCaches(false);
@@ -298,12 +320,24 @@ export async function getHighlights(options: {
     sliced = rankAndCapForWindow(pool, window, getMaxItems(), now);
   }
 
-  const verdict = buildVerdictTemplate({
+  const verdictBase = buildVerdictTemplate({
     scores,
     lens,
     sinceRelative: since ? relativeSince(since, now) : undefined,
     sinceEmpty: lens === "since" && sinceEmpty,
   });
+
+  // Radar tripwires outrank RSS heat when tripped (SPEC v3.3).
+  let verdict = verdictBase;
+  try {
+    const { getRadarStatus } = await import("./radar");
+    const radar = getRadarStatus();
+    if (radar.verdictHint?.level === "red") {
+      verdict = radar.verdictHint;
+    }
+  } catch {
+    // radar optional at boot
+  }
 
   return {
     section,

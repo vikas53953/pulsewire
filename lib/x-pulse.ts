@@ -3,49 +3,41 @@ import { isLlmConfigured } from "./llm";
 import { rankAndCapForWindow } from "./rank";
 import { isTestMode } from "./test-mode";
 import type { HighlightItem, HighlightsResponse, TimeWindow } from "./types";
-
-const globalForX = globalThis as unknown as {
-  __pulsewireXPulseUsage?: Map<string, number>;
-};
-
-function usageMap(): Map<string, number> {
-  if (!globalForX.__pulsewireXPulseUsage) {
-    globalForX.__pulsewireXPulseUsage = new Map();
-  }
-  return globalForX.__pulsewireXPulseUsage;
-}
-
-function monthKey(d = new Date()): string {
-  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
-}
-
-export function getXPulseMonthlyCap(): number {
-  return Math.max(0, Number(process.env.X_PULSE_MONTHLY_CAP ?? "60"));
-}
-
-export function getXPulseUsage(): { month: string; used: number; cap: number } {
-  const month = monthKey();
-  return {
-    month,
-    used: usageMap().get(month) ?? 0,
-    cap: getXPulseMonthlyCap(),
-  };
-}
-
-function bumpUsage(): boolean {
-  const { month, used, cap } = getXPulseUsage();
-  if (used >= cap) return false;
-  usageMap().set(month, used + 1);
-  return true;
-}
-
-/** Test-only: reset monthly counter. */
-export function resetXPulseUsageForTests(): void {
-  usageMap().clear();
-}
+import type { XGovernorDecision } from "./x-governor";
+import { getXGovernorStatus } from "./x-governor";
 
 function getEnv(name: string, fallback = ""): string {
   return (process.env[name] ?? fallback).trim();
+}
+
+/** Footer meter — daily governor is the product surface; monthly is absolute ceiling. */
+export function getXPulseUsage(): {
+  month: string;
+  used: number;
+  cap: number;
+  dailyUsed: number;
+  dailyCap: number;
+  paused: boolean;
+} {
+  const gov = getXGovernorStatus();
+  return {
+    month: new Date().toISOString().slice(0, 7),
+    used: gov.monthlyUsed,
+    cap: gov.monthlyCap,
+    dailyUsed: gov.dailyUsed,
+    dailyCap: gov.dailyCap,
+    paused: gov.paused,
+  };
+}
+
+/** @deprecated — use getXPulseUsage().cap (monthly) */
+export function getXPulseMonthlyCap(): number {
+  return getXPulseUsage().cap;
+}
+
+/** Test-only: reset via x-governor. */
+export function resetXPulseUsageForTests(): void {
+  // no-op legacy; tests should call resetXGovernorForTests
 }
 
 function fixtureXPulseItems(): HighlightItem[] {
@@ -164,7 +156,7 @@ async function callXSearch(window: TimeWindow): Promise<{
 
   const baseUrl = getEnv("LLM_BASE_URL", "https://api.x.ai/v1").replace(
     /\/$/,
-    ""
+    "",
   );
   const model = getEnv("LLM_MODEL", "grok-4.5");
   const apiKey = getEnv("LLM_API_KEY");
@@ -244,40 +236,39 @@ Rules: max 8 pulses; never invent posts; prefer high-engagement / multi-account 
   }
 }
 
-async function buildXPulseEntry(): Promise<CacheEntry> {
+/**
+ * Execute one earned x_search after governor grant.
+ * Never call without a prior requestXSearch({ allowed: true }).
+ */
+export async function fetchXAfterGrant(
+  decision: XGovernorDecision,
+  window: TimeWindow = "4h",
+): Promise<CacheEntry> {
+  if (!decision.allowed) {
+    throw new Error(`x_search denied: ${decision.reason}`);
+  }
+
   if (isTestMode()) {
-    return {
+    const entry: CacheEntry = {
       section: "xpulse",
       generatedAt: new Date().toISOString(),
-      items: fixtureXPulseItems(),
+      items: fixtureXPulseItems().map((i) => ({
+        ...i,
+        text: `[${decision.trigger}] ${i.text}`,
+      })),
       rawMode: false,
       sourcesUnreachable: false,
       poolCount: fixtureXPulseItems().length,
     };
+    setCache("xpulse", entry);
+    return entry;
   }
 
-  if (!bumpUsage()) {
-    console.warn("[pulsewire] X Pulse monthly cap reached");
-    const cached = getCache("xpulse");
-    if (cached.entry) {
-      return { ...cached.entry, sourcesUnreachable: true };
-    }
-    return {
-      section: "xpulse",
-      generatedAt: new Date().toISOString(),
-      items: [],
-      rawMode: true,
-      sourcesUnreachable: true,
-      poolCount: 0,
-    };
-  }
-
-  const result = await callXSearch("24h");
+  const result = await callXSearch(window);
   if (result.error) {
     console.warn(`[pulsewire] X Pulse: ${result.error}`);
   }
-
-  return {
+  const entry: CacheEntry = {
     section: "xpulse",
     generatedAt: new Date().toISOString(),
     items: result.items,
@@ -285,66 +276,90 @@ async function buildXPulseEntry(): Promise<CacheEntry> {
     sourcesUnreachable: result.items.length === 0 && result.rawMode,
     poolCount: result.items.length,
   };
-}
-
-export async function refreshXPulse(): Promise<CacheEntry> {
-  const entry = await buildXPulseEntry();
   setCache("xpulse", entry);
   return entry;
 }
 
+/** Read-only: never schedules x_search. Stale cache is returned as-is. */
 export async function getXPulseHighlights(options: {
   window: TimeWindow;
   forceRefresh?: boolean;
-}): Promise<Omit<HighlightsResponse, "verdict" | "scores"> & Partial<HighlightsResponse>> {
+}): Promise<
+  Omit<HighlightsResponse, "verdict" | "scores"> & Partial<HighlightsResponse>
+> {
   const { window, forceRefresh = false } = options;
-
-  if (forceRefresh) {
-    console.info(`[pulsewire] cache-miss force refresh section=xpulse window=${window}`);
-  }
-
+  const usage = getXPulseUsage();
   const base = {
     section: "xpulse" as const,
     window,
     lens: "window" as const,
-    xPulseUsage: getXPulseUsage(),
+    xPulseUsage: usage,
   };
 
-  if (!forceRefresh) {
-    const cached = getCache("xpulse");
-    if (cached.entry && cached.fresh) {
-      return {
-        ...base,
-        generatedAt: cached.entry.generatedAt,
-        stale: false,
-        rawMode: cached.entry.rawMode,
-        sourcesUnreachable: cached.entry.sourcesUnreachable,
-        cacheMiss: false,
-        items: rankAndCapForWindow(cached.entry.items, window, getMaxItems()),
-      };
-    }
-    if (cached.entry && cached.entry.items.length > 0) {
-      void refreshXPulse();
-      return {
-        ...base,
-        generatedAt: cached.entry.generatedAt,
-        stale: true,
-        rawMode: cached.entry.rawMode,
-        sourcesUnreachable: cached.entry.sourcesUnreachable,
-        cacheMiss: false,
-        items: rankAndCapForWindow(cached.entry.items, window, getMaxItems()),
-      };
-    }
+  if (forceRefresh) {
+    console.info(
+      `[pulsewire] xpulse forceRefresh ignored — use x-governor earn path`,
+    );
   }
 
-  const entry = await refreshXPulse();
+  const cached = getCache("xpulse");
+  if (cached.entry) {
+    return {
+      ...base,
+      generatedAt: cached.entry.generatedAt,
+      stale: !cached.fresh,
+      rawMode: cached.entry.rawMode,
+      sourcesUnreachable: cached.entry.sourcesUnreachable,
+      cacheMiss: false,
+      items: rankAndCapForWindow(cached.entry.items, window, getMaxItems()),
+    };
+  }
+
+  if (isTestMode()) {
+    const entry: CacheEntry = {
+      section: "xpulse",
+      generatedAt: new Date().toISOString(),
+      items: fixtureXPulseItems(),
+      rawMode: false,
+      sourcesUnreachable: false,
+      poolCount: fixtureXPulseItems().length,
+    };
+    setCache("xpulse", entry);
+    return {
+      ...base,
+      generatedAt: entry.generatedAt,
+      stale: false,
+      rawMode: false,
+      sourcesUnreachable: false,
+      cacheMiss: true,
+      items: rankAndCapForWindow(entry.items, window, getMaxItems()),
+    };
+  }
+
   return {
     ...base,
-    generatedAt: entry.generatedAt,
+    generatedAt: new Date().toISOString(),
     stale: false,
-    rawMode: entry.rawMode,
-    sourcesUnreachable: entry.sourcesUnreachable,
+    rawMode: true,
+    sourcesUnreachable: false,
     cacheMiss: true,
-    items: rankAndCapForWindow(entry.items, window, getMaxItems()),
+    items: [],
+  };
+}
+
+/** @deprecated — use fetchXAfterGrant after governor */
+export async function refreshXPulse(): Promise<CacheEntry> {
+  console.warn(
+    "[pulsewire] refreshXPulse called without grant — returning cache only",
+  );
+  const cached = getCache("xpulse");
+  if (cached.entry) return cached.entry;
+  return {
+    section: "xpulse",
+    generatedAt: new Date().toISOString(),
+    items: isTestMode() ? fixtureXPulseItems() : [],
+    rawMode: !isTestMode(),
+    sourcesUnreachable: false,
+    poolCount: 0,
   };
 }

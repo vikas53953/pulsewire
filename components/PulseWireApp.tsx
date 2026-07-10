@@ -408,11 +408,36 @@ export function PulseWireApp() {
               soft: true,
             })
           }
-          xPulseUsage={
-            section === "xpulse" && data?.section === "xpulse"
-              ? data.xPulseUsage
-              : undefined
-          }
+          onDeepRefresh={() => {
+            void (async () => {
+              try {
+                const res = await fetch("/api/x-governor", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    action: "deep-refresh",
+                    section,
+                  }),
+                });
+                const body = await res.json();
+                if (!res.ok) {
+                  setError(
+                    body?.decision?.reason ||
+                      "Deep refresh denied (budget/cooldown)",
+                  );
+                  return;
+                }
+                void load(section, timeWindow, lens, {
+                  refresh: true,
+                  soft: true,
+                });
+              } catch (e) {
+                setError(e instanceof Error ? e.message : String(e));
+              }
+            })();
+          }}
+          xPulseUsage={data?.xPulseUsage}
+          xGovernor={data?.xGovernor}
         />
       </div>
 

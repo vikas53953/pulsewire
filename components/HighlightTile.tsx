@@ -123,6 +123,17 @@ export function HighlightTile({
           </span>
         ) : null}
       </p>
+
+      {onOpenBrief ? (
+        <span
+          data-testid="brief-hint"
+          className="pointer-events-none mt-2 block text-[10px] font-bold uppercase tracking-[0.12em] opacity-70 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100 max-md:opacity-90"
+          style={{ color: fg }}
+          aria-hidden
+        >
+          → brief
+        </span>
+      ) : null}
     </>
   );
 
@@ -159,7 +170,7 @@ export function HighlightTile({
     return (
       <button
         type="button"
-        className={`${className} w-full cursor-pointer text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)]`}
+        className={`${className} group w-full cursor-pointer text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)]`}
         style={{ background: bg, color: fg }}
         onClick={() => onOpenBrief(item)}
         {...dataAttrs}

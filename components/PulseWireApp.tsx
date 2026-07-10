@@ -17,6 +17,8 @@ import {
   readLastVisit,
   writeLastVisit,
 } from "@/lib/last-visit";
+import { DEVICE_HEADER, getOrCreateDeviceId } from "@/lib/device-id";
+import { OnboardingLine } from "@/components/OnboardingLine";
 import type {
   ContentSectionId,
   HighlightItem,
@@ -118,6 +120,9 @@ async function fetchHighlights(
   }
   const res = await fetch(`/api/highlights?${params.toString()}`, {
     cache: "no-store",
+    headers: {
+      [DEVICE_HEADER]: getOrCreateDeviceId(),
+    },
   });
   if (!res.ok) {
     throw new Error(`API ${res.status}`);
@@ -197,6 +202,25 @@ export function PulseWireApp({ initialData = null }: PulseWireAppProps) {
 
   useEffect(() => {
     recordSessionStart();
+    const deviceId = getOrCreateDeviceId();
+    const sessionStart = Date.now();
+    // One open ping per browser session
+    try {
+      if (!sessionStorage.getItem("pw_open_sent")) {
+        sessionStorage.setItem("pw_open_sent", "1");
+        void fetch("/api/usage", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ event: "open", deviceId }),
+          keepalive: true,
+        }).catch(() => {
+          // quiet
+        });
+      }
+    } catch {
+      // ignore
+    }
+
     const lv = readLastVisit();
     lastVisitRef.current = lv;
     setHasLastVisit(lv != null);
@@ -206,7 +230,32 @@ export function PulseWireApp({ initialData = null }: PulseWireAppProps) {
         prev ? { ...prev, items: markNewItems(prev.items, lv) } : prev,
       );
     }
-    const onHide = () => writeLastVisit(Date.now());
+    const onHide = () => {
+      writeLastVisit(Date.now());
+      const elapsed = Date.now() - sessionStart;
+      const payload = JSON.stringify({
+        event: "session",
+        deviceId,
+        sessionMs: elapsed,
+      });
+      try {
+        if (navigator.sendBeacon) {
+          navigator.sendBeacon(
+            "/api/usage",
+            new Blob([payload], { type: "application/json" }),
+          );
+        } else {
+          void fetch("/api/usage", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: payload,
+            keepalive: true,
+          });
+        }
+      } catch {
+        // quiet
+      }
+    };
     window.addEventListener("pagehide", onHide);
     return () => window.removeEventListener("pagehide", onHide);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- seed once
@@ -437,6 +486,8 @@ export function PulseWireApp({ initialData = null }: PulseWireAppProps) {
             quietTop={quietHero ? quietTop : null}
           />
         ) : null}
+
+        <OnboardingLine />
 
         <ScoreChips
           scores={data?.scores ?? []}

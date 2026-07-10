@@ -3,9 +3,15 @@
 // Next App Router emits inline scripts (flight/hydration). A script-src hash
 // disables 'unsafe-inline' per CSP2 — so we cannot hash the theme snippet
 // without Next nonce plumbing. Keep frame/nosniff/referrer + a practical CSP.
+// 'unsafe-eval' is only needed for webpack in `next dev` — never ship it to prod.
+const isProd = process.env.NODE_ENV === "production";
+const scriptSrc = isProd
+  ? "script-src 'self' 'unsafe-inline'"
+  : "script-src 'self' 'unsafe-inline' 'unsafe-eval'";
+
 const ContentSecurityPolicy = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+  scriptSrc,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data:",
   "font-src 'self' data:",

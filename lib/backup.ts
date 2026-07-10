@@ -2,6 +2,7 @@
  * Snapshot the history DB (baseline moat) via SQLite VACUUM INTO.
  * Run from cron: `npm run backup:db`
  * Optional: set PULSEWIRE_BACKUP_DIR to a second disk / mounted volume.
+ * Keeps the newest N snapshots (default 14).
  */
 import fs from "fs";
 import path from "path";
@@ -11,6 +12,38 @@ export function defaultBackupDir(): string {
   const override = process.env.PULSEWIRE_BACKUP_DIR?.trim();
   if (override) return override;
   return path.join(process.cwd(), "data", "backups");
+}
+
+export function backupKeepCount(): number {
+  return Math.max(1, Number(process.env.PULSEWIRE_BACKUP_KEEP ?? "14") || 14);
+}
+
+/** Keep newest `keep` pulsewire*.db files; delete older. */
+export function pruneBackups(
+  dir: string,
+  keep = backupKeepCount()
+): { kept: number; deleted: number } {
+  if (!fs.existsSync(dir)) return { kept: 0, deleted: 0 };
+  const files = fs
+    .readdirSync(dir)
+    .filter((f) => /^pulsewire.*\.db$/i.test(f))
+    .map((f) => {
+      const full = path.join(dir, f);
+      const st = fs.statSync(full);
+      return { full, mtime: st.mtimeMs };
+    })
+    .sort((a, b) => b.mtime - a.mtime);
+
+  let deleted = 0;
+  for (const file of files.slice(keep)) {
+    try {
+      fs.unlinkSync(file.full);
+      deleted += 1;
+    } catch {
+      // ignore
+    }
+  }
+  return { kept: Math.min(files.length, keep), deleted };
 }
 
 export function backupHistoryDb(opts?: {
@@ -30,12 +63,13 @@ export function backupHistoryDb(opts?: {
   const dest = path.join(dir, `pulsewire${label}-${stamp}.db`);
 
   try {
-    // Checkpoint WAL so the snapshot is consistent, then VACUUM INTO.
     const db = getHistoryDb();
     db.pragma("wal_checkpoint(TRUNCATE)");
-    // VACUUM INTO cannot overwrite; dest is unique.
     db.exec(`VACUUM INTO '${dest.replace(/'/g, "''")}'`);
-    console.info(`[pulsewire] backup-ok path=${dest}`);
+    const pruned = pruneBackups(dir);
+    console.info(
+      `[pulsewire] backup-ok path=${dest} prune kept=${pruned.kept} deleted=${pruned.deleted}`
+    );
     return { ok: true, path: dest };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

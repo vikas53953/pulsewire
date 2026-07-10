@@ -257,6 +257,7 @@ test.describe("M3 Bento Zine UI gate", () => {
     });
     const tiles = page.locator('[data-tile="highlight"]');
     expect(await tiles.count()).toBeGreaterThan(0);
+    await expect(tiles.first().getByTestId("brief-hint")).toBeVisible();
     await tiles.first().click();
     await expect(page.getByTestId("brief-overlay")).toBeVisible();
     const src = page.getByTestId("brief-source-link");

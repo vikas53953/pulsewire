@@ -1,0 +1,59 @@
+# PulseWire project map (plain English)
+
+- `app/` — Next.js App Router pages and API routes the browser hits.
+- `app/page.tsx` — Renders the Bento Zine dashboard (`PulseWireApp`).
+- `app/layout.tsx` — Shared HTML shell + early theme script (no flash).
+- `app/globals.css` — Bento Zine design tokens, tile press, skeleton shimmer.
+- `app/api/highlights/route.ts` — `GET /api/highlights` (force-dynamic). Returns hot highlights JSON for a section + time window.
+- `components/PulseWireApp.tsx` — Client shell: section/window state, fetch, auto-refresh, theme.
+- `components/Header.tsx` — PULSE[WIRE] logo, RAW sticker, time pills, night toggle.
+- `components/ScoreChips.tsx` — NOC score chips (MKT 87🔴…) — tap to filter; replaces section tabs.
+- `components/VerdictHero.tsx` — Rule-based verdict line (the hero).
+- `components/LensToggle.tsx` — Since you left / Windows lens + time pills.
+- `components/SectionTabs.tsx` — Legacy tab pills (retired from shell; kept for reference).
+- `components/TimePills.tsx` — Segmented 1h/4h/12h/24h (shown under Windows lens).
+- `components/BentoGrid.tsx` — Mega + 2/3-col grid, loading skeleton, quiet-hour empty, stale banner.
+- `components/HighlightTile.tsx` — One story tile (mega/teal/lav/card) + tone assignment.
+- `components/StatusBar.tsx` — Updated-ago footer + manual ↻ refresh.
+- `components/ThemeToggle.tsx` — ◐ Night Zine / light toggle.
+- `components/Sticker.tsx` — Yellow rotated badge (🔥 N SOURCES, RAW).
+- `lib/feeds.config.ts` — Hybrid feeds: Google News India-edition topic/search + direct top-story RSS per section.
+- `lib/feed-engine.ts` — Fetches RSS in parallel (8s timeout), parses items, keeps last 24h, resolves Google redirect URLs when possible.
+- `lib/resolve-url.ts` — Best-effort Google News → publisher URL resolver (falls back to Google link).
+- `lib/similarity.ts` — Fuzzy title similarity (≥0.6) for cross-feed duplicate detection.
+- `lib/merge.ts` — Clusters duplicates, pins 🔥 multi-source stories, maps LLM output back to sources.
+- `lib/llm.ts` — One batched Grok call per section (summarize + dedupe); raw-mode on failure.
+- `lib/highlights.ts` — Orchestrates fetch → merge → LLM → cache → window slice.
+- `lib/rank.ts` — Heat ranking + age-diversity + fewer-stronger (SPEC v2 §5).
+- `lib/score.ts` — Pulse Score v0/v1 (breadth/velocity/recency + baseline blend → 0–100 + traffic light).
+- `lib/history.ts` — SQLite section_history writer (IST hour×weekday buckets; 60-day moat clock).
+- `lib/baseline.ts` — Median + MAD baseline; PulseScore v1 blend; calibrating until ≥14 samples.
+- `lib/verdict.ts` — Deterministic verdict templates (LLM polish optional, never invents).
+- `lib/flash.ts` — Full flash headlines (140–160 chars, end on word).
+- `lib/warmer.ts` — Boots and re-warms every section on a 10-min cycle so tabs hit hot cache.
+- `app/api/history-stats/route.ts` — PW_TEST-only history seed/stats/reopen for M5 gate.
+- `instrumentation.ts` — Starts the background warmer when the Node server boots.
+- `lib/cache.ts` — In-memory Map cache with dual TTL (10m LLM / ~2m raw-mode) + in-flight refresh lock.
+- `lib/time.ts` — Relative age + source label helpers for tiles.
+- `lib/types.ts` — Shared TypeScript types for sections, windows, and API shapes.
+- `.env.example` — Env var names (no secrets). Copy to `.env.local` for LLM.
+- `SPEC-pulsewire-hot-news-app.md` — Product/tech spec this build follows.
+- `M3-design-brief-bento-zine.md` — Locked visual contract for the UI (Bento Zine).
+- `implementation-notes.md` — Deviations from the spec (feed swaps, light default, etc.).
+- `lib/test-mode.ts` — PW_TEST=1 fixture pool + per-request overrides (llm fail / feeds down / empty).
+- `lib/last-visit.ts` — localStorage last-visit helpers for NEW stickers.
+- `lib/x-pulse.ts` — X Pulse via Grok Responses API + x_search; monthly cap; PW_TEST fixtures.
+- `fixtures/feeds/` — Committed sample RSS documenting controlled ages; runtime serves in-memory fixtures.
+- `lib/brief.ts` — Brief LLM + SQLite cache per clusterId (v3.1).
+- `lib/vibe.ts` — Reddit rising + X Pulse dual column (v3.2).
+- `lib/radar.ts` / `lib/radar.config.ts` — tripwire poller (v3.3).
+- `components/BriefOverlay.tsx` — zine Brief dialog.
+- `components/VibePanel.tsx` — Reddit \| X columns.
+- `components/RadarStrip.tsx` — CLEAR / TRIPPED strip.
+- `app/api/brief/route.ts` · `app/api/vibe/route.ts` · `app/api/radar/route.ts`
+- `SPEC-v3-radar-vibe-brief.md` — v3 product contract.
+- `tests/` — Playwright gate: bugs, gate-m1-m2, gate-m3-ui, gate-v11, gate-m4-verdict, gate-m5-baselines, boot-velocity, gate-v3.
+- `SPEC-v2-verdict-engine.md` — Locked product pivot: status page / Pulse Score / verdict hero.
+- `playwright.config.ts` — webServer with PW_TEST=1; projects 1280×900 and 360×740.
+- `.github/workflows/e2e.yml` — CI: install, build, test:e2e, upload HTML report + traces.
+- `PROJECT-MAP.md` — This file.

@@ -8,10 +8,8 @@ import { RadarStrip } from "@/components/RadarStrip";
 import { ScoreChips } from "@/components/ScoreChips";
 import { StatusBar } from "@/components/StatusBar";
 import { VerdictHero } from "@/components/VerdictHero";
-import { VibePanel } from "@/components/VibePanel";
 import type { BriefPayload } from "@/lib/brief";
 import type { RadarStatus } from "@/lib/radar";
-import type { VibeResponse } from "@/lib/vibe";
 import {
   isNewerThanLastVisit,
   readLastVisit,
@@ -33,7 +31,7 @@ const THEME_KEY = "pulsewire-theme";
 const SESSION_KEY = "pulsewire-session-start";
 
 type ClientCache = Map<string, HighlightsResponse>;
-type ChipId = ContentSectionId | "all" | "vibe" | "radar";
+type ChipId = ContentSectionId | "all";
 
 function clientKey(
   section: SectionId,
@@ -106,6 +104,18 @@ function recordSessionStart(): void {
   }
 }
 
+function socialFirstLine(item: HighlightItem): string | undefined {
+  if (!item.firstSocialAt || !item.publishedAt) return undefined;
+  const socialMs = new Date(item.firstSocialAt).getTime();
+  const wireMs = new Date(item.publishedAt).getTime();
+  if (!Number.isFinite(socialMs) || !Number.isFinite(wireMs)) return undefined;
+  const mins = Math.round((wireMs - socialMs) / 60_000);
+  if (mins < 1) return undefined;
+  const hasX = (item.evidence || []).some((e) => e.plane === "x");
+  if (!hasX && !item.socialLed) return undefined;
+  return `First seen on X, ${mins} min before wires.`;
+}
+
 export function PulseWireApp() {
   const [section, setSection] = useState<SectionId>("all");
   const [timeWindow, setTimeWindow] = useState<TimeWindow>("4h");
@@ -119,8 +129,6 @@ export function PulseWireApp() {
   const [briefOpen, setBriefOpen] = useState(false);
   const [briefLoading, setBriefLoading] = useState(false);
   const [brief, setBrief] = useState<BriefPayload | null>(null);
-  const [vibe, setVibe] = useState<VibeResponse | null>(null);
-  const [vibeLoading, setVibeLoading] = useState(false);
   const [radar, setRadar] = useState<RadarStatus | null>(null);
   const requestId = useRef(0);
   const clientCache = useRef<ClientCache>(new Map());
@@ -149,7 +157,7 @@ export function PulseWireApp() {
   useEffect(() => {
     if ("serviceWorker" in navigator) {
       void navigator.serviceWorker.register("/sw.js").catch(() => {
-        // quiet — installability is best-effort in v3
+        // quiet
       });
     }
   }, []);
@@ -205,26 +213,6 @@ export function PulseWireApp() {
     []
   );
 
-  const loadVibe = useCallback(
-    async (opts?: { refresh?: boolean }) => {
-      setVibeLoading(true);
-      try {
-        const params = new URLSearchParams({ window: timeWindow });
-        if (opts?.refresh) params.set("refresh", "1");
-        const res = await fetch(`/api/vibe?${params.toString()}`, {
-          cache: "no-store",
-        });
-        if (!res.ok) throw new Error(`vibe ${res.status}`);
-        setVibe((await res.json()) as VibeResponse);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : String(e));
-      } finally {
-        setVibeLoading(false);
-      }
-    },
-    [timeWindow],
-  );
-
   const loadRadar = useCallback(async () => {
     try {
       const res = await fetch("/api/radar", { cache: "no-store" });
@@ -242,23 +230,11 @@ export function PulseWireApp() {
   }, [loadRadar]);
 
   useEffect(() => {
-    if (section === "vibe") {
-      // Chip click must hit /api/vibe (trigger is not dead). Soft fetch uses
-      // server cache when fresh; Refresh button / warmer use refresh=1.
-      void loadVibe();
-      return;
-    }
-    if (section === "radar") {
-      void loadRadar();
-      setLoading(false);
-      return;
-    }
     const hit = showFor(section, timeWindow, lens);
     void load(section, timeWindow, lens, { soft: hit });
-  }, [section, timeWindow, lens, load, showFor, loadVibe, loadRadar]);
+  }, [section, timeWindow, lens, load, showFor]);
 
   useEffect(() => {
-    if (section === "vibe" || section === "radar") return;
     const timer = window.setInterval(() => {
       void load(section, timeWindow, lens, { soft: true });
     }, AUTO_REFRESH_MS);
@@ -285,10 +261,15 @@ export function PulseWireApp() {
           clusterId,
           title: item.text,
           sources: item.sources.map((s) => ({ name: s.name, url: s.url })),
+          socialFirst: socialFirstLine(item),
         }),
       });
       if (!res.ok) throw new Error(`brief ${res.status}`);
-      setBrief((await res.json()) as BriefPayload);
+      const payload = (await res.json()) as BriefPayload;
+      setBrief({
+        ...payload,
+        socialFirst: payload.socialFirst || socialFirstLine(item),
+      });
     } catch {
       setBrief({
         clusterId,
@@ -297,6 +278,7 @@ export function PulseWireApp() {
         rawMode: true,
         cached: false,
         sources: item.sources.map((s) => ({ name: s.name, url: s.url })),
+        socialFirst: socialFirstLine(item),
       });
     } finally {
       setBriefLoading(false);
@@ -308,10 +290,7 @@ export function PulseWireApp() {
 
   const visibleItems =
     data && data.section === section ? data.items : [];
-  const showSkeleton =
-    section !== "vibe" &&
-    section !== "radar" &&
-    (loading || !data || data.section !== section);
+  const showSkeleton = loading || !data || data.section !== section;
 
   const quietTop =
     data?.verdict?.level === "green" && visibleItems[0]
@@ -319,40 +298,23 @@ export function PulseWireApp() {
       : null;
 
   const quietHero =
-    section !== "vibe" &&
-    section !== "radar" &&
     data?.verdict?.level === "green" &&
     !showSkeleton &&
     (data?.scores ?? []).every((s) => s.level === "green");
 
   const displayVerdict: VerdictPayload | null = (() => {
-    // BUG-V3: only actionable radar trips (real headline) may override verdict.
     const radarRed =
       radar?.verdictHint?.level === "red" ? radar.verdictHint : null;
     if (radarRed) return radarRed;
-    if (section === "radar") {
-      return {
-        text: "Radar clear. No tripwires fired.",
-        level: "green",
-        llmPolished: false,
-      };
-    }
-    if (section === "vibe") {
-      return {
-        text: "Vibe check — what's loud on Reddit vs X.",
-        level: "green",
-        llmPolished: false,
-      };
-    }
     return showSkeleton ? null : data?.verdict ?? null;
   })();
 
   const chipActive: ChipId =
-    section === "xpulse"
+    section === "xpulse" || section === "vibe" || section === "radar"
       ? "all"
-      : section === "vibe" || section === "radar"
-        ? section
-        : (section as ContentSectionId | "all");
+      : (section as ContentSectionId | "all");
+
+  const radarTripped = Boolean(radar && !radar.clear && radar.trips?.length);
 
   return (
     <div className="mx-auto min-h-screen w-full max-w-zine px-3 py-4 sm:px-5 sm:py-6">
@@ -368,11 +330,13 @@ export function PulseWireApp() {
           rawMode={Boolean(data?.rawMode && data.section === section)}
         />
 
-        <RadarStrip
-          status={radar}
-          active={section === "radar"}
-          onSelect={() => setSection("radar")}
-        />
+        {radarTripped ? (
+          <RadarStrip
+            status={radar}
+            active={false}
+            onSelect={() => void loadRadar()}
+          />
+        ) : null}
 
         <VerdictHero
           verdict={displayVerdict}
@@ -385,7 +349,7 @@ export function PulseWireApp() {
           onSelect={onChipSelect}
         />
 
-        <StaleBanner show={showStale && !showSkeleton && section !== "vibe"} />
+        <StaleBanner show={showStale && !showSkeleton} />
 
         {error ? (
           <div className="pw-tile bg-[var(--card)] p-4 text-[13px] font-bold uppercase tracking-wide text-[var(--ink)]">
@@ -393,48 +357,16 @@ export function PulseWireApp() {
             <button
               type="button"
               className="ml-3 underline"
-              onClick={() => {
-                if (section === "vibe") void loadVibe({ refresh: true });
-                else if (section === "radar") void loadRadar();
-                else
-                  void load(section, timeWindow, lens, { refresh: true });
-              }}
+              onClick={() =>
+                void load(section, timeWindow, lens, { refresh: true })
+              }
             >
               Retry
             </button>
           </div>
         ) : null}
 
-        {section === "vibe" ? (
-          <VibePanel data={vibe} loading={vibeLoading} />
-        ) : null}
-
-        {section === "radar" ? (
-          <div data-testid="radar-panel" className="pw-tile bg-[var(--card)] p-4">
-            <p className="m-0 text-[12px] font-bold uppercase tracking-wide opacity-60">
-              Radar ≠ Reddit — tripwires on official feeds
-            </p>
-            <p className="mt-2 m-0 text-[14px] font-bold leading-snug">
-              {radar?.summary ||
-                "Watching SEBI / Hugging Face / BBC Business. A trip means a new item appeared since the last check."}
-            </p>
-            {radar?.clear !== false && !(radar?.trips?.length) ? null : (
-              <ul className="mt-3 m-0 list-none space-y-2 p-0">
-                {(radar?.trips ?? []).map((t) => (
-                  <li key={t.id} className="text-[14px] font-black">
-                    🔴 {t.name}
-                    {t.blurb ? ` — ${t.blurb}` : ""}
-                    <span className="mt-1 block text-[13px] font-bold opacity-80">
-                      {t.title}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        ) : null}
-
-        {section !== "vibe" && section !== "radar" && !quietHero ? (
+        {!quietHero ? (
           <BentoGrid
             key={`${section}-${timeWindow}-${lens}`}
             items={visibleItems}
@@ -450,32 +382,20 @@ export function PulseWireApp() {
 
         <StatusBar
           generatedAt={
-            section === "vibe"
-              ? vibe?.generatedAt ?? null
-              : section === "radar"
-                ? radar?.polledAt &&
-                  new Date(radar.polledAt).getTime() > 0
-                  ? radar.polledAt
-                  : null
-                : data && data.section === section
-                  ? data.generatedAt
-                  : null
+            data && data.section === section ? data.generatedAt : null
           }
           lastVisit={lastVisitRef.current}
-          refreshing={refreshing || vibeLoading}
-          onRefresh={() => {
-            if (section === "vibe") void loadVibe({ refresh: true });
-            else if (section === "radar") void loadRadar();
-            else
-              void load(section, timeWindow, lens, {
-                refresh: true,
-                soft: true,
-              });
-          }}
+          refreshing={refreshing}
+          onRefresh={() =>
+            void load(section, timeWindow, lens, {
+              refresh: true,
+              soft: true,
+            })
+          }
           xPulseUsage={
-            (section === "xpulse" && data?.section === "xpulse"
+            section === "xpulse" && data?.section === "xpulse"
               ? data.xPulseUsage
-              : undefined) || vibe?.xPulseUsage
+              : undefined
           }
         />
       </div>

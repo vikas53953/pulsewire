@@ -74,77 +74,31 @@ test.describe("v3 Brief · Vibe · Radar", () => {
     await expect(page.getByTestId("brief-lines")).toHaveCount(0);
   });
 
-  test("Vibe: two columns On X / On Reddit with fixture data", async ({
-    page,
+  test("Vibe API: Reddit + X columns still honest (chips dissolved in M7)", async ({
+    request,
   }) => {
-    await page.goto("/");
-    await expect(page.getByTestId("score-chips")).toBeVisible({
-      timeout: 15_000,
-    });
-    await page.getByTestId("chip-vibe").click();
-    await expect(page.getByTestId("vibe-panel")).toBeVisible();
-    await expect(page.getByTestId("vibe-reddit")).toBeVisible();
-    await expect(page.getByTestId("vibe-xpulse")).toBeVisible();
-    await expect(page.getByTestId("vibe-reddit")).toContainText(/On Reddit/i);
-    await expect(page.getByTestId("vibe-xpulse")).toContainText(/On X/i);
-    await expect(
-      page.locator('[data-testid="vibe-reddit"] a').first(),
-    ).toBeVisible();
-    await expect(
-      page.locator('[data-testid="vibe-xpulse"] a').first(),
-    ).toBeVisible();
-    await expect(page.getByTestId("vibe-reddit")).toHaveAttribute(
-      "data-status",
-      "ok",
-    );
-    await expect(page.getByTestId("vibe-xpulse")).toHaveAttribute(
-      "data-status",
-      "ok",
-    );
-    await expect(page.getByTestId("chip-radar")).toHaveText(/RADAR/i);
+    const res = await request.get("/api/vibe?window=4h&refresh=1");
+    expect(res.ok()).toBeTruthy();
+    const body = await res.json();
+    expect(body.reddit.status).toBe("ok");
+    expect(body.reddit.items.length).toBeGreaterThan(0);
+    expect(body.xpulse.status).toBe("ok");
+    expect(body.xpulse.items.length).toBeGreaterThan(0);
   });
 
   test("BUG-V1: honest empty states — failed ≠ quiet ≠ needs_key", async ({
-    page,
+    request,
   }) => {
-    await page.goto("/");
-    await expect(page.getByTestId("score-chips")).toBeVisible({
-      timeout: 15_000,
-    });
+    const ok = await request.get("/api/vibe?window=4h&refresh=1");
+    expect((await ok.json()).reddit.status).toBe("ok");
 
-    // Chip click must trigger /api/vibe (not a dead trigger).
-    const vibeReq = page.waitForRequest(
-      (r) => r.url().includes("/api/vibe") && r.method() === "GET",
+    const failed = await request.get(
+      "/api/vibe?window=4h&refresh=1&pwFeedsDown=1",
     );
-    await page.getByTestId("chip-vibe").click();
-    await vibeReq;
-
-    await expect(page.getByTestId("vibe-panel")).toBeVisible();
-    await expect(page.getByTestId("vibe-reddit")).toHaveAttribute(
-      "data-status",
-      "ok",
-    );
-
-    // Forced feeds-down → Reddit failed (not quiet).
-    await page.route("**/api/vibe**", async (route) => {
-      const url = new URL(route.request().url());
-      url.searchParams.set("pwFeedsDown", "1");
-      url.searchParams.set("refresh", "1");
-      const res = await page.request.fetch(url.toString());
-      await route.fulfill({
-        status: res.status(),
-        body: await res.text(),
-        headers: res.headers(),
-      });
-    });
-    await page.getByTestId("refresh-btn").click();
-    await expect(page.getByTestId("vibe-reddit")).toHaveAttribute(
-      "data-status",
-      "failed",
-      { timeout: 10_000 },
-    );
-    await expect(page.getByTestId("vibe-reddit-state-failed")).toBeVisible();
-    await expect(page.getByTestId("vibe-reddit-state-quiet")).toHaveCount(0);
+    const body = await failed.json();
+    expect(body.reddit.status).toBe("failed");
+    expect(String(body.reddit.note)).toMatch(/fail/i);
+    expect(body.reddit.status).not.toBe("quiet");
   });
 
   test("Radar: clear by default; force trip → red verdict with headline", async ({
@@ -153,13 +107,11 @@ test.describe("v3 Brief · Vibe · Radar", () => {
   }) => {
     await request.post("/api/radar", { data: { action: "clear" } });
     await page.goto("/?pwQuiet=1");
-    await expect(page.getByTestId("radar-strip")).toBeVisible({
+    await expect(page.getByTestId("score-chips")).toBeVisible({
       timeout: 15_000,
     });
-    await expect(page.getByTestId("radar-strip")).toHaveAttribute(
-      "data-clear",
-      "1",
-    );
+    // M7: strip hidden when clear
+    await expect(page.getByTestId("radar-strip")).toHaveCount(0);
 
     const tripped = await request.post("/api/radar", {
       data: { action: "trip", tripwireId: "sebi-press" },
@@ -171,14 +123,14 @@ test.describe("v3 Brief · Vibe · Radar", () => {
     expect(body.verdictHint.text).toMatch(/fixture headline/i);
     expect(body.verdictHint.text).not.toMatch(/changed$/i);
 
-    await page.getByTestId("chip-radar").click();
-    await expect(page.getByTestId("radar-panel")).toBeVisible();
+    await page.reload();
+    await expect(page.getByTestId("radar-strip")).toBeVisible({
+      timeout: 10_000,
+    });
     await expect(page.getByTestId("verdict-hero")).toContainText(/Radar/i);
     await expect(page.getByTestId("verdict-hero")).toContainText(
       /fixture headline/i,
     );
-    await expect(page.getByTestId("radar-panel")).toContainText(/tripwire/i);
-    // BUG-V3: Updated timestamp must not be blank on Radar
     await expect(page.getByTestId("status-updated")).not.toHaveText(
       /updated —\s*$/i,
     );
@@ -311,12 +263,16 @@ test.describe("v3 Brief · Vibe · Radar", () => {
     expect(body.trips).toEqual([]);
   });
 
-  test("NAMING: chip is RADAR 📡 not RAD", async ({ page }) => {
-    await page.goto("/");
-    await expect(page.getByTestId("chip-radar")).toBeVisible({
-      timeout: 15_000,
+  test("NAMING: VIBE/RAD chips dissolved; strip says RADAR when tripped", async ({
+    page,
+    request,
+  }) => {
+    await request.post("/api/radar", {
+      data: { action: "trip", tripwireId: "sebi-press" },
     });
-    await expect(page.getByTestId("chip-radar")).toHaveText(/RADAR\s*📡/);
-    await expect(page.getByTestId("chip-radar")).not.toHaveText(/^RAD$/);
+    await page.goto("/");
+    await expect(page.getByTestId("chip-vibe")).toHaveCount(0);
+    await expect(page.getByTestId("chip-radar")).toHaveCount(0);
+    await expect(page.getByTestId("radar-strip")).toContainText(/RADAR/i);
   });
 });

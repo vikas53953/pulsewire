@@ -1,8 +1,18 @@
 import { blendWithBaseline } from "./baseline";
 import { isBootWindowCluster, processBootAt } from "./boot";
+import {
+  crossBonus,
+  planesPresent,
+  weightedBreadth,
+} from "./fusion";
 import { writeHistorySample } from "./history";
-import type { HighlightItem, SectionScore, TrafficLevel } from "./types";
-import type { ContentSectionId } from "./types";
+import type {
+  ContentSectionId,
+  HighlightItem,
+  PlaneEvidence,
+  SectionScore,
+  TrafficLevel,
+} from "./types";
 import { sectionLabel } from "./types";
 
 const K = 8;
@@ -39,10 +49,59 @@ export function computeVelocity(
   return max;
 }
 
+/**
+ * Pulse Score v2 — weighted evidence in rolling 60m (SPEC v4 §3).
+ * Falls back to unweighted count when no plane weights available.
+ */
+export function computeWeightedVelocity(
+  evidence: PlaneEvidence[],
+  now = Date.now(),
+  bootAt = processBootAt()
+): number {
+  const firstSeens = evidence
+    .map((e) => e.firstSeen)
+    .filter((iso): iso is string => Boolean(iso));
+  if (isBootWindowCluster(firstSeens, bootAt)) {
+    return Math.min(1, weightedBreadth(evidence));
+  }
+
+  const points = evidence
+    .map((e) => ({
+      t: e.firstSeen ? new Date(e.firstSeen).getTime() : NaN,
+      w:
+        e.plane === "tripwire"
+          ? 1.5
+          : e.plane === "reddit"
+            ? 0.6
+            : e.plane === "x"
+              ? 0.4
+              : 1.0,
+    }))
+    .filter((p) => Number.isFinite(p.t) && p.t <= now)
+    .sort((a, b) => a.t - b.t);
+
+  if (points.length === 0) return 0;
+  if (points.length === 1) return points[0].w;
+
+  let max = 0;
+  let left = 0;
+  let sum = 0;
+  for (let right = 0; right < points.length; right++) {
+    sum += points[right].w;
+    while (points[right].t - points[left].t > HOUR_MS) {
+      sum -= points[left].w;
+      left++;
+    }
+    max = Math.max(max, sum);
+  }
+  return max;
+}
+
 export function recencyWeight(ageHours: number): number {
   return Math.exp(-ageHours / 6);
 }
 
+/** Pulse Score v0 heat (RSS-only legacy). */
 export function storyHeat(input: {
   breadth: number;
   velocity: number;
@@ -50,6 +109,21 @@ export function storyHeat(input: {
 }): number {
   const { breadth, velocity, ageHours } = input;
   return (2 * breadth + 3 * velocity) * recencyWeight(ageHours);
+}
+
+/** Pulse Score v2 — fusion-aware (SPEC v4 §3). */
+export function storyHeatV2(input: {
+  breadth: number;
+  velocity: number;
+  ageHours: number;
+  planes: Set<string>;
+}): number {
+  const bonus = crossBonus(input.planes);
+  return (
+    (2 * input.breadth + 3 * input.velocity) *
+    recencyWeight(input.ageHours) *
+    bonus
+  );
 }
 
 export function saturateScore(sectionRaw: number): number {
@@ -63,32 +137,50 @@ export function trafficLevel(score: number): TrafficLevel {
   return "green";
 }
 
+function defaultEvidence(item: HighlightItem): PlaneEvidence[] {
+  if (item.evidence?.length) return item.evidence;
+  return item.sources.map((s) => ({
+    plane: item.tripwire ? ("tripwire" as const) : ("rss" as const),
+    source: s.name,
+    url: s.url,
+    firstSeen: s.firstSeen || item.publishedAt,
+  }));
+}
+
 export function enrichItemHeat(
   item: HighlightItem,
   now = Date.now()
 ): HighlightItem {
-  const firstSeens = item.sources.map(
-    (s) => s.firstSeen || item.publishedAt
-  );
+  const evidence = defaultEvidence(item);
+  const firstSeens = evidence
+    .map((e) => e.firstSeen || item.publishedAt)
+    .filter(Boolean) as string[];
   const firstSeen = firstSeens.reduce((a, b) =>
     new Date(a).getTime() <= new Date(b).getTime() ? a : b
   );
-  const breadth = Math.max(1, new Set(item.sources.map((s) => s.name)).size);
-  // Ensure boot clock is stamped before first score (deploy / cold start)
   processBootAt();
-  const velocity = computeVelocity(firstSeens, now);
+  const breadth = weightedBreadth(evidence);
+  const velocity = computeWeightedVelocity(evidence, now);
   const ageHours = Math.max(
     0,
     (now - new Date(item.publishedAt).getTime()) / HOUR_MS
   );
-  const heat = storyHeat({ breadth, velocity, ageHours });
+  const planes = planesPresent(evidence);
+  const heat = storyHeatV2({ breadth, velocity, ageHours, planes });
+  const rssCount = evidence.filter(
+    (e) => e.plane === "rss" || e.plane === "tripwire"
+  ).length;
 
   return {
     ...item,
+    evidence,
     heat,
     velocity,
     firstSeen,
-    hot: item.hot || breadth >= 2,
+    hot: item.hot || rssCount >= 2 || item.tripwire === true,
+    socialLed:
+      item.socialLed ??
+      (item.signalState === "early" || item.signalState === "building"),
   };
 }
 
@@ -111,12 +203,8 @@ export function scoreSection(
   const raw = sectionRawFromHeats(heats);
   const scoreV0 = saturateScore(raw);
   const top = [...enriched].sort((a, b) => (b.heat ?? 0) - (a.heat ?? 0))[0];
-  const topBreadth = top
-    ? new Set(top.sources.map((s) => s.name)).size
-    : 0;
+  const topBreadth = top ? weightedBreadth(defaultEvidence(top)) : 0;
 
-  // Moat clock: write every score cycle (warm + request). Skip in PW_TEST
-  // unless explicitly enabled so fixtures stay deterministic.
   const shouldPersist =
     opts?.persistHistory ??
     (process.env.PW_TEST !== "1" || process.env.PW_HISTORY === "1");
@@ -125,7 +213,7 @@ export function scoreSection(
       section,
       sectionRaw: raw,
       clusterCount: enriched.length,
-      topBreadth,
+      topBreadth: Math.round(topBreadth),
       at: new Date(now),
     });
   }
@@ -140,8 +228,9 @@ export function scoreSection(
 
   let topSpanMinutes: number | undefined;
   if (top) {
-    const times = top.sources
-      .map((s) => new Date(s.firstSeen || top.publishedAt).getTime())
+    const times = defaultEvidence(top)
+      .map((e) => new Date(e.firstSeen || top.publishedAt).getTime())
+      .filter((t) => Number.isFinite(t))
       .sort((a, b) => a - b);
     if (times.length >= 2) {
       topSpanMinutes = Math.max(
@@ -153,7 +242,6 @@ export function scoreSection(
     }
   }
 
-  // Tiny sparkline series for 🔴 chips (last N heats in section, newest last)
   const velocitySpark =
     trafficLevel(score) === "red"
       ? enriched
@@ -178,6 +266,9 @@ export function scoreSection(
     topVelocity: top?.velocity,
     topSpanMinutes,
     velocitySpark,
+    socialLed: Boolean(top?.socialLed),
+    topSignalState: top?.signalState,
+    topTripwire: Boolean(top?.tripwire),
   };
 }
 

@@ -1,7 +1,8 @@
 "use client";
 
 import { Sticker } from "@/components/Sticker";
-import { formatSources, relativeAge } from "@/lib/time";
+import { evidenceLine, signalStateLabel } from "@/lib/fusion";
+import { relativeAge } from "@/lib/time";
 import type { HighlightItem } from "@/lib/types";
 
 export type TileTone = "mega" | "teal" | "lav" | "card";
@@ -51,15 +52,31 @@ export function HighlightTile({
   const href = item.sources[0]?.url;
   const clickable = Boolean(href) || Boolean(onOpenBrief);
   const { bg, fg } = toneStyles(tone);
-  const sourceNames = item.sources.map((s) => s.name);
   const showHotSticker = mega && item.hot && item.sources.length >= 2;
   const showNewSticker = Boolean(item.isNew);
   const testId = tileTestId(item, index);
+  const state = item.signalState ?? "confirmed";
+  const isEarly = state === "early";
+  const isBuilding = state === "building";
 
   const body = (
     <>
-      {(showHotSticker || showNewSticker) && (
+      {(showHotSticker || showNewSticker || isEarly || isBuilding) && (
         <span className="absolute -top-2.5 right-2.5 z-10 flex flex-col items-end gap-1">
+          {isEarly ? (
+            <span data-testid="signal-early">
+              <Sticker className="!bg-[var(--card)] !text-[var(--ink)]">
+                ⚡ EARLY · UNCONFIRMED
+              </Sticker>
+            </span>
+          ) : null}
+          {isBuilding ? (
+            <span data-testid="signal-building">
+              <Sticker className="!bg-[var(--sticker)] !text-[var(--ink)]">
+                ◐ GAINING TRACTION
+              </Sticker>
+            </span>
+          ) : null}
           {showHotSticker ? (
             <span data-testid="hot-sticker">
               <Sticker>{`🔥 ${item.sources.length} SOURCES`}</Sticker>
@@ -86,34 +103,23 @@ export function HighlightTile({
       </p>
 
       <p
+        data-testid="tile-evidence"
         className="mt-3 text-[10px] font-bold uppercase tracking-[0.08em]"
         style={{ color: fg, opacity: 0.75 }}
       >
-        {formatSources(sourceNames)}
+        {evidenceLine(item)}
         {" · "}
         {relativeAge(item.publishedAt)}
         {showSection && item.section ? ` · ${item.section}` : ""}
+        {isEarly || isBuilding ? (
+          <span data-testid="signal-label">
+            {" · "}
+            {signalStateLabel(state)}
+          </span>
+        ) : null}
         {item.velocity != null && item.velocity >= 3 ? (
           <span data-testid="heat-chip">
-            {" · "}▲ {item.velocity} src
-            {item.sources.length >= 2
-              ? `/${Math.max(
-                  1,
-                  Math.round(
-                    (Math.max(
-                      ...item.sources.map((s) =>
-                        new Date(s.firstSeen || item.publishedAt).getTime()
-                      )
-                    ) -
-                      Math.min(
-                        ...item.sources.map((s) =>
-                          new Date(s.firstSeen || item.publishedAt).getTime()
-                        )
-                      )) /
-                      60_000
-                  )
-                )}m`
-              : ""}
+            {" · "}▲ {Math.round(item.velocity * 10) / 10}
           </span>
         ) : null}
       </p>
@@ -122,7 +128,9 @@ export function HighlightTile({
 
   const className = `pw-tile pw-fade-in relative block p-4 ${
     mega ? "min-h-[140px]" : "min-h-[120px]"
-  } ${clickable ? "" : "pw-tile--dead"}`;
+  } ${clickable ? "" : "pw-tile--dead"} ${
+    isEarly ? "border-dashed opacity-95" : ""
+  }`;
 
   const dataAttrs = {
     "data-testid": testId,
@@ -130,6 +138,7 @@ export function HighlightTile({
     "data-section": item.section ?? "",
     "data-hot": item.hot ? "1" : "0",
     "data-mega": mega ? "1" : "0",
+    "data-signal": state,
   };
 
   if (!clickable) {

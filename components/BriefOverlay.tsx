@@ -82,6 +82,15 @@ export function BriefOverlay({
           </div>
         ) : null}
 
+        {!loading && brief?.socialFirst ? (
+          <p
+            data-testid="brief-social-first"
+            className="mt-3 text-[13px] font-bold leading-snug text-[var(--ink)] opacity-80"
+          >
+            {brief.socialFirst}
+          </p>
+        ) : null}
+
         {!loading && brief?.lines ? (
           <dl data-testid="brief-lines" className="mt-4 space-y-3">
             {(

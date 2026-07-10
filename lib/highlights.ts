@@ -8,6 +8,11 @@ import {
 } from "./cache";
 import { fetchAllPools, fetchSectionPool, filterByWindow } from "./feed-engine";
 import { CONTENT_SECTIONS } from "./feeds.config";
+import {
+  fuseSocialIntoItems,
+  rankWithSignalStates,
+  type SocialSignal,
+} from "./fusion";
 import { summarizeAndDedupe } from "./llm";
 import {
   applyLlmHighlights,
@@ -15,6 +20,7 @@ import {
   clustersToRawHighlights,
 } from "./merge";
 import { filterSince, rankAndCapForWindow } from "./rank";
+import { getRedditSignals } from "./reddit-plane";
 import { enrichItemHeat, scoreSection } from "./score";
 import type {
   ContentSectionId,
@@ -29,6 +35,7 @@ import type {
 import { SCORE_CHIP_ORDER } from "./types";
 import { buildVerdictTemplate } from "./verdict";
 import { getXPulseHighlights } from "./x-pulse";
+import { isTestMode } from "./test-mode";
 
 /** Keep a large 24h pool in cache; window + cap applied at request time. */
 const POOL_CAP = 80;
@@ -61,6 +68,18 @@ async function buildFromPool(
 
   items = items.map((item) => enrichItemHeat({ ...item, section }));
 
+  // M7: attach Reddit (+ cached X if present) as plane evidence — never force X fetch.
+  try {
+    const reddit = await getRedditSignals();
+    const xSignals = await loadCachedXSignals(section);
+    const fused = fuseSocialIntoItems(items, [...reddit, ...xSignals]);
+    items = fused.map((item) => enrichItemHeat({ ...item, section }));
+  } catch (err) {
+    console.warn(
+      `[pulsewire] fusion skip ${section}: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+
   return {
     section,
     generatedAt: new Date().toISOString(),
@@ -69,6 +88,47 @@ async function buildFromPool(
     sourcesUnreachable,
     poolCount: pool.length,
   };
+}
+
+/** X plane for fusion — cache only (M8 governor earns live calls). */
+async function loadCachedXSignals(
+  section: ContentSectionId,
+): Promise<SocialSignal[]> {
+  if (isTestMode()) {
+    const { isEarlyXForced, isFusionForced } = await import("./test-mode");
+    if (isEarlyXForced() || isFusionForced()) {
+      const now = Date.now();
+      return [
+        {
+          plane: "x",
+          title: isEarlyXForced()
+            ? "X-only rumor: mystery markets spike with no wire yet"
+            : "RBI shock rate hold sparks bank rally as Sensex futures jump after inflation cools",
+          url: "https://x.com/fixture/status/early1",
+          source: "@marketswire",
+          publishedAt: new Date(now - 15 * 60_000).toISOString(),
+          section: "markets",
+          velocity: 4,
+        },
+      ];
+    }
+    return [];
+  }
+  try {
+    const cached = getCache("xpulse");
+    if (!cached.entry?.items?.length) return [];
+    return cached.entry.items.slice(0, 8).map((i) => ({
+      plane: "x" as const,
+      title: i.text.replace(/^X Pulse:\s*/i, ""),
+      url: i.sources[0]?.url || "https://x.com",
+      source: i.sources[0]?.name || "@x",
+      publishedAt: i.publishedAt,
+      section,
+      velocity: i.velocity,
+    }));
+  } catch {
+    return [];
+  }
 }
 
 export async function refreshSection(
@@ -280,6 +340,7 @@ export async function getHighlights(options: {
   }
 
   const scores = computeAllScores(bySection, window, lens, since, now);
+  void scores; // recomputed with fusion-aware sliced pool below
 
   let pool: HighlightItem[] = [];
   let rawMode = true;
@@ -314,20 +375,76 @@ export async function getHighlights(options: {
       enrichItemHeat(i, now)
     );
     sinceEmpty = sinceItems.length === 0;
-    // Rank within a synthetic 24h window after since-filter
-    sliced = rankAndCapForWindow(sinceItems, "24h", getMaxItems(), now);
+    sliced = rankWithSignalStates(
+      rankAndCapForWindow(sinceItems, "24h", getMaxItems(), now),
+    );
   } else {
-    sliced = rankAndCapForWindow(pool, window, getMaxItems(), now);
+    sliced = rankWithSignalStates(
+      rankAndCapForWindow(pool, window, getMaxItems(), now),
+    );
   }
 
+  // Inject tripwire hits as confirmed RSS-plane items (SPEC v4 §1).
+  try {
+    const { getRadarStatus } = await import("./radar");
+    const radar = getRadarStatus();
+    if (!radar.clear && radar.trips.length > 0) {
+      const tripsAsItems: HighlightItem[] = radar.trips.map((t) => ({
+        text: t.title,
+        sources: [{ name: t.name, url: t.url, firstSeen: t.trippedAt }],
+        publishedAt: t.trippedAt,
+        hot: true,
+        section: section === "all" ? "markets" : (section as ContentSectionId),
+        tripwire: true,
+        signalState: "confirmed" as const,
+        evidence: [
+          {
+            plane: "tripwire" as const,
+            source: t.name,
+            url: t.url,
+            firstSeen: t.trippedAt,
+          },
+        ],
+        clusterId: `tripwire-${t.id}-${t.trippedAt}`,
+      }));
+      sliced = rankWithSignalStates([
+        ...tripsAsItems.map((i) => enrichItemHeat(i, now)),
+        ...sliced,
+      ]);
+    }
+  } catch {
+    // radar optional
+  }
+
+  const scoresWithFusion = computeAllScores(
+    bySection,
+    window,
+    lens,
+    since,
+    now,
+  );
+  // Re-score visible section pool including fused signal states for verdict
+  const scoredFromSliced =
+    section !== "all"
+      ? scoreSection(section as ContentSectionId, sliced, now, {
+          persistHistory: false,
+        })
+      : null;
+  const finalScores = scoredFromSliced
+    ? scoresWithFusion.map((s) =>
+        s.section === scoredFromSliced.section ? scoredFromSliced : s,
+      )
+    : scoresWithFusion;
+
   const verdictBase = buildVerdictTemplate({
-    scores,
+    scores: finalScores,
     lens,
     sinceRelative: since ? relativeSince(since, now) : undefined,
     sinceEmpty: lens === "since" && sinceEmpty,
+    topItems: sliced,
   });
 
-  // Radar tripwires outrank RSS heat when tripped (SPEC v3.3).
+  // Radar tripwires outrank RSS heat when tripped (SPEC v3.3 / v4 tripwire).
   let verdict = verdictBase;
   try {
     const { getRadarStatus } = await import("./radar");
@@ -349,7 +466,7 @@ export async function getHighlights(options: {
     sourcesUnreachable,
     cacheMiss,
     verdict,
-    scores,
+    scores: finalScores,
     items: sliced,
   };
 }

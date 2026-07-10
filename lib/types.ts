@@ -67,6 +67,11 @@ export interface HighlightItem {
   section?: Exclude<SectionId, "all">;
   isNew?: boolean;
   heat?: number;
+  /**
+   * Heat before recency multiplier — breadth/velocity/planes only.
+   * Noise floor under strictSingle compares this so recency cannot create signal.
+   */
+  baseHeat?: number;
   velocity?: number;
   /** Earliest firstSeen across sources — when the cluster appeared. */
   firstSeen?: string;

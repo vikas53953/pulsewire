@@ -104,6 +104,16 @@ export function recencyWeight(ageHours: number): number {
   return Math.exp(-ageHours / 6);
 }
 
+/** Breadth + velocity (+ plane bonus) with no recency — real signal only. */
+export function storyBaseHeat(input: {
+  breadth: number;
+  velocity: number;
+  planes?: Set<string>;
+}): number {
+  const bonus = input.planes ? crossBonus(input.planes) : 1;
+  return (2 * input.breadth + 3 * input.velocity) * bonus;
+}
+
 /** Pulse Score v0 heat (RSS-only legacy). */
 export function storyHeat(input: {
   breadth: number;
@@ -111,7 +121,7 @@ export function storyHeat(input: {
   ageHours: number;
 }): number {
   const { breadth, velocity, ageHours } = input;
-  return (2 * breadth + 3 * velocity) * recencyWeight(ageHours);
+  return storyBaseHeat({ breadth, velocity }) * recencyWeight(ageHours);
 }
 
 /** Pulse Score v2 — fusion-aware (SPEC v4 §3). */
@@ -121,11 +131,12 @@ export function storyHeatV2(input: {
   ageHours: number;
   planes: Set<string>;
 }): number {
-  const bonus = crossBonus(input.planes);
   return (
-    (2 * input.breadth + 3 * input.velocity) *
-    recencyWeight(input.ageHours) *
-    bonus
+    storyBaseHeat({
+      breadth: input.breadth,
+      velocity: input.velocity,
+      planes: input.planes,
+    }) * recencyWeight(input.ageHours)
   );
 }
 
@@ -169,7 +180,8 @@ export function enrichItemHeat(
     (now - new Date(item.publishedAt).getTime()) / HOUR_MS
   );
   const planes = planesPresent(evidence);
-  const heat = storyHeatV2({ breadth, velocity, ageHours, planes });
+  const baseHeat = storyBaseHeat({ breadth, velocity, planes });
+  const heat = baseHeat * recencyWeight(ageHours);
   const rssCount = evidence.filter(
     (e) => e.plane === "rss" || e.plane === "tripwire"
   ).length;
@@ -178,6 +190,7 @@ export function enrichItemHeat(
     ...item,
     evidence,
     heat,
+    baseHeat,
     velocity,
     firstSeen,
     hot: item.hot || rssCount >= 2 || item.tripwire === true,

@@ -202,4 +202,4 @@ Windows looked identical because (1) the cache was effectively window-shaped / s
 ## Post-Ship leftovers (Fable)
 
 - First-visit dismissors sequenced: calibrating explainer only after onboarding Got it (or on a later visit).
-- Single-source noise floor raised to 28% of top heat so fixture-shaped “minor wire / limited follow-through” items cannot buy an ALL slot under a real lead.
+- **Leftover 2 (open → fixed):** ALL `strictSingle` floors against **baseHeat** (pre-recency), not full heat. Recency amplifies breadth/velocity; it must not create a slot. Trivial single-RSS base (~5, no velocity) dies outright — a relative floor alone collapses on lukewarm boards (live miss: top heat 7.67 → floor 2.15, minor wire heat 4.83 cleared). Board-POV unit test covers the quiet-morning case.

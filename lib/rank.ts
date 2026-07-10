@@ -23,9 +23,11 @@ const FLOOR_COUNT = 2;
  * Real noise floor — heat/breadth, not a regex of review quotes.
  * Keeps early/building social even when heat is still low.
  * Lets boards shrink when there isn't enough signal.
- * On ALL (`strictSingle`), single-source items need a higher bar so
- * recency-boosted "minor wire" notes cannot buy a slot under a real lead.
- * Desk boards keep the softer floor so age-diversity singles can survive.
+ *
+ * On ALL (`strictSingle`): floor against **baseHeat** (pre-recency).
+ * Recency may amplify real breadth/velocity — it must not create a slot
+ * from a lone fresh wire on a lukewarm board (Fable leftover-2).
+ * Desk boards keep the softer floor on full heat so age-diversity singles survive.
  */
 export function suppressNoise(
   items: HighlightItem[],
@@ -38,8 +40,14 @@ export function suppressNoise(
     .sort((a, b) => b - a);
   const topHeat = heats[0] ?? 0;
   const softFloor = topHeat > 0 ? topHeat * 0.12 : 0;
-  const singleFloor =
-    opts?.strictSingle && topHeat > 0 ? topHeat * 0.28 : softFloor;
+
+  const baseHeats = items
+    .map((i) => i.baseHeat ?? 0)
+    .filter((h) => h > 0)
+    .sort((a, b) => b - a);
+  const topBase = baseHeats[0] ?? 0;
+  /** Trivial single RSS: (2*1 + 3*1) * planeBonus1 = 5 — recency-only "signal". */
+  const TRIVIAL_SINGLE_BASE = 5;
 
   return items.filter((i) => {
     if (i.signalState === "early" || i.signalState === "building") return true;
@@ -48,8 +56,18 @@ export function suppressNoise(
     const breadth = i.sources?.length ?? 0;
     if (breadth >= 2) return true;
     if (i.hot && heat > 0) return true;
-    if (topHeat <= 0) return opts?.strictSingle ? false : breadth >= 1;
-    return heat >= singleFloor && heat > 0;
+
+    if (opts?.strictSingle) {
+      const base = i.baseHeat ?? 0;
+      // No corroboration and no non-trivial velocity/breadth → die even if fresh.
+      if (base <= TRIVIAL_SINGLE_BASE + 0.05) return false;
+      if (topBase <= 0) return false;
+      const baseFloor = topBase * 0.28;
+      return base >= baseFloor;
+    }
+
+    if (topHeat <= 0) return breadth >= 1;
+    return heat >= softFloor && heat > 0;
   });
 }
 

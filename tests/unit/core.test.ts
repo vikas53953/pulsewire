@@ -116,16 +116,20 @@ describe("rank noise floor", () => {
     // ALL board only — strictSingle. Desk boards keep softer floor.
     const kept = suppressNoise(
       [
-        item("Sensex jumps as FIIs return; banks and IT lead", 22, 2),
+        item("Sensex jumps as FIIs return; banks and IT lead", 22, 2, {
+          baseHeat: 20,
+        }),
         item(
           "India minor wire 1 from 12 minutes ago with limited follow-through",
           5,
           1,
+          { baseHeat: 5 },
         ),
         item(
           "Sports minor wire 2 from 13 minutes ago with limited follow-through",
           4.8,
           1,
+          { baseHeat: 5 },
         ),
       ],
       { strictSingle: true },
@@ -133,6 +137,42 @@ describe("rank noise floor", () => {
     expect(kept.map((i) => i.text)).toEqual([
       "Sensex jumps as FIIs return; banks and IT lead",
     ]);
+  });
+
+  it("quiet-morning ALL drops a fresh single-source with no corroboration", () => {
+    // Board-POV (Fable leftover-2 live miss): lukewarm top heat 7.67 →
+    // 28% heat floor = 2.15; minor wire heat 4.83 clears 2× because almost
+    // all of it is recency. Floor on baseHeat instead — trivial single dies.
+    const top = item("Banks steady as FIIs pause; Nifty holds range", 7.67, 2, {
+      baseHeat: 7.2,
+    });
+    const minor = item(
+      "India minor wire 1 from 12 minutes ago with limited follow-through",
+      4.83,
+      1,
+      { baseHeat: 5.05 },
+    );
+    // Prove the old heat-relative floor would have kept the minor.
+    expect(minor.heat!).toBeGreaterThan(top.heat! * 0.28);
+    const kept = suppressNoise([top, minor], { strictSingle: true });
+    expect(kept.map((i) => i.text)).toEqual([top.text]);
+  });
+
+  it("ALL floor uses baseHeat so recency cannot invent a slot on a hot board", () => {
+    // Single with heat above 28% of top heat, but baseHeat below 28% of top base.
+    const kept = suppressNoise(
+      [
+        item("Multi-desk FII selloff across banks and IT", 50, 4, {
+          baseHeat: 40,
+        }),
+        item("One outlet update twelve minutes ago", 20, 1, {
+          baseHeat: 8, // 8 < 40*0.28=11.2 — dies; heat 20 would clear 50*0.28
+        }),
+      ],
+      { strictSingle: true },
+    );
+    expect(kept).toHaveLength(1);
+    expect(kept[0].text).toContain("Multi-desk");
   });
 
   it("desk boards still keep age-diversity singles under soft floor", () => {

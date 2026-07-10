@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import path from "path";
 import { listCacheStats } from "@/lib/cache";
 import { getHistoryDb, resolveHistoryDbPath } from "@/lib/history";
 import { isLlmConfigured } from "@/lib/llm";
@@ -6,6 +7,7 @@ import { getWarmerStats } from "@/lib/warmer";
 import { getXGovernorStatus } from "@/lib/x-governor";
 import { isBetaGateEnabled } from "@/lib/beta-auth";
 import { CONTENT_SECTIONS } from "@/lib/feeds.config";
+import { getUsageStats } from "@/lib/usage";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -15,7 +17,8 @@ function historyStats(): {
   rowCount: number;
   schemaVersion: number | null;
 } {
-  const path = resolveHistoryDbPath();
+  const full = resolveHistoryDbPath();
+  const basename = path.basename(full);
   try {
     const db = getHistoryDb();
     const row = db
@@ -30,9 +33,9 @@ function historyStats(): {
     } catch {
       schemaVersion = null;
     }
-    return { path, rowCount: row.n, schemaVersion };
+    return { path: basename, rowCount: row.n, schemaVersion };
   } catch {
-    return { path, rowCount: 0, schemaVersion: null };
+    return { path: basename, rowCount: 0, schemaVersion: null };
   }
 }
 
@@ -42,6 +45,7 @@ export async function GET() {
   const warmer = getWarmerStats();
   const x = getXGovernorStatus();
   const history = historyStats();
+  const usage = getUsageStats();
 
   // Ensure content sections appear even before first warm
   const known = new Set(cache.map((c) => c.section));
@@ -83,6 +87,7 @@ export async function GET() {
         lastCall: x.lastCall ?? null,
       },
       history,
+      usage,
       cache,
     },
     { headers: { "Cache-Control": "no-store, max-age=0" } }

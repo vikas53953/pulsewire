@@ -55,15 +55,18 @@ PulseWire assumes **one long-lived Node process**:
 npm run backup:db
 # cron: 15 2 * * * cd /path/to/pulsewire && npm run backup:db
 # optional second disk: PULSEWIRE_BACKUP_DIR=/mnt/backups/pulsewire
+# retention: keeps newest 14 (PULSEWIRE_BACKUP_KEEP); older snapshots deleted
 ```
 
 ### Ops health
 
-`GET /api/health` — cache ages, last warm duration, X governor used/cap, LLM mode, DB row count. Open without the beta cookie so a cron can curl it.
+`GET /api/health` — cache ages, last warm duration, X governor used/cap, LLM mode, DB basename + row count, usage counters (`devicesToday`, `opensToday`, `medianSessionMs7d`). Open without the beta cookie so a cron can curl it.
 
 ### Beta success (definition)
 
-≥40% of beta users open PulseWire ≥4 mornings/week in week 3, and median session &lt; 60 seconds. Instrument opens + session length before beta (even crudely, server-side).
+≥40% of beta users open PulseWire ≥4 mornings/week in week 3, and median session &lt; 60 seconds.
+
+Measured via anonymous `pw_device` in localStorage → `/api/usage` open + `pagehide` session beacon → SQLite `usage` table. No accounts, no PII. Read the counters on `/api/health`.
 
 ### Docs
 

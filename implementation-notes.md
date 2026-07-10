@@ -183,3 +183,13 @@ Windows looked identical because (1) the cache was effectively window-shaped / s
 - **Vitest** covers verdict matrix, noise floor, chip-why invariant. Nightly `@live` workflow watches real feeds.
 - **schema_version** table added (v1) for future ALTERs.
 - **History:** `cloudflared` binary purged from git history via `git filter-repo` (force-push). Collaborators must re-clone. Tags: `v0.3-hold-fixes`, `v0.4-soft-ship`.
+
+## Batch 1 close-out (post-hardening)
+
+- Stale `cursor/*` remote branches deleted so mirror clones cannot re-pull the cloudflared blob.
+- CSP: `'unsafe-eval'` only when `NODE_ENV !== "production"`.
+- Backup prune keeps newest 14 (`PULSEWIRE_BACKUP_KEEP`).
+- Nightly `@live` opens/comments a `canary` GitHub issue on failure.
+- Anonymous usage: `pw_device` + `/api/usage` + SQLite `usage` (schema v2); health exposes counters.
+- Beta token compare is constant-time; health reports DB basename only.
+- Brief `→ brief` hint on tiles; first-visit onboarding line (localStorage dismiss).

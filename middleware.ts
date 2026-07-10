@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { BETA_COOKIE } from "@/lib/beta-auth";
+import { tokensMatch } from "@/lib/token-equal";
 
 /**
  * Optional beta door: set BETA_TOKEN in the environment.
@@ -31,7 +32,7 @@ export function middleware(request: NextRequest) {
   }
 
   const key = searchParams.get("key");
-  if (key && key === token) {
+  if (key && tokensMatch(key, token)) {
     const clean = request.nextUrl.clone();
     clean.searchParams.delete("key");
     const res = NextResponse.redirect(clean);
@@ -46,12 +47,15 @@ export function middleware(request: NextRequest) {
   }
 
   const cookie = request.cookies.get(BETA_COOKIE)?.value;
-  if (cookie === token) {
+  if (tokensMatch(cookie, token)) {
     return NextResponse.next();
   }
 
   const auth = request.headers.get("authorization") ?? "";
-  if (auth === `Bearer ${token}`) {
+  if (
+    auth.toLowerCase().startsWith("bearer ") &&
+    tokensMatch(auth.slice(7).trim(), token)
+  ) {
     return NextResponse.next();
   }
 

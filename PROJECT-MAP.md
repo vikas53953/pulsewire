@@ -5,11 +5,14 @@
 - `app/layout.tsx` — Shared HTML shell + early theme script (no flash).
 - `app/globals.css` — Bento Zine design tokens, tile press, skeleton shimmer.
 - `app/api/highlights/route.ts` — `GET /api/highlights` (force-dynamic). Returns hot highlights JSON for a section + time window. `?refresh=1` requires beta token when `BETA_TOKEN` is set.
-- `app/api/health/route.ts` — `GET /api/health` ops JSON (cache ages, warmer, X governor, LLM mode, DB rows). Open without beta cookie.
+- `app/api/health/route.ts` — `GET /api/health` ops JSON (cache ages, warmer, X governor, LLM mode, DB basename/rows, usage counters). Open without beta cookie.
+- `app/api/usage/route.ts` — `POST /api/usage` open + session beacons (anonymous `pw_device`).
 - `middleware.ts` — Optional `BETA_TOKEN` door (`/?key=…` → cookie). Skipped under `PW_TEST=1`.
-- `lib/beta-auth.ts` — Shared spend-path gate for refresh + X deep-refresh.
+- `lib/beta-auth.ts` — Shared spend-path gate for refresh + X deep-refresh (constant-time token compare).
+- `lib/usage.ts` / `lib/device-id.ts` — Beta success metrics (opens + session ms).
 - `lib/safe-url.ts` — http(s) allowlist for feed/trend links.
-- `lib/backup.ts` / `scripts/backup-db.mjs` — `VACUUM INTO` snapshot of the history DB (`npm run backup:db`).
+- `lib/backup.ts` / `scripts/backup-db.mjs` — `VACUUM INTO` snapshot + keep-14 prune (`npm run backup:db`).
+- `components/OnboardingLine.tsx` — First-visit dismissible contract sentence.
 - `components/PulseWireApp.tsx` — Client shell: section/window state, fetch, auto-refresh, theme.
 - `components/Header.tsx` — PULSE[WIRE] logo, RAW sticker, time pills, night toggle.
 - `components/ScoreChips.tsx` — NOC score chips (MKT 87🔴…) — tap to filter; replaces section tabs.

@@ -82,7 +82,7 @@ Windows looked identical because (1) the cache was effectively window-shaped / s
 
 - Pulse Score v0 from in-memory 24h pool: `(2×breadth + 3×velocity) × recencyDecay`, saturated with K=8.
 - Rule-based verdict hero; LLM may polish only (never invent). Works in RAW.
-- Score chips replace section tabs (Markets-first order). Lens: Since you left (default 2nd+ visit) / Windows.
+- Score chips replace section tabs (Markets-first order). Lens: Since you left (default 2nd+ visit) / By time.
 - Ranking: heat desc + age-diversity for 4h+ + fewer-stronger (floor 15% of top heat, cap 9).
 - Full flash headlines (≤160 chars). Quiet = designed hero, not empty apology.
 - **Boot-window velocity suppression:** clusters whose every `firstSeen` falls within 5 min of process boot score velocity=1 (breadth only). Prevents false 🔴 after restart/deploy (same trap on Vercel cold starts).
@@ -155,3 +155,5 @@ Windows looked identical because (1) the cache was effectively window-shaped / s
 - **TREND** chip after World opens a dedicated Reddit + X panel only.
 - News desks (ALL / MKT / …) stay minimal: verdict + chips + tiles.
 - Quiet choice: dissolve VIBE; TREND is the social surface.
+- Lens label: **By time** (was “Windows” — reviewers misread “Since you left Windows” as junk).
+- First paint is **SSR** with real verdict + chips + tiles so no-JS / slow-JS / tunnel fetches are not an empty shell.

@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
   try {
     setTestOverrides(overrides);
     if (forceRefresh) clearVibeCacheForTests();
-    const payload = await getVibe(windowParam);
+    const payload = await getVibe(windowParam, { forceRefresh });
     return NextResponse.json(payload, {
       headers: { "Cache-Control": "no-store, max-age=0" },
     });

@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
+  evaluateListingDiffForTests,
   getRadarStatus,
   pollRadar,
   setRadarForceTripForTests,
   startRadarPoller,
+  type RadarListItem,
 } from "@/lib/radar";
 import { isTestMode } from "@/lib/test-mode";
 
@@ -42,6 +44,16 @@ export async function POST(request: NextRequest) {
     resetRadarStateForTests();
     const status = await pollRadar();
     return NextResponse.json(status);
+  }
+  /** Pure listing-diff fixture (BUG-V2) — no network. */
+  if (body.action === "diff-fixture") {
+    const previous = (body as { previous?: RadarListItem[] }).previous ?? [];
+    const current = (body as { current?: RadarListItem[] }).current ?? [];
+    const sourceName =
+      (body as { sourceName?: string }).sourceName || "RBI press";
+    return NextResponse.json(
+      evaluateListingDiffForTests(sourceName, previous, current),
+    );
   }
   return NextResponse.json({ error: "unknown action" }, { status: 400 });
 }

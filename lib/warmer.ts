@@ -28,6 +28,18 @@ export async function warmAllSections(reason: string): Promise<void> {
         `[pulsewire] warm-ok section=${section} items=${cached.entry?.items.length ?? 0}`
       );
     }
+    // Vibe is a separate route — warm so chip click isn't the first fetch.
+    try {
+      const { getVibe } = await import("./vibe");
+      const vibe = await getVibe("4h", { forceRefresh: true });
+      console.info(
+        `[pulsewire] warm-ok vibe reddit=${vibe.reddit.status} x=${vibe.xpulse.status}`,
+      );
+    } catch (vibeErr) {
+      const message =
+        vibeErr instanceof Error ? vibeErr.message : String(vibeErr);
+      console.warn(`[pulsewire] warm-fail vibe: ${message}`);
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.warn(`[pulsewire] warm-fail: ${message}`);

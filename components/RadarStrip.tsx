@@ -10,9 +10,12 @@ type RadarStripProps = {
 
 export function RadarStrip({ status, active, onSelect }: RadarStripProps) {
   const clear = status?.clear !== false && !(status?.trips?.length);
+  const top = status?.trips?.[0];
   const label = clear
     ? "RADAR CLEAR — watching tripwires"
-    : `RADAR TRIPPED · ${status?.trips?.[0]?.name ?? "tripwire"}`;
+    : top?.title
+      ? `RADAR TRIPPED · ${top.name} — ${top.title}`
+      : `RADAR TRIPPED · ${top?.name ?? "tripwire"}`;
 
   return (
     <button

@@ -32,6 +32,8 @@ for (const suffix of ["", "-shm", "-wal"]) {
 export default defineConfig({
   testDir: "./tests",
   fullyParallel: false,
+  // @live smokes prove external reality — run via `npm run test:e2e:live`, never CI.
+  grepInvert: process.env.PW_LIVE === "1" ? undefined : /@live/,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
   workers: 1,

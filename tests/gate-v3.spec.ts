@@ -87,6 +87,7 @@ test.describe("v3 Brief · Vibe · Radar", () => {
     await expect(
       page.locator('[data-testid="vibe-reddit"] a').first()
     ).toBeVisible();
+    await expect(page.getByTestId("chip-radar")).toHaveText(/RADAR/i);
   });
 
   test("Radar: clear by default; force trip → red verdict", async ({
@@ -104,7 +105,7 @@ test.describe("v3 Brief · Vibe · Radar", () => {
     );
 
     const tripped = await request.post("/api/radar", {
-      data: { action: "trip", tripwireId: "rbi-press" },
+      data: { action: "trip", tripwireId: "sebi-press" },
     });
     expect(tripped.ok()).toBeTruthy();
     const body = await tripped.json();
@@ -114,6 +115,7 @@ test.describe("v3 Brief · Vibe · Radar", () => {
     await page.getByTestId("chip-radar").click();
     await expect(page.getByTestId("radar-panel")).toBeVisible();
     await expect(page.getByTestId("verdict-hero")).toContainText(/Radar/i);
+    await expect(page.getByTestId("radar-panel")).toContainText(/tripwire/i);
 
     // Manifest present for PWA install hook
     await expect(page.locator('link[rel="manifest"]').first()).toHaveAttribute(

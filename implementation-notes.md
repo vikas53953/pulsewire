@@ -103,6 +103,7 @@ Windows looked identical because (1) the cache was effectively window-shaped / s
 - **Vibe:** Reddit rising + X Pulse side-by-side (`/api/vibe`). Instagram permanently OOS.
 - **Radar:** 60s tripwire poller; CLEAR/TRIPPED; red verdict hint; PWA manifest+SW stub (push = M6).
 - Gate: `tests/gate-v3.spec.ts`. Cost notes in `GATE-V3-REPORT.md` / `SPEC-v3-radar-vibe-brief.md`.
+- Quiet fixes after live feedback: Vibe uses Reddit **Atom RSS** (JSON API 403 from this host); empty columns show honest notes + labeled X demo when `LLM_API_KEY` missing; Radar trips only on **new RSS item ids** (not HTML fingerprints); chip label **RADAR** (not RAD) to avoid Reddit confusion.
 
 ## v1.1 — NEW stickers + X Pulse (done)
 

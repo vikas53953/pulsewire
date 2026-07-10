@@ -13,11 +13,13 @@ function Column({
   testId,
   items,
   empty,
+  note,
 }: {
   title: string;
   testId: string;
   items: VibeItem[];
   empty?: boolean;
+  note?: string;
 }) {
   return (
     <div data-testid={testId} className="min-w-0 flex-1">
@@ -29,7 +31,7 @@ function Column({
           data-testid={`${testId}-empty`}
           className="mt-3 text-[13px] font-bold opacity-60"
         >
-          Quiet on this side.
+          {note || "Nothing loaded for this column."}
         </p>
       ) : (
         <ul className="mt-3 list-none space-y-2 p-0">
@@ -46,12 +48,21 @@ function Column({
                 </span>
                 <span className="mt-2 block text-[10px] font-bold uppercase opacity-60">
                   {item.source} · {relativeAge(item.publishedAt)}
+                  {item.demo ? " · demo" : ""}
                 </span>
               </a>
             </li>
           ))}
         </ul>
       )}
+      {note && items.length > 0 ? (
+        <p
+          data-testid={`${testId}-note`}
+          className="mt-2 font-mono text-[10px] uppercase opacity-50"
+        >
+          {note}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -68,19 +79,26 @@ export function VibePanel({ data, loading }: VibePanelProps) {
   }
 
   return (
-    <div data-testid="vibe-panel" className="flex flex-col gap-4 sm:flex-row">
-      <Column
-        title="Reddit rising"
-        testId="vibe-reddit"
-        items={data.reddit}
-        empty={data.redditEmpty}
-      />
-      <Column
-        title="X Pulse"
-        testId="vibe-xpulse"
-        items={data.xpulse}
-        empty={data.xEmpty}
-      />
+    <div data-testid="vibe-panel" className="flex flex-col gap-3">
+      <p className="m-0 text-[12px] font-bold opacity-70">
+        What&apos;s loud on Reddit vs X right now — not a feed to scroll.
+      </p>
+      <div className="flex flex-col gap-4 sm:flex-row">
+        <Column
+          title="Reddit"
+          testId="vibe-reddit"
+          items={data.reddit}
+          empty={data.redditEmpty}
+          note={data.redditNote}
+        />
+        <Column
+          title="X Pulse"
+          testId="vibe-xpulse"
+          items={data.xpulse}
+          empty={data.xEmpty}
+          note={data.xNote}
+        />
+      </div>
     </div>
   );
 }

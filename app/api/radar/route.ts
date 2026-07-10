@@ -28,12 +28,18 @@ export async function POST(request: NextRequest) {
     tripwireId?: string;
   };
   if (body.action === "trip") {
-    setRadarForceTripForTests(body.tripwireId || "rbi-press");
+    setRadarForceTripForTests(body.tripwireId || "sebi-press");
     const status = await pollRadar();
     return NextResponse.json(status);
   }
   if (body.action === "clear") {
     setRadarForceTripForTests(null);
+    const status = await pollRadar();
+    return NextResponse.json(status);
+  }
+  if (body.action === "reset-state") {
+    const { resetRadarStateForTests } = await import("@/lib/radar");
+    resetRadarStateForTests();
     const status = await pollRadar();
     return NextResponse.json(status);
   }

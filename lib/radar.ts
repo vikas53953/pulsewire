@@ -1,3 +1,4 @@
+import Parser from "rss-parser";
 import { getHistoryDb } from "./history";
 import { TRIPWIRES, type TripwireConfig } from "./radar.config";
 import { isTestMode } from "./test-mode";
@@ -10,6 +11,7 @@ export interface RadarTrip {
   title: string;
   url: string;
   trippedAt: string;
+  blurb?: string;
 }
 
 export interface RadarStatus {
@@ -17,6 +19,8 @@ export interface RadarStatus {
   trips: RadarTrip[];
   polledAt: string;
   verdictHint: VerdictPayload | null;
+  /** Explains CLEAR vs TRIPPED in plain English */
+  summary: string;
 }
 
 const globalForRadar = globalThis as unknown as {
@@ -24,6 +28,14 @@ const globalForRadar = globalThis as unknown as {
   __pulsewireRadarStatus?: RadarStatus;
   __pulsewireRadarForceTrip?: string | null;
 };
+
+const parser = new Parser({
+  timeout: 8_000,
+  headers: {
+    "User-Agent": "PulseWire-Radar/0.1",
+    Accept: "application/rss+xml, application/atom+xml, application/xml, text/xml",
+  },
+});
 
 function ensureRadarTable(): void {
   const db = getHistoryDb();
@@ -59,34 +71,76 @@ function setLastSeen(id: string, seen: string, title: string): void {
     .run(id, seen, title, new Date().toISOString());
 }
 
+function itemKey(item: {
+  guid?: string;
+  id?: string;
+  link?: string;
+  title?: string;
+}): string {
+  return (item.guid || item.id || item.link || item.title || "").trim();
+}
+
+/**
+ * Trip only when a *new* RSS item id appears.
+ * First successful poll baselines (no trip) so restarts don't false-red.
+ */
 async function probeTripwire(tw: TripwireConfig): Promise<RadarTrip | null> {
   try {
-    const res = await fetch(tw.url, {
-      signal: AbortSignal.timeout(8_000),
-      headers: { "User-Agent": "PulseWire-Radar/0.1" },
+    const parsed = await parser.parseURL(tw.url);
+    const items = (parsed.items || []).filter((i) => {
+      if (!i.title) return false;
+      if (tw.match && !tw.match.test(i.title)) return false;
+      return Boolean(itemKey(i));
     });
-    if (!res.ok) return null;
-    const text = await res.text();
-    // Content fingerprint — new body vs last_seen trips once
-    const fingerprint = `${res.status}:${text.length}:${text.slice(0, 200)}`;
+    if (items.length === 0) return null;
+
+    const newest = items[0];
+    const key = itemKey(newest);
     const prev = getLastSeen(tw.id);
+
     if (!prev) {
-      setLastSeen(tw.id, fingerprint, tw.name);
+      // Baseline — remember newest, do not trip
+      setLastSeen(tw.id, key, newest.title || tw.name);
       return null;
     }
-    if (prev === fingerprint) return null;
-    setLastSeen(tw.id, fingerprint, tw.name);
+    if (prev === key) return null;
+
+    // New headline since last poll
+    setLastSeen(tw.id, key, newest.title || tw.name);
     return {
       id: tw.id,
       name: tw.name,
       domain: tw.domain,
-      title: `${tw.name} changed`,
-      url: tw.url,
+      title: (newest.title || "").trim(),
+      url: newest.link || tw.url,
       trippedAt: new Date().toISOString(),
+      blurb: tw.blurb,
     };
-  } catch {
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(`[pulsewire] radar-probe fail ${tw.id}: ${message}`);
     return null;
   }
+}
+
+function buildStatus(trips: RadarTrip[]): RadarStatus {
+  const clear = trips.length === 0;
+  return {
+    clear,
+    trips,
+    polledAt: new Date().toISOString(),
+    verdictHint:
+      trips.length > 0
+        ? {
+            text: `🔴 Radar — ${trips[0].name}: ${trips[0].title}`,
+            level: "red",
+            llmPolished: false,
+          }
+        : null,
+    summary: clear
+      ? "Watching SEBI / Hugging Face / BBC Business. No new items since last check."
+      : `New item on ${trips.map((t) => t.name).join(", ")}. This is a tripwire — not a full news feed.`,
+  };
 }
 
 function fixtureStatus(): RadarStatus {
@@ -97,27 +151,14 @@ function fixtureStatus(): RadarStatus {
       id: tw.id,
       name: tw.name,
       domain: tw.domain,
-      title: `${tw.name} tripwire fired (fixture)`,
+      title: `${tw.name}: fixture headline (test trip)`,
       url: tw.url,
       trippedAt: new Date().toISOString(),
+      blurb: tw.blurb,
     };
-    return {
-      clear: false,
-      trips: [trip],
-      polledAt: new Date().toISOString(),
-      verdictHint: {
-        text: `🔴 Radar — ${tw.name}: ${trip.title}`,
-        level: "red",
-        llmPolished: false,
-      },
-    };
+    return buildStatus([trip]);
   }
-  return {
-    clear: true,
-    trips: [],
-    polledAt: new Date().toISOString(),
-    verdictHint: null,
-  };
+  return buildStatus([]);
 }
 
 export function setRadarForceTripForTests(id: string | null): void {
@@ -137,19 +178,7 @@ export async function pollRadar(): Promise<RadarStatus> {
     if (trip) trips.push(trip);
   }
 
-  const status: RadarStatus = {
-    clear: trips.length === 0,
-    trips,
-    polledAt: new Date().toISOString(),
-    verdictHint:
-      trips.length > 0
-        ? {
-            text: `🔴 Radar — ${trips[0].name}: ${trips[0].title}`,
-            level: "red",
-            llmPolished: false,
-          }
-        : null,
-  };
+  const status = buildStatus(trips);
   globalForRadar.__pulsewireRadarStatus = status;
   if (trips.length > 0) {
     console.info(
@@ -166,6 +195,7 @@ export function getRadarStatus(): RadarStatus {
       trips: [],
       polledAt: new Date(0).toISOString(),
       verdictHint: null,
+      summary: "Radar not polled yet.",
     }
   );
 }
@@ -173,7 +203,6 @@ export function getRadarStatus(): RadarStatus {
 export function startRadarPoller(): void {
   if (globalForRadar.__pulsewireRadarTimer) return;
   if (isTestMode()) {
-    // Boot once for fixtures; no 60s interval under PW_TEST
     void pollRadar();
     return;
   }
@@ -182,4 +211,12 @@ export function startRadarPoller(): void {
     void pollRadar();
   }, 60_000);
   console.info("[pulsewire] radar-poller start interval=60s");
+}
+
+/** Wipe baselines (ops / tests). */
+export function resetRadarStateForTests(): void {
+  ensureRadarTable();
+  getHistoryDb().exec(`DELETE FROM radar_state`);
+  globalForRadar.__pulsewireRadarStatus = undefined;
+  globalForRadar.__pulsewireRadarForceTrip = null;
 }

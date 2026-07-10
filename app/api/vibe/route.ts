@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getVibe } from "@/lib/vibe";
+import { clearVibeCacheForTests, getVibe } from "@/lib/vibe";
 import {
   clearTestOverrides,
   parseTestOverrides,
@@ -13,6 +13,7 @@ export const revalidate = 0;
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
   const windowParam = searchParams.get("window") ?? "4h";
+  const forceRefresh = searchParams.get("refresh") === "1";
   const overrides = parseTestOverrides(searchParams);
 
   if (!isTimeWindow(windowParam)) {
@@ -21,6 +22,7 @@ export async function GET(request: NextRequest) {
 
   try {
     setTestOverrides(overrides);
+    if (forceRefresh) clearVibeCacheForTests();
     const payload = await getVibe(windowParam);
     return NextResponse.json(payload, {
       headers: { "Cache-Control": "no-store, max-age=0" },

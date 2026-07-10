@@ -35,6 +35,7 @@ test.describe("M4 Verdict Engine", () => {
     expect(hot.verdict.text).toMatch(/\d+ sources/i);
     expect(hot.verdict.why).toMatch(/Watch:/i);
     expect(hot.verdict.why).not.toMatch(/pulse \d+/i);
+    expect(hot.verdict.text).not.toMatch(/credible/i);
   });
 
   test("feeds down → blind ≠ quiet", async ({ request, page }) => {

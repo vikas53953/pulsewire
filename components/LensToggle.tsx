@@ -14,7 +14,7 @@ type LensToggleProps = {
 /**
  * First visit: only time pills (1h/4h/12h/24h) — no dual labels that
  * reviewers misread as junk (“Since you left By time”).
- * Return visits: “Since last visit” vs “Windows” (not “By time”).
+ * Return visits: “Since last visit” vs “Time” (not “By time” / “Windows”).
  */
 export function LensToggle({
   lens,
@@ -58,7 +58,7 @@ export function LensToggle({
                 : "bg-transparent text-[var(--ink)]"
             }`}
           >
-            Windows
+            Time
           </button>
         </div>
       ) : (
@@ -70,7 +70,7 @@ export function LensToggle({
           className="sr-only"
           tabIndex={-1}
         >
-          Windows
+          Time
         </button>
       )}
 

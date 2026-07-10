@@ -42,19 +42,21 @@ function trendWhy(
   const ageLabel =
     ageMin < 60 ? `${ageMin}m` : `${Math.round(ageMin / 60)}h`;
   const vel = sig.velocity ?? 0;
+  const velBit =
+    vel > 0 ? ` · vel ${Number.isInteger(vel) ? vel : vel.toFixed(1)}` : "";
   if (plane === "reddit") {
     if (vel >= 8) {
-      return `Rising fast in ${sig.source} · high velocity · ${ageLabel}`;
+      return `Rising in ${sig.source}${velBit} · ${ageLabel}`;
     }
     if (vel >= 4) {
-      return `Active in ${sig.source} · ${ageLabel}`;
+      return `Active in ${sig.source}${velBit} · ${ageLabel}`;
     }
-    return `Surfaced from ${sig.source} · ${ageLabel}`;
+    return `Surfaced from ${sig.source}${velBit} · ${ageLabel}`;
   }
   if (vel >= 5) {
-    return `Loud on X (${sig.source}) · ${ageLabel}`;
+    return `Loud on X (${sig.source})${velBit} · ${ageLabel}`;
   }
-  return `On X · ${sig.source} · ${ageLabel}`;
+  return `On X · ${sig.source}${velBit} · ${ageLabel}`;
 }
 
 function isContentSection(id: SectionId): id is ContentSectionId {

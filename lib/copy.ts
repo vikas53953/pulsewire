@@ -35,10 +35,16 @@ export function pulseWhy(score: SectionScore): string {
     return `${label}: sources unreachable — status unknown (not quiet).`;
   }
   const topic = score.topText ? shortEvent(score.topText, 10) : null;
-  const n = Math.max(1, Math.round(score.topBreadth ?? score.topVelocity ?? 1));
-  const sources = n === 1 ? "1 source" : `${n} sources`;
+  const breadth =
+    score.topBreadth != null && score.topBreadth >= 1
+      ? Math.round(score.topBreadth)
+      : null;
+  const sources =
+    breadth == null ? null : breadth === 1 ? "1 source" : `${breadth} sources`;
   const age =
-    score.topSpanMinutes != null ? `, first cluster span ${score.topSpanMinutes}m` : "";
+    score.topSpanMinutes != null
+      ? ` · span ${score.topSpanMinutes}m`
+      : "";
 
   if (score.socialLed || score.topSignalState === "early") {
     return topic
@@ -47,7 +53,8 @@ export function pulseWhy(score: SectionScore): string {
   }
 
   if (topic) {
-    return `${label} ${score.score}${levelGlyph(score.level)} — driven by: ${topic} (${sources}${age}).`;
+    const receipt = sources ? ` (${sources}${age})` : age ? ` (${age.replace(/^ · /, "")})` : "";
+    return `${label} ${score.score}${levelGlyph(score.level)} — driven by: ${topic}${receipt}.`;
   }
 
   if (score.calibrating) {

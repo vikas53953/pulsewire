@@ -49,8 +49,17 @@ function topItemFor(
     .sort((a, b) => (b.heat ?? 0) - (a.heat ?? 0))[0];
 }
 
-function sourceCount(s: SectionScore): number {
-  return Math.max(1, Math.round(s.topBreadth ?? s.topVelocity ?? 1));
+/** Real source breadth only — never substitute velocity (that lied as "sources"). */
+function sourceCount(s: SectionScore): number | null {
+  const n = s.topBreadth;
+  if (n == null || !Number.isFinite(n) || n < 1) return null;
+  return Math.round(n);
+}
+
+function sourcesClause(s: SectionScore): string {
+  const n = sourceCount(s);
+  if (n == null) return "";
+  return n === 1 ? " (1 source)" : ` (${n} sources)`;
 }
 
 function eventPhrase(s: SectionScore): string {
@@ -90,9 +99,13 @@ export function verdictWhy(s: SectionScore | null | undefined): string | null {
     return `Watch: ${event} is loud on social with no wire confirmation yet — do not act on it alone.`;
   }
   if (s.level === "red") {
-    return `Watch: ${event} has ${n} sources moving fast — check the ${sectionLabel(s.section)} desk before your next move.`;
+    return n != null
+      ? `Watch: ${event} has ${n} sources moving fast — check the ${sectionLabel(s.section)} desk before your next move.`
+      : `Watch: ${event} is moving fast — check the ${sectionLabel(s.section)} desk before your next move.`;
   }
-  return `Watch: ${event} is lifting ${sectionLabel(s.section)} above a normal hour (${n} sources).`;
+  return n != null
+    ? `Watch: ${event} is lifting ${sectionLabel(s.section)} above a normal hour (${n} sources).`
+    : `Watch: ${event} is lifting ${sectionLabel(s.section)} above a normal hour.`;
 }
 
 function blindVerdict(ctx: VerdictContext): VerdictPayload {
@@ -178,7 +191,7 @@ export function buildVerdictTemplate(ctx: VerdictContext): VerdictPayload {
     const calm = calmDesksPhrase(greens);
     const calmBit = calm ? ` ${calm}.` : "";
     return {
-      text: `${sectionLabel(s.section)} hot: ${eventPhrase(s)} (${sourceCount(s)} sources).${calmBit}`,
+      text: `${sectionLabel(s.section)} hot: ${eventPhrase(s)}${sourcesClause(s)}.${calmBit}`,
       level: "red",
       llmPolished: false,
       why: verdictWhy(s),
@@ -216,7 +229,7 @@ export function buildVerdictTemplate(ctx: VerdictContext): VerdictPayload {
     const parts = ["Mostly quiet."];
     if (calm) parts.push(`${calm}.`);
     parts.push(
-      `${sectionLabel(s.section)} warming: ${eventPhrase(s)} (${sourceCount(s)} sources).`,
+      `${sectionLabel(s.section)} warming: ${eventPhrase(s)}${sourcesClause(s)}.`,
     );
     if (yellows.length >= 2) {
       const second = yellows[1];

@@ -196,8 +196,8 @@ export function ScoreChips({ scores, active, onSelect }: ScoreChipsProps) {
           data-testid="pulse-legend"
           className="m-0 px-0.5 font-mono text-[10px] font-bold uppercase tracking-[0.06em] opacity-55"
         >
-          Pulse 0–100 = how loud vs a normal hour · 🟢 quiet · 🟡 warming · 🔴
-          hot · ⚪ unknown · hover a chip for why
+          Pulse 0–100 vs a normal hour · 🟢 quiet · 🟡 warming · 🔴 hot · ⚪
+          unknown · ~ calibrating · ⚡ social-led · hover a chip for why
         </p>
       )}
     </div>

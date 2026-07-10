@@ -66,6 +66,22 @@ async function fetchHighlights(
   });
   if (lens === "since" && since) params.set("since", since);
   if (refresh) params.set("refresh", "1");
+  // Forward PW_TEST page overrides (?pwQuiet=1, ?pwEarlyX=1, …) to the API.
+  if (typeof window !== "undefined") {
+    const page = new URLSearchParams(window.location.search);
+    for (const key of [
+      "pwQuiet",
+      "pwHotMarkets",
+      "pwLlmFail",
+      "pwFeedsDown",
+      "pwEmpty",
+      "pwEarlyX",
+      "pwFusion",
+    ]) {
+      const v = page.get(key);
+      if (v) params.set(key, v);
+    }
+  }
   const res = await fetch(`/api/highlights?${params.toString()}`, {
     cache: "no-store",
   });

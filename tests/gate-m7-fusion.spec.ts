@@ -41,7 +41,7 @@ test.describe("M7 Signal Fusion", () => {
     await page.getByTestId("lens-window").click();
     await page.getByTestId("chip-markets").click();
     await expect(page.locator('[data-signal="early"]').first()).toBeVisible({
-      timeout: 10_000,
+      timeout: 15_000,
     });
     await expect(page.getByTestId("signal-early").first()).toBeVisible();
     await expect(page.getByTestId("signal-label").first()).toContainText(

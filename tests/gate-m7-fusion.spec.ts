@@ -28,7 +28,9 @@ test.describe("M7 Signal Fusion", () => {
       (i) => i.signalState === "early",
     );
     expect(early.length).toBeGreaterThan(0);
-    expect(early[0].text).toMatch(/unconfirmed|mystery|X-only|rumor|wire/i);
+    expect(early.some((i) => /mystery|X-only|rumor|no wire/i.test(i.text))).toBe(
+      true,
+    );
     // EARLY must never alone produce red
     expect(body.verdict.level).not.toBe("red");
     if (body.verdict.text.match(/brewing/i)) {

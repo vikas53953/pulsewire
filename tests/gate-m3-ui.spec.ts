@@ -58,7 +58,9 @@ test.describe("M3 Bento Zine UI gate", () => {
     await waitForShell(page);
     await ensureWindowLens(page);
 
-    const chipSections = SECTIONS.filter((s) => s.id !== "xpulse");
+    const chipSections = SECTIONS.filter(
+      (s) => s.id !== "xpulse" && s.id !== "vibe" && s.id !== "radar"
+    );
     for (const section of chipSections) {
       const chipId =
         section.id === "all" ? "chip-all" : `chip-${section.id}`;

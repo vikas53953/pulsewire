@@ -1,10 +1,8 @@
 import {
   canDriveRedVerdict,
 } from "./fusion";
-import {
-  eightWords,
-  trafficLevel,
-} from "./score";
+import { eightWords } from "./copy";
+import { trafficLevel } from "./score";
 import type {
   ContentSectionId,
   HighlightItem,
@@ -25,6 +23,12 @@ export interface VerdictContext {
   topItems?: HighlightItem[];
 }
 
+const WHY_DESKS = new Set<ContentSectionId>([
+  "markets",
+  "economy",
+  "politics",
+]);
+
 function byLevel(scores: SectionScore[], level: TrafficLevel): SectionScore[] {
   return scores
     .filter((s) => s.level === level)
@@ -41,10 +45,64 @@ function topItemFor(
     .sort((a, b) => (b.heat ?? 0) - (a.heat ?? 0))[0];
 }
 
+function shortTopic(text: string | undefined): string {
+  return eightWords(text ?? "developing story");
+}
+
+function sourceCount(s: SectionScore): number {
+  return Math.max(1, Math.round(s.topBreadth ?? s.topVelocity ?? 1));
+}
+
+function sourcesPhrase(s: SectionScore): string {
+  const n = sourceCount(s);
+  return n === 1 ? "1 credible source" : `${n} credible sources`;
+}
+
+/** Name up to two calm desks for a status-style verdict (not a teaser). */
+function calmDesksPhrase(greens: SectionScore[]): string | null {
+  if (greens.length === 0) return null;
+  const priority: ContentSectionId[] = [
+    "markets",
+    "politics",
+    "economy",
+    "india",
+  ];
+  const preferred = priority
+    .map((id) => greens.find((g) => g.section === id))
+    .filter((s): s is SectionScore => Boolean(s));
+  const rest = greens
+    .filter((g) => !preferred.some((p) => p.section === g.section))
+    .sort((a, b) => a.score - b.score);
+  const picked = [...preferred, ...rest].slice(0, 2);
+  const names = picked.map((s) => sectionLabel(s.section));
+  if (names.length === 1) return `${names[0]} calm`;
+  return `${names[0]} & ${names[1]} calm`;
+}
+
+function warmingClause(s: SectionScore): string {
+  const topic = shortTopic(s.topText);
+  return `${sectionLabel(s.section)} warming on ${topic} (${sourcesPhrase(s)})`;
+}
+
+/** Why-it-matters for desks busy India pros actually act on. */
+export function verdictWhy(s: SectionScore | null | undefined): string | null {
+  if (!s || s.level === "green") return null;
+  if (!WHY_DESKS.has(s.section)) return null;
+  if (s.socialLed || s.topSignalState === "early") {
+    return "Why it matters: social heat ahead of wires — wait for confirmation before acting.";
+  }
+  const n = sourceCount(s);
+  const span = s.topSpanMinutes ?? 40;
+  if (s.level === "red") {
+    return `Why it matters: ${sectionLabel(s.section)} is hot with ${n} sources in ${span} min.`;
+  }
+  return `Why it matters: ${sectionLabel(s.section)} pulse ${s.score} — louder than a normal hour (${n} sources).`;
+}
+
 /**
  * Deterministic verdict templates (SPEC v2 §3 + v4 fusion rules).
+ * Soft-ship+: synthesize multi-desk status, not a single-story teaser.
  * EARLY never drives red alone — max yellow "brewing".
- * Tripwire exception: official source = confirmed.
  */
 export function buildVerdictTemplate(ctx: VerdictContext): VerdictPayload {
   if (ctx.lens === "since" && ctx.sinceEmpty) {
@@ -86,18 +144,22 @@ export function buildVerdictTemplate(ctx: VerdictContext): VerdictPayload {
       text: `🔴 Busy: ${sectionLabel(a.section)} and ${sectionLabel(b.section)} both moving. Start with ${sectionLabel(a.section)}.`,
       level: "red",
       llmPolished: false,
+      why: verdictWhy(a),
     };
   }
 
   if (reds.length === 1) {
     const s = reds[0];
-    const story = eightWords(s.topText ?? "breaking story");
-    const breadth = Math.round(s.topBreadth ?? s.topVelocity ?? 2);
+    const story = shortTopic(s.topText);
+    const breadth = sourceCount(s);
     const span = s.topSpanMinutes ?? 40;
+    const calm = calmDesksPhrase(greens);
+    const calmBit = calm ? ` ${calm}.` : "";
     return {
-      text: `🔴 ${sectionLabel(s.section)} is hot — ${story}, ${breadth} sources in ${span} min.`,
+      text: `🔴 ${sectionLabel(s.section)} is hot — ${story}, ${breadth} sources in ${span} min.${calmBit}`,
       level: "red",
       llmPolished: false,
+      why: verdictWhy(s),
     };
   }
 
@@ -107,33 +169,54 @@ export function buildVerdictTemplate(ctx: VerdictContext): VerdictPayload {
     yellows.find((s) => s.socialLed || s.topSignalState === "early") ||
     null;
   if (brewing && reds.length === 0) {
+    const calm = calmDesksPhrase(greens);
+    const lead = calm
+      ? `Mostly quiet. ${calm}.`
+      : "Mostly quiet.";
     return {
-      text: `Something's brewing in ${sectionLabel(brewing.section)} — loud on X, no wire confirmation yet.`,
+      text: `${lead} Something's brewing in ${sectionLabel(brewing.section)} — loud on X, no wire confirmation yet.`,
       level: "yellow",
       llmPolished: false,
+      why: verdictWhy(brewing),
     };
   }
 
   if (yellows.length >= 1 && reds.length === 0) {
     const s = yellows[0];
-    const story = eightWords(s.topText ?? "developing story");
     if (s.socialLed || s.topSignalState === "early") {
+      const calm = calmDesksPhrase(greens);
+      const lead = calm ? `Mostly quiet. ${calm}.` : "Mostly quiet.";
       return {
-        text: `Something's brewing in ${sectionLabel(s.section)} — loud on X, no wire confirmation yet.`,
+        text: `${lead} Something's brewing in ${sectionLabel(s.section)} — loud on X, no wire confirmation yet.`,
         level: "yellow",
         llmPolished: false,
+        why: verdictWhy(s),
       };
     }
-    if (yellows.length === 1 || greens.length + yellows.length === ctx.scores.length) {
-      return {
-        text: `Mostly quiet. ${sectionLabel(s.section)} is warming up — ${story}.`,
-        level: "yellow",
-        llmPolished: false,
-      };
+    const calm = calmDesksPhrase(greens.filter((g) => g.section !== s.section));
+    const parts = ["Mostly quiet."];
+    if (calm) parts.push(calm + ".");
+    parts.push(warmingClause(s) + ".");
+    if (yellows.length >= 2) {
+      const second = yellows[1];
+      parts.push(
+        `${sectionLabel(second.section)} also warming (${sourcesPhrase(second)}).`,
+      );
     }
     return {
-      text: `Mostly quiet. ${sectionLabel(s.section)} is warming up — ${story}.`,
+      text: parts.join(" ").replace(/\s+/g, " ").trim(),
       level: "yellow",
+      llmPolished: false,
+      why: verdictWhy(s),
+    };
+  }
+
+  // Quiet is a win — celebrate majority green.
+  const deskCount = ctx.scores.length || greens.length;
+  if (greens.length >= Math.max(1, deskCount - 0) && yellows.length === 0) {
+    return {
+      text: "All quiet across every desk. Nothing needs you right now.",
+      level: "green",
       llmPolished: false,
     };
   }
@@ -145,7 +228,7 @@ export function buildVerdictTemplate(ctx: VerdictContext): VerdictPayload {
   };
 }
 
-/** Optional LLM polish — preserve section names, counts, color. Cap 140. */
+/** Optional LLM polish — preserve section names, counts, color. Cap 160. */
 export async function polishVerdict(
   template: VerdictPayload,
   polishFn?: (text: string) => Promise<string | null>
@@ -154,11 +237,12 @@ export async function polishVerdict(
   try {
     const polished = await polishFn(template.text);
     if (!polished) return template;
-    const clipped = polished.trim().slice(0, 140);
+    const clipped = polished.trim().slice(0, 160);
     return {
       text: clipped || template.text,
       level: template.level,
       llmPolished: true,
+      why: template.why,
     };
   } catch {
     return template;

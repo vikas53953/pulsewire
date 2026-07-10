@@ -79,6 +79,14 @@ function Column({
                   {" · "}
                   {relativeAge(item.publishedAt)}
                 </span>
+                {item.why ? (
+                  <span
+                    data-testid="trend-why"
+                    className="mt-1 block text-[11px] font-bold normal-case tracking-normal opacity-60"
+                  >
+                    {item.why}
+                  </span>
+                ) : null}
               </a>
             </li>
           ))}

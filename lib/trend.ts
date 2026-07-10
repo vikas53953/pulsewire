@@ -26,8 +26,35 @@ function toTrendItem(
   publishedAt: string,
   plane: TrendItem["plane"],
   section?: ContentSectionId,
+  why?: string,
 ): TrendItem {
-  return { title, url, source, publishedAt, plane, section };
+  return { title, url, source, publishedAt, plane, section, why };
+}
+
+function trendWhy(
+  sig: SocialSignal,
+  plane: "reddit" | "x",
+): string | undefined {
+  const ageMin = Math.max(
+    1,
+    Math.round((Date.now() - new Date(sig.publishedAt).getTime()) / 60_000),
+  );
+  const ageLabel =
+    ageMin < 60 ? `${ageMin}m` : `${Math.round(ageMin / 60)}h`;
+  const vel = sig.velocity ?? 0;
+  if (plane === "reddit") {
+    if (vel >= 8) {
+      return `Rising fast in ${sig.source} · high velocity · ${ageLabel}`;
+    }
+    if (vel >= 4) {
+      return `Active in ${sig.source} · ${ageLabel}`;
+    }
+    return `Surfaced from ${sig.source} · ${ageLabel}`;
+  }
+  if (vel >= 5) {
+    return `Loud on X (${sig.source}) · ${ageLabel}`;
+  }
+  return `On X · ${sig.source} · ${ageLabel}`;
 }
 
 function isContentSection(id: SectionId): id is ContentSectionId {
@@ -129,6 +156,7 @@ function redditForSection(
         sig.publishedAt,
         "reddit",
         section,
+        trendWhy(sig, "reddit"),
       ),
     );
     if (out.length >= cap) break;
@@ -181,6 +209,7 @@ function xForSection(
       sig.publishedAt,
       "x",
       section,
+      trendWhy(sig, "x"),
     ),
   );
 }
@@ -214,6 +243,7 @@ function signalsToTrendItems(
         sig.publishedAt,
         plane,
         sig.section,
+        trendWhy(sig, plane),
       ),
     );
     if (out.length >= cap) break;

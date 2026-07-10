@@ -31,6 +31,20 @@ import { TIME_WINDOWS } from "@/lib/types";
 const AUTO_REFRESH_MS = 10 * 60_000;
 const THEME_KEY = "pulsewire-theme";
 const SESSION_KEY = "pulsewire-session-start";
+const WINDOW_KEY = "pulsewire-window";
+
+function readStoredWindow(): TimeWindow | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(WINDOW_KEY);
+    if (raw && (TIME_WINDOWS as readonly string[]).includes(raw)) {
+      return raw as TimeWindow;
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
 
 type ClientCache = Map<string, HighlightsResponse>;
 
@@ -157,7 +171,7 @@ export function PulseWireApp({ initialData = null }: PulseWireAppProps) {
     initialData?.section ?? "all",
   );
   const [timeWindow, setTimeWindow] = useState<TimeWindow>(
-    initialData?.window ?? "4h",
+    () => readStoredWindow() ?? initialData?.window ?? "4h",
   );
   const [lens, setLens] = useState<Lens>(initialData?.lens ?? "window");
   const [data, setData] = useState<HighlightsResponse | null>(initialData);
@@ -206,6 +220,14 @@ export function PulseWireApp({ initialData = null }: PulseWireAppProps) {
     }
     document.documentElement.classList.toggle("night", night);
   }, [night]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(WINDOW_KEY, timeWindow);
+    } catch {
+      // ignore
+    }
+  }, [timeWindow]);
 
   useEffect(() => {
     if ("serviceWorker" in navigator) {
@@ -363,7 +385,9 @@ export function PulseWireApp({ initialData = null }: PulseWireAppProps) {
     !isTrend &&
     data?.verdict?.level === "green" &&
     !showSkeleton &&
-    (data?.scores ?? []).every((s) => s.level === "green");
+    (data?.scores ?? []).length > 0 &&
+    (data?.scores ?? []).filter((s) => s.level === "green").length >=
+      Math.ceil((data?.scores ?? []).length * 0.7);
 
   const displayVerdict: VerdictPayload | null = (() => {
     if (isTrend) return null;

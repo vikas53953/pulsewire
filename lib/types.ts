@@ -106,6 +106,8 @@ export interface VerdictPayload {
   text: string;
   level: TrafficLevel;
   llmPolished: boolean;
+  /** One-line why for warming/hot desks (esp. MKT / ECO / POL). */
+  why?: string | null;
 }
 
 /** Always-visible mix row — one plane's trending headlines. */
@@ -116,6 +118,8 @@ export interface TrendItem {
   publishedAt: string;
   plane: "rss" | "reddit" | "x";
   section?: ContentSectionId;
+  /** Lightweight “why this surfaced” for TREND (velocity / sub / age). */
+  why?: string;
 }
 
 export interface TrendPlane {

@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import { pulseWhy } from "@/lib/copy";
 import type {
   ContentSectionId,
   SectionId,
@@ -21,12 +23,6 @@ const LEVEL_DOT: Record<string, string> = {
   green: "🟢",
   yellow: "🟡",
   red: "🔴",
-};
-
-const LEVEL_PLAIN: Record<TrafficLevel, string> = {
-  green: "quiet",
-  yellow: "warming",
-  red: "hot",
 };
 
 function Spark({ values }: { values: number[] }) {
@@ -62,23 +58,6 @@ function Spark({ values }: { values: number[] }) {
   );
 }
 
-function pulseTitle(
-  id: string,
-  value: number,
-  level: TrafficLevel,
-  calibrating: boolean,
-  socialLed: boolean,
-): string {
-  const plain = LEVEL_PLAIN[level];
-  if (calibrating) {
-    return `${id} pulse ${value} · calibrating · 0–100 vs a normal hour`;
-  }
-  if (socialLed) {
-    return `${id} pulse ${value} (${plain}) · social-led · 0–100 vs a normal hour`;
-  }
-  return `${id} pulse ${value} (${plain}) · 0–100 how loud vs a normal hour`;
-}
-
 const chipBtn = (selected: boolean) =>
   `min-h-11 shrink-0 rounded-full border-2 border-[var(--ink)] px-3 py-2 font-mono text-[12px] font-black uppercase tracking-wide transition-[transform,box-shadow,background-color] duration-[120ms] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)] ${
     selected
@@ -88,6 +67,9 @@ const chipBtn = (selected: boolean) =>
 
 export function ScoreChips({ scores, active, onSelect }: ScoreChipsProps) {
   const byId = new Map(scores.map((s) => [s.section, s]));
+  const [peek, setPeek] = useState<ContentSectionId | null>(null);
+  const peekScore = peek ? byId.get(peek) : undefined;
+  const whyLine = peekScore ? pulseWhy(peekScore) : null;
 
   return (
     <div className="flex flex-col gap-2">
@@ -106,6 +88,8 @@ export function ScoreChips({ scores, active, onSelect }: ScoreChipsProps) {
           aria-selected={active === "all"}
           data-testid="chip-all"
           onClick={() => onSelect("all")}
+          onFocus={() => setPeek(null)}
+          onMouseEnter={() => setPeek(null)}
           className={chipBtn(active === "all")}
         >
           ALL
@@ -117,19 +101,27 @@ export function ScoreChips({ scores, active, onSelect }: ScoreChipsProps) {
           const selected = active === id;
           const calibrating = Boolean(score?.calibrating);
           const socialLed = Boolean(score?.socialLed);
+          const why = score
+            ? pulseWhy(score)
+            : `${sectionChip(id)} pulse ${value}`;
           return (
             <button
               key={id}
               type="button"
               role="tab"
               aria-selected={selected}
+              aria-describedby={peek === id ? "pulse-why-line" : undefined}
               data-testid={`chip-${id}`}
               data-level={level}
               data-score={value}
               data-calibrating={calibrating ? "1" : "0"}
               data-social-led={socialLed ? "1" : "0"}
-              title={pulseTitle(id, value, level, calibrating, socialLed)}
+              title={why}
               onClick={() => onSelect(id)}
+              onFocus={() => setPeek(id)}
+              onMouseEnter={() => setPeek(id)}
+              onMouseLeave={() => setPeek((cur) => (cur === id ? null : cur))}
+              onBlur={() => setPeek((cur) => (cur === id ? null : cur))}
               className={`${chipBtn(selected)} inline-flex items-center gap-1.5`}
             >
               <span>{sectionChip(id)}</span>
@@ -175,17 +167,30 @@ export function ScoreChips({ scores, active, onSelect }: ScoreChipsProps) {
           data-testid="chip-trend"
           title="Trend — Reddit and X across all categories"
           onClick={() => onSelect("trend")}
+          onFocus={() => setPeek(null)}
+          onMouseEnter={() => setPeek(null)}
           className={chipBtn(active === "trend")}
         >
           TREND
         </button>
       </div>
-      <p
-        data-testid="pulse-legend"
-        className="m-0 px-0.5 font-mono text-[10px] font-bold uppercase tracking-[0.06em] opacity-55"
-      >
-        Pulse 0–100 = how loud vs a normal hour · 🟢 quiet · 🟡 warming · 🔴 hot
-      </p>
+      {whyLine ? (
+        <p
+          id="pulse-why-line"
+          data-testid="pulse-why"
+          className="m-0 max-w-2xl text-[12px] font-bold leading-snug text-[var(--ink)] opacity-70"
+        >
+          {whyLine}
+        </p>
+      ) : (
+        <p
+          data-testid="pulse-legend"
+          className="m-0 px-0.5 font-mono text-[10px] font-bold uppercase tracking-[0.06em] opacity-55"
+        >
+          Pulse 0–100 = how loud vs a normal hour · 🟢 quiet · 🟡 warming · 🔴
+          hot · hover a chip for why
+        </p>
+      )}
     </div>
   );
 }

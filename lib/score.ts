@@ -1,5 +1,6 @@
 import { blendWithBaseline } from "./baseline";
 import { isBootWindowCluster, processBootAt } from "./boot";
+import { eightWords } from "./copy";
 import {
   crossBonus,
   planesPresent,
@@ -14,6 +15,8 @@ import type {
   TrafficLevel,
 } from "./types";
 import { sectionLabel } from "./types";
+
+export { eightWords, pulseWhy } from "./copy";
 
 const K = 8;
 const HOUR_MS = 60 * 60 * 1000;
@@ -270,13 +273,6 @@ export function scoreSection(
     topSignalState: top?.signalState,
     topTripwire: Boolean(top?.tripwire),
   };
-}
-
-/** Shorten a headline to ~8 words for verdict templates. */
-export function eightWords(text: string): string {
-  const words = text.trim().split(/\s+/).filter(Boolean);
-  if (words.length <= 8) return words.join(" ");
-  return `${words.slice(0, 8).join(" ")}…`;
 }
 
 export function describeScore(score: SectionScore): string {

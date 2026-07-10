@@ -1,12 +1,20 @@
 "use client";
 
-import type { ContentSectionId, SectionScore, TrafficLevel } from "@/lib/types";
+import type {
+  ContentSectionId,
+  SectionId,
+  SectionScore,
+  TrafficLevel,
+} from "@/lib/types";
 import { SCORE_CHIP_ORDER, sectionChip } from "@/lib/types";
+
+/** Chip row includes TREND after World (owner: dedicated panel, not under every desk). */
+export type ChipId = ContentSectionId | "all" | "trend";
 
 type ScoreChipsProps = {
   scores: SectionScore[];
-  active: ContentSectionId | "all";
-  onSelect: (section: ContentSectionId | "all") => void;
+  active: ChipId;
+  onSelect: (section: ChipId) => void;
 };
 
 const LEVEL_DOT: Record<string, string> = {
@@ -21,7 +29,6 @@ const LEVEL_PLAIN: Record<TrafficLevel, string> = {
   red: "hot",
 };
 
-/** Tiny zine sparkline for 🔴 chips — heat series, newest on the right. */
 function Spark({ values }: { values: number[] }) {
   if (!values.length) return null;
   const max = Math.max(...values, 0.1);
@@ -64,13 +71,20 @@ function pulseTitle(
 ): string {
   const plain = LEVEL_PLAIN[level];
   if (calibrating) {
-    return `${id} pulse ${value} · calibrating (need 14 samples in this hour×weekday) · 0–100 vs a normal hour`;
+    return `${id} pulse ${value} · calibrating · 0–100 vs a normal hour`;
   }
   if (socialLed) {
-    return `${id} pulse ${value} (${plain}) · social-led early heat · 0–100 how loud vs a normal hour for this desk`;
+    return `${id} pulse ${value} (${plain}) · social-led · 0–100 vs a normal hour`;
   }
-  return `${id} pulse ${value} (${plain}) · 0–100 how loud vs a normal hour for this desk — not a % of markets`;
+  return `${id} pulse ${value} (${plain}) · 0–100 how loud vs a normal hour`;
 }
+
+const chipBtn = (selected: boolean) =>
+  `min-h-11 shrink-0 rounded-full border-2 border-[var(--ink)] px-3 py-2 font-mono text-[12px] font-black uppercase tracking-wide transition-[transform,box-shadow,background-color] duration-[120ms] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)] ${
+    selected
+      ? "bg-[var(--sticker)] shadow-[3px_3px_0_var(--shadow)]"
+      : "bg-[var(--card)] shadow-none"
+  }`;
 
 export function ScoreChips({ scores, active, onSelect }: ScoreChipsProps) {
   const byId = new Map(scores.map((s) => [s.section, s]));
@@ -89,11 +103,7 @@ export function ScoreChips({ scores, active, onSelect }: ScoreChipsProps) {
           aria-selected={active === "all"}
           data-testid="chip-all"
           onClick={() => onSelect("all")}
-          className={`min-h-11 shrink-0 rounded-full border-2 border-[var(--ink)] px-3 py-2 font-mono text-[12px] font-black uppercase tracking-wide transition-[transform,box-shadow,background-color] duration-[120ms] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)] ${
-            active === "all"
-              ? "bg-[var(--sticker)] shadow-[3px_3px_0_var(--shadow)]"
-              : "bg-[var(--card)] shadow-none"
-          }`}
+          className={chipBtn(active === "all")}
         >
           ALL
         </button>
@@ -117,11 +127,7 @@ export function ScoreChips({ scores, active, onSelect }: ScoreChipsProps) {
               data-social-led={socialLed ? "1" : "0"}
               title={pulseTitle(id, value, level, calibrating, socialLed)}
               onClick={() => onSelect(id)}
-              className={`min-h-11 shrink-0 rounded-full border-2 border-[var(--ink)] px-3 py-2 font-mono text-[12px] font-black uppercase tracking-wide transition-[transform,box-shadow,background-color] duration-[120ms] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)] ${
-                selected
-                  ? "bg-[var(--sticker)] shadow-[3px_3px_0_var(--shadow)]"
-                  : "bg-[var(--card)] shadow-none"
-              }`}
+              className={chipBtn(selected)}
             >
               {sectionChip(id)} {value}
               {LEVEL_DOT[level]}
@@ -144,6 +150,17 @@ export function ScoreChips({ scores, active, onSelect }: ScoreChipsProps) {
             </button>
           );
         })}
+        <button
+          type="button"
+          role="tab"
+          aria-selected={active === "trend"}
+          data-testid="chip-trend"
+          title="Trend — Reddit and X across all categories"
+          onClick={() => onSelect("trend")}
+          className={chipBtn(active === "trend")}
+        >
+          TREND
+        </button>
       </div>
       <p
         data-testid="pulse-legend"
@@ -154,3 +171,5 @@ export function ScoreChips({ scores, active, onSelect }: ScoreChipsProps) {
     </div>
   );
 }
+
+export type { SectionId };

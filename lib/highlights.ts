@@ -34,7 +34,7 @@ import type {
 } from "./types";
 import { SCORE_CHIP_ORDER } from "./types";
 import { buildVerdictTemplate } from "./verdict";
-import { buildSocialTrendsPack, buildTrendPack } from "./trend";
+import { buildSocialTrendsPack } from "./trend";
 import { getXPulseHighlights } from "./x-pulse";
 import { isTestMode } from "./test-mode";
 
@@ -325,6 +325,44 @@ export async function getHighlights(options: {
     };
   }
 
+  if (section === "trend") {
+    const bySection = await ensureSectionCaches(forceRefresh);
+    const scores = computeAllScores(bySection, window, "window", undefined, now);
+    const verdict = buildVerdictTemplate({ scores, lens: "window" });
+    let socialTrends;
+    try {
+      let reddit = await getRedditSignals();
+      if (reddit.length === 0) {
+        reddit = await getRedditSignals({ forceRefresh: true });
+      }
+      let xSignals = await loadXSignalsFromPulseCache();
+      if (xSignals.length === 0) {
+        xSignals = await loadCachedXSignals("markets");
+      }
+      socialTrends = buildSocialTrendsPack({ reddit, x: xSignals });
+    } catch (err) {
+      console.warn(
+        `[pulsewire] trend panel skip: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+    return {
+      section: "trend",
+      window,
+      lens: "window",
+      generatedAt: new Date().toISOString(),
+      stale: false,
+      rawMode: true,
+      verdict: {
+        text: "Trend — what’s loud on Reddit and X.",
+        level: "green",
+        llmPolished: false,
+      },
+      scores,
+      items: [],
+      socialTrends,
+    };
+  }
+
   if (section === "xpulse") {
     const xp = await getXPulseHighlights({ window, forceRefresh });
     const bySection = await ensureSectionCaches(false);
@@ -537,47 +575,7 @@ export async function getHighlights(options: {
     // optional
   }
 
-  // Lean desk mix + full social board (owner: show ALL Reddit/X, no dupes vs mix).
-  let trend;
-  let socialTrends;
-  try {
-    let reddit = await getRedditSignals();
-    if (reddit.length === 0) {
-      reddit = await getRedditSignals({ forceRefresh: true });
-    }
-    let xSignals =
-      section === "all"
-        ? await loadXSignalsFromPulseCache()
-        : await loadCachedXSignals(section as ContentSectionId);
-    if (xSignals.length === 0) {
-      xSignals = await loadXSignalsFromPulseCache();
-    }
-
-    if (section !== "all") {
-      trend =
-        buildTrendPack({
-          section,
-          items: sliced,
-          reddit,
-          x: xSignals,
-        }) ?? undefined;
-    }
-
-    const mixShown = [
-      ...(trend?.reddit.items ?? []),
-      ...(trend?.x.items ?? []),
-    ];
-    socialTrends = buildSocialTrendsPack({
-      reddit,
-      x: xSignals,
-      excludeFromMix: mixShown,
-    });
-  } catch (err) {
-    console.warn(
-      `[pulsewire] trend pack skip: ${err instanceof Error ? err.message : String(err)}`,
-    );
-  }
-
+  // Social board only on TREND chip (early return) — news desks stay clean.
   return {
     section,
     window,
@@ -592,8 +590,6 @@ export async function getHighlights(options: {
     items: sliced,
     xGovernor,
     xPulseUsage,
-    trend,
-    socialTrends,
   };
 }
 

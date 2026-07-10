@@ -7,13 +7,14 @@ export type SectionId =
   | "sports"
   | "world"
   | "tech"
+  | "trend"
   | "xpulse"
   | "vibe"
   | "radar";
 
 export type ContentSectionId = Exclude<
   SectionId,
-  "all" | "xpulse" | "vibe" | "radar"
+  "all" | "trend" | "xpulse" | "vibe" | "radar"
 >;
 
 export type TimeWindow = "1h" | "4h" | "12h" | "24h";
@@ -162,9 +163,9 @@ export interface HighlightsResponse {
     paused: boolean;
     pauseNote: string | null;
   };
-  /** Lean desk mix — only when a section chip is active. */
+  /** @deprecated Lean desk mix removed from UI — kept optional for API compat. */
   trend?: TrendPack;
-  /** Full Reddit + X board (all categories); deduped vs lean mix. */
+  /** Full Reddit + X — only populated for section=trend. */
   socialTrends?: SocialTrendsPack;
   verdict: VerdictPayload;
   scores: SectionScore[];
@@ -180,6 +181,7 @@ export const SECTIONS: { id: SectionId; label: string; chip: string }[] = [
   { id: "sports", label: "Sports", chip: "SPT" },
   { id: "world", label: "World", chip: "WLD" },
   { id: "tech", label: "Tech", chip: "TEC" },
+  { id: "trend", label: "Trend", chip: "TREND" },
   // vibe/radar kept as SectionId for API compat; chips removed in M7 UI
   { id: "vibe", label: "Vibe", chip: "VIBE" },
   { id: "xpulse", label: "X Pulse", chip: "X" },

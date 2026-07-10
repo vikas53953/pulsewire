@@ -25,29 +25,27 @@ function Column({
   const note = plane?.note;
 
   return (
-    <div data-testid={testId} data-status={status} className="min-w-0 flex-1">
-      <div className="mb-2 flex items-baseline justify-between gap-2">
-        <h3 className="m-0 font-mono text-[11px] font-black uppercase tracking-[0.1em]">
-          {title}
-        </h3>
+    <div data-testid={testId} data-status={status} className="min-w-0">
+      <h2 className="m-0 mb-3 font-mono text-[12px] font-black uppercase tracking-[0.12em]">
+        {title}
         {status === "ok" && items.length > 0 ? (
           <span
             data-testid={`${testId}-count`}
-            className="font-mono text-[10px] font-bold opacity-50"
+            className="ml-2 font-normal opacity-45"
           >
             {items.length}
           </span>
         ) : null}
-      </div>
+      </h2>
 
       {status === "pending" ? (
-        <p className="m-0 text-[12px] font-bold opacity-45">Loading…</p>
+        <p className="m-0 text-[13px] font-bold opacity-45">Loading…</p>
       ) : null}
 
       {status === "failed" ? (
         <p
           data-testid={`${testId}-failed`}
-          className="m-0 text-[12px] font-bold text-[var(--mega)]"
+          className="m-0 text-[13px] font-bold text-[var(--mega)]"
         >
           {note || "Fetch failed"}
         </p>
@@ -56,14 +54,14 @@ function Column({
       {status === "quiet" || (status === "ok" && items.length === 0) ? (
         <p
           data-testid={`${testId}-quiet`}
-          className="m-0 text-[12px] font-bold opacity-45"
+          className="m-0 text-[13px] font-bold opacity-45"
         >
           {note || emptyHint}
         </p>
       ) : null}
 
       {status === "ok" && items.length > 0 ? (
-        <ul className="m-0 list-none space-y-2 p-0">
+        <ul className="m-0 list-none space-y-3 p-0">
           {items.map((item) => (
             <li key={`${item.plane}-${item.url}-${item.title.slice(0, 24)}`}>
               <a
@@ -72,10 +70,10 @@ function Column({
                 rel="noopener noreferrer"
                 className="block text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)]"
               >
-                <span className="block text-[13px] font-black leading-snug text-[var(--ink)]">
+                <span className="block text-[15px] font-black leading-snug text-[var(--ink)]">
                   {item.title}
                 </span>
-                <span className="mt-0.5 block text-[9px] font-bold uppercase tracking-wide opacity-50">
+                <span className="mt-1 block text-[10px] font-bold uppercase tracking-wide opacity-50">
                   {item.source}
                   {item.section ? ` · ${sectionLabel(item.section)}` : ""}
                   {" · "}
@@ -91,18 +89,14 @@ function Column({
 }
 
 /**
- * Full Reddit + X trends — all categories, not desk-filtered.
- * Items already shown in the lean mix strip are excluded (no duplicacy).
+ * Dedicated TREND panel — Reddit + X only.
+ * Shown when the TREND chip is active; not under every desk.
  */
 export function SocialTrendsBoard({ pack, loading }: SocialTrendsBoardProps) {
   if (loading && !pack) {
     return (
-      <section
-        data-testid="social-trends"
-        className="border-t-2 border-[var(--ink)] pt-4"
-        aria-busy
-      >
-        <p className="m-0 font-mono text-[10px] font-black uppercase tracking-wide opacity-45">
+      <section data-testid="social-trends" className="py-2" aria-busy>
+        <p className="m-0 font-mono text-[11px] font-black uppercase tracking-wide opacity-45">
           Loading trends…
         </p>
       </section>
@@ -114,21 +108,21 @@ export function SocialTrendsBoard({ pack, loading }: SocialTrendsBoardProps) {
   return (
     <section
       data-testid="social-trends"
-      aria-label="All trending on Reddit and X"
-      className="border-t-2 border-[var(--ink)] pt-4"
+      aria-label="Trending on Reddit and X"
+      className="py-1"
     >
-      <p className="m-0 mb-3 font-mono text-[10px] font-black uppercase tracking-[0.12em] opacity-55">
-        Trends · all Reddit · all X
+      <p className="m-0 mb-5 max-w-md text-[13px] font-bold leading-snug opacity-65">
+        What’s loud on Reddit and X — not a feed to scroll forever.
       </p>
-      <div className="grid grid-cols-1 gap-5 min-[560px]:grid-cols-2">
+      <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 sm:gap-10">
         <Column
-          title="Trending on Reddit"
+          title="On Reddit"
           testId="social-trends-reddit"
           plane={pack.reddit}
           emptyHint="Quiet on Reddit"
         />
         <Column
-          title="Trending on X"
+          title="On X"
           testId="social-trends-x"
           plane={pack.x}
           emptyHint="Quiet on X"

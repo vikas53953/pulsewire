@@ -3,7 +3,7 @@
 import { relativeAge } from "@/lib/time";
 import type { SocialTrendsPack, TrendItem, TrendPlane } from "@/lib/types";
 import { sectionLabel } from "@/lib/types";
-import { trendAccentFromVelocity } from "@/lib/social-velocity";
+import { trendAccentFromVelocity } from "@/lib/social-velocity-math";
 
 type SocialTrendsBoardProps = {
   pack: SocialTrendsPack | null | undefined;

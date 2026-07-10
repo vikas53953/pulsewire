@@ -526,7 +526,7 @@ describe("velocity baseline D2", () => {
       velocityRatio,
       formatVelocityWhy,
       trendAccentFromVelocity,
-    } = await import("@/lib/social-velocity");
+    } = await import("@/lib/social-velocity-math");
     const samples = Array.from({ length: 14 }, () => 4);
     expect(velocityRatio(12, samples)).toBe(3);
     expect(velocityRatio(12, samples.slice(0, 3))).toBeNull();

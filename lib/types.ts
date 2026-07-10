@@ -114,6 +114,8 @@ export interface SectionScore {
   topTripwire?: boolean;
   /** Pre-saturation desk heat — for quiet % receipts (D1). */
   sectionRaw?: number;
+  /** Server-computed quiet receipt line (D1) — safe for client pulseWhy. */
+  quietWhy?: string | null;
 }
 
 export interface VerdictPayload {

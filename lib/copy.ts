@@ -1,7 +1,5 @@
 import type { SectionScore, TrafficLevel } from "./types";
 import { sectionLabel } from "./types";
-import { istBucketParts, readBucketSamples } from "./history";
-import { quietDeskWhyLine } from "./quiet-receipts";
 
 /** Short topic for chip/why lines — complete words, no mid-sentence ellipsis. */
 export function shortEvent(text: string, maxWords = 10): string {
@@ -66,14 +64,8 @@ export function pulseWhy(score: SectionScore): string {
     return `${label}: calibrating baseline (${score.score}/100) — no standout cluster yet.`;
   }
 
-  // D1: earned quiet receipt when history supports it
-  if (score.level === "green" && score.sectionRaw != null) {
-    const at = new Date();
-    const { hourIst, weekdayIst } = istBucketParts(at);
-    const samples = readBucketSamples(score.section, hourIst, weekdayIst);
-    const earned = quietDeskWhyLine(score, score.sectionRaw, samples, at);
-    if (earned) return earned;
-  }
+  // D1: server-computed quiet receipt (never import history on the client)
+  if (score.quietWhy) return score.quietWhy;
 
   return `${label} quiet (${score.score}/100) — below the warming threshold.`;
 }

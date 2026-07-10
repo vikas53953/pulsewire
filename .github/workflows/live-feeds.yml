@@ -1,0 +1,36 @@
+name: live-feeds
+
+# Nightly smoke against real RSS/Reddit — catches feed-shape drift.
+# Network required; failures should page the owner, not block PRs.
+
+on:
+  schedule:
+    - cron: "15 3 * * *" # ~03:15 UTC
+  workflow_dispatch:
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install chromium --with-deps
+
+      - name: Build
+        run: npm run build
+
+      - name: Live-feed smoke (@live)
+        run: npm run test:e2e:live
+        env:
+          CI: "1"
+          # No PW_TEST — hit real feeds. No BETA_TOKEN in CI.

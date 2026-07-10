@@ -1,4 +1,5 @@
 import { isLikelyDuplicate } from "./similarity";
+import { sanitizeHttpUrl } from "./safe-url";
 import type { SocialSignal } from "./fusion";
 import type {
   ContentSectionId,
@@ -27,8 +28,10 @@ function toTrendItem(
   plane: TrendItem["plane"],
   section?: ContentSectionId,
   why?: string,
-): TrendItem {
-  return { title, url, source, publishedAt, plane, section, why };
+): TrendItem | null {
+  const safe = sanitizeHttpUrl(url);
+  if (!safe) return null;
+  return { title, url: safe, source, publishedAt, plane, section, why };
 }
 
 function trendWhy(
@@ -118,18 +121,18 @@ function wiresFromItems(
     const key = `${item.text}|${url}`;
     if (seen.has(key)) continue;
     seen.add(key);
-    out.push(
-      toTrendItem(
-        item.text,
-        url,
-        item.sources[0]?.name || "wire",
-        item.publishedAt,
-        "rss",
-        item.section && isContentSection(item.section)
-          ? item.section
-          : section,
-      ),
+    const row = toTrendItem(
+      item.text,
+      url,
+      item.sources[0]?.name || "wire",
+      item.publishedAt,
+      "rss",
+      item.section && isContentSection(item.section)
+        ? item.section
+        : section,
     );
+    if (!row) continue;
+    out.push(row);
     if (out.length >= MIX_WIRES) break;
   }
   return out;
@@ -150,17 +153,17 @@ function redditForSection(
     const key = sig.url || sig.title;
     if (seen.has(key)) continue;
     seen.add(key);
-    out.push(
-      toTrendItem(
-        sig.title,
-        sig.url,
-        sig.source,
-        sig.publishedAt,
-        "reddit",
-        section,
-        trendWhy(sig, "reddit"),
-      ),
+    const row = toTrendItem(
+      sig.title,
+      sig.url,
+      sig.source,
+      sig.publishedAt,
+      "reddit",
+      section,
+      trendWhy(sig, "reddit"),
     );
+    if (!row) continue;
+    out.push(row);
     if (out.length >= cap) break;
   }
   return out;
@@ -203,17 +206,20 @@ function xForSection(
   }
 
   picked.sort((a, b) => (b.velocity ?? 0) - (a.velocity ?? 0));
-  return picked.slice(0, cap).map((sig) =>
-    toTrendItem(
-      sig.title,
-      sig.url,
-      sig.source,
-      sig.publishedAt,
-      "x",
-      section,
-      trendWhy(sig, "x"),
-    ),
-  );
+  return picked
+    .slice(0, cap)
+    .map((sig) =>
+      toTrendItem(
+        sig.title,
+        sig.url,
+        sig.source,
+        sig.publishedAt,
+        "x",
+        section,
+        trendWhy(sig, "x"),
+      ),
+    )
+    .filter((row): row is TrendItem => row != null);
 }
 
 function planeStatus(items: TrendItem[], emptyNote: string): TrendPlane {
@@ -237,17 +243,17 @@ function signalsToTrendItems(
     const key = sig.url || sig.title;
     if (seen.has(key)) continue;
     seen.add(key);
-    out.push(
-      toTrendItem(
-        sig.title,
-        sig.url,
-        sig.source,
-        sig.publishedAt,
-        plane,
-        sig.section,
-        trendWhy(sig, plane),
-      ),
+    const row = toTrendItem(
+      sig.title,
+      sig.url,
+      sig.source,
+      sig.publishedAt,
+      plane,
+      sig.section,
+      trendWhy(sig, plane),
     );
+    if (!row) continue;
+    out.push(row);
     if (out.length >= cap) break;
   }
   return out;

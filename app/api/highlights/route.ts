@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { canSpend, spendForbiddenResponse } from "@/lib/beta-auth";
 import { clearCache } from "@/lib/cache";
 import { getHighlights } from "@/lib/highlights";
 import {
@@ -22,6 +23,10 @@ export async function GET(request: NextRequest) {
   const sinceParam = searchParams.get("since") ?? undefined;
   const forceRefresh = searchParams.get("refresh") === "1";
   const overrides = parseTestOverrides(searchParams);
+
+  if (forceRefresh && !canSpend(request)) {
+    return spendForbiddenResponse();
+  }
 
   if (!isSectionId(sectionParam)) {
     return NextResponse.json(

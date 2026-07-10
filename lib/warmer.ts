@@ -5,7 +5,24 @@ import { refreshAll, refreshSection } from "./highlights";
 const globalForWarmer = globalThis as unknown as {
   __pulsewireWarmerStarted?: boolean;
   __pulsewireWarmTimer?: ReturnType<typeof setInterval>;
+  __pulsewireLastWarmAt?: string;
+  __pulsewireLastWarmMs?: number;
+  __pulsewireLastWarmReason?: string;
 };
+
+export function getWarmerStats(): {
+  started: boolean;
+  lastWarmAt: string | null;
+  lastWarmMs: number | null;
+  lastWarmReason: string | null;
+} {
+  return {
+    started: Boolean(globalForWarmer.__pulsewireWarmerStarted),
+    lastWarmAt: globalForWarmer.__pulsewireLastWarmAt ?? null,
+    lastWarmMs: globalForWarmer.__pulsewireLastWarmMs ?? null,
+    lastWarmReason: globalForWarmer.__pulsewireLastWarmReason ?? null,
+  };
+}
 
 function ttlMs(): number {
   const minutes = Number(process.env.CACHE_TTL_MINUTES ?? "10");
@@ -42,7 +59,11 @@ export async function warmAllSections(reason: string): Promise<void> {
     const message = error instanceof Error ? error.message : String(error);
     console.warn(`[pulsewire] warm-fail: ${message}`);
   }
-  console.info(`[pulsewire] warm-done ms=${Date.now() - started}`);
+  const ms = Date.now() - started;
+  globalForWarmer.__pulsewireLastWarmAt = new Date().toISOString();
+  globalForWarmer.__pulsewireLastWarmMs = ms;
+  globalForWarmer.__pulsewireLastWarmReason = reason;
+  console.info(`[pulsewire] warm-done ms=${ms}`);
 }
 
 export function startBackgroundWarmer(): void {

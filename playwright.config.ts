@@ -31,6 +31,7 @@ for (const suffix of ["", "-shm", "-wal"]) {
 
 export default defineConfig({
   testDir: "./tests",
+  testIgnore: ["**/unit/**", "**/*.test.ts"],
   fullyParallel: false,
   // @live smokes prove external reality — run via `npm run test:e2e:live`, never CI.
   grepInvert: process.env.PW_LIVE === "1" ? undefined : /@live/,

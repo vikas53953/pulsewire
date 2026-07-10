@@ -1,15 +1,19 @@
 /**
  * Resolve Google News article redirect URLs to the publisher link when possible.
  * Falls back to the original URL if resolution fails (common — GN tokens are opaque).
+ * Only fetches news.google.com — never arbitrary hosts (SSRF).
  */
+
+import { sanitizeHttpUrl } from "./safe-url";
 
 const RESOLVE_TIMEOUT_MS = 5_000;
 const resolveCache = new Map<string, string>();
 
+/** Only news.google.com — do not follow arbitrary *.google.com (SSRF surface). */
 function isGoogleNewsUrl(url: string): boolean {
   try {
-    const host = new URL(url).hostname;
-    return host === "news.google.com" || host.endsWith(".google.com");
+    const host = new URL(url).hostname.toLowerCase();
+    return host === "news.google.com";
   } catch {
     return false;
   }
@@ -66,19 +70,23 @@ function extractExternalUrl(html: string, pageUrl: string): string | null {
 }
 
 export async function resolveArticleUrl(url: string): Promise<string> {
-  if (!url || !isGoogleNewsUrl(url)) return url;
-  const cached = resolveCache.get(url);
+  const input = sanitizeHttpUrl(url);
+  if (!input || !isGoogleNewsUrl(input)) return input || url;
+  const cached = resolveCache.get(input);
   if (cached) return cached;
 
   try {
-    const { finalUrl, body } = await fetchText(url);
-    if (finalUrl && !isGoogleNewsUrl(finalUrl)) {
-      resolveCache.set(url, finalUrl);
-      return finalUrl;
+    const { finalUrl, body } = await fetchText(input);
+    const safeFinal = sanitizeHttpUrl(finalUrl);
+    if (safeFinal && !isGoogleNewsUrl(safeFinal)) {
+      resolveCache.set(input, safeFinal);
+      return safeFinal;
     }
-    const extracted = extractExternalUrl(body, finalUrl || url);
+    const extracted = sanitizeHttpUrl(
+      extractExternalUrl(body, finalUrl || input) ?? ""
+    );
     if (extracted) {
-      resolveCache.set(url, extracted);
+      resolveCache.set(input, extracted);
       return extracted;
     }
   } catch (error) {
@@ -86,8 +94,8 @@ export async function resolveArticleUrl(url: string): Promise<string> {
     console.warn(`[pulsewire] GN resolve failed: ${message}`);
   }
 
-  resolveCache.set(url, url);
-  return url;
+  resolveCache.set(input, input);
+  return input;
 }
 
 export async function resolveArticleUrls(

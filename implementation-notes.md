@@ -182,3 +182,4 @@ Windows looked identical because (1) the cache was effectively window-shaped / s
 - **npm audit:** `glob` overridden to `^10.5.0`. Remaining Next 14 advisories need a conscious Next 15 upgrade (instrumentationHook is load-bearing) — accepted until that migration.
 - **Vitest** covers verdict matrix, noise floor, chip-why invariant. Nightly `@live` workflow watches real feeds.
 - **schema_version** table added (v1) for future ALTERs.
+- **History:** `cloudflared` binary purged from git history via `git filter-repo` (force-push). Collaborators must re-clone. Tags: `v0.3-hold-fixes`, `v0.4-soft-ship`.

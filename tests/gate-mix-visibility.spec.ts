@@ -57,16 +57,19 @@ test.describe("trend panel", () => {
     expect(trend.socialTrends?.reddit?.items?.length).toBeGreaterThanOrEqual(5);
   });
 
-  test("SSR first paint includes verdict and score chips (not empty shell)", async ({
+  test("SSR first paint includes desks, verdict, no junk chrome", async ({
     request,
   }) => {
     const res = await request.get("/");
     expect(res.ok()).toBeTruthy();
     const html = await res.text();
-    // Must not be an empty client shell — reviewers fetch without waiting on JS.
-    expect(html).toMatch(/data-testid="verdict-hero"|data-testid="score-chips"/);
-    expect(html).toMatch(/chip-markets|MKT/);
+    expect(html).toMatch(/data-testid="verdict-hero"/);
+    expect(html).toMatch(/data-testid="score-chips"/);
+    expect(html).toMatch(/chip-markets/);
+    expect(html).toMatch(/chip-trend/);
+    expect(html).toMatch(/PulseWire/);
+    expect(html).not.toMatch(/Since you left By time/);
     expect(html).not.toMatch(/Since you left Windows/);
-    expect(html).toMatch(/By time/);
+    expect(html).not.toMatch(/data-testid="raw-sticker"/);
   });
 });

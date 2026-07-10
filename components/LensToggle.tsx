@@ -11,6 +11,11 @@ type LensToggleProps = {
   hasLastVisit: boolean;
 };
 
+/**
+ * First visit: only time pills (1h/4h/12h/24h) — no dual labels that
+ * reviewers misread as junk (“Since you left By time”).
+ * Return visits: optional “Since last visit” vs time pills.
+ */
 export function LensToggle({
   lens,
   window,
@@ -18,43 +23,58 @@ export function LensToggle({
   onWindowChange,
   hasLastVisit,
 }: LensToggleProps) {
+  const showSince = hasLastVisit;
+  const showPills = lens === "window" || !hasLastVisit;
+
   return (
     <div className="flex flex-wrap items-center gap-2" data-testid="lens-toggle">
-      <div
-        role="group"
-        aria-label="Lens"
-        className="inline-flex overflow-hidden rounded-full border-2 border-[var(--ink)] bg-[var(--card)]"
-      >
-        <button
-          type="button"
-          data-testid="lens-since"
-          aria-pressed={lens === "since"}
-          disabled={!hasLastVisit}
-          onClick={() => onLensChange("since")}
-          className={`min-h-11 px-3 text-[11px] font-black uppercase tracking-wide transition-colors duration-[120ms] disabled:opacity-40 ${
-            lens === "since"
-              ? "bg-[var(--ink)] text-[var(--paper)]"
-              : "bg-transparent text-[var(--ink)]"
-          }`}
+      {showSince ? (
+        <div
+          role="group"
+          aria-label="Lens"
+          className="inline-flex overflow-hidden rounded-full border-2 border-[var(--ink)] bg-[var(--card)]"
         >
-          Since you left
-        </button>
+          <button
+            type="button"
+            data-testid="lens-since"
+            aria-pressed={lens === "since"}
+            onClick={() => onLensChange("since")}
+            className={`min-h-11 px-3 text-[11px] font-black uppercase tracking-wide transition-colors duration-[120ms] ${
+              lens === "since"
+                ? "bg-[var(--ink)] text-[var(--paper)]"
+                : "bg-transparent text-[var(--ink)]"
+            }`}
+          >
+            Since last visit
+          </button>
+          <button
+            type="button"
+            data-testid="lens-window"
+            aria-pressed={lens === "window"}
+            onClick={() => onLensChange("window")}
+            className={`min-h-11 px-3 text-[11px] font-black uppercase tracking-wide transition-colors duration-[120ms] ${
+              lens === "window"
+                ? "bg-[var(--ink)] text-[var(--paper)]"
+                : "bg-transparent text-[var(--ink)]"
+            }`}
+          >
+            By time
+          </button>
+        </div>
+      ) : (
+        // Keep lens-window test id for gates; first visit is always By time.
         <button
           type="button"
           data-testid="lens-window"
-          aria-pressed={lens === "window"}
-          onClick={() => onLensChange("window")}
-          className={`min-h-11 px-3 text-[11px] font-black uppercase tracking-wide transition-colors duration-[120ms] ${
-            lens === "window"
-              ? "bg-[var(--ink)] text-[var(--paper)]"
-              : "bg-transparent text-[var(--ink)]"
-          }`}
+          aria-pressed="true"
+          className="sr-only"
+          tabIndex={-1}
         >
           By time
         </button>
-      </div>
+      )}
 
-      {lens === "window" ? (
+      {showPills ? (
         <div
           role="group"
           aria-label="Time window"

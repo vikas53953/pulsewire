@@ -90,12 +90,15 @@ export function ScoreChips({ scores, active, onSelect }: ScoreChipsProps) {
   const byId = new Map(scores.map((s) => [s.section, s]));
 
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-2">
+      <p className="m-0 font-mono text-[10px] font-black uppercase tracking-[0.12em] opacity-55">
+        Desks
+      </p>
       <div
         role="tablist"
         aria-label="Section pulse scores"
         data-testid="score-chips"
-        className="pw-no-scrollbar flex gap-2 overflow-x-auto pb-1"
+        className="flex flex-wrap gap-2"
       >
         <button
           type="button"

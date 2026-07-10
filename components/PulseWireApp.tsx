@@ -57,6 +57,20 @@ function markNewItems(
   }));
 }
 
+function seedCache(
+  map: ClientCache,
+  data: HighlightsResponse,
+  lastVisit: number | null,
+): void {
+  map.set(
+    clientKey(data.section, data.window, data.lens, null),
+    {
+      ...data,
+      items: markNewItems(data.items, lastVisit),
+    },
+  );
+}
+
 async function fetchHighlights(
   section: SectionId,
   timeWindow: TimeWindow,
@@ -156,7 +170,14 @@ export function PulseWireApp({ initialData = null }: PulseWireAppProps) {
   const [brief, setBrief] = useState<BriefPayload | null>(null);
   const [radar, setRadar] = useState<RadarStatus | null>(null);
   const requestId = useRef(0);
-  const clientCache = useRef<ClientCache>(new Map());
+  // Seed during first render so the load effect never flashes an empty shell.
+  const clientCache = useRef<ClientCache | null>(null);
+  if (clientCache.current === null) {
+    clientCache.current = new Map();
+    if (initialData) {
+      seedCache(clientCache.current, initialData, null);
+    }
+  }
   const lastVisitRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -164,31 +185,12 @@ export function PulseWireApp({ initialData = null }: PulseWireAppProps) {
     const lv = readLastVisit();
     lastVisitRef.current = lv;
     setHasLastVisit(lv != null);
-    // Seed client cache with SSR payload so soft refresh doesn't flash empty.
-    if (initialData) {
-      const since =
-        initialData.lens === "since" && lv != null ? String(lv) : null;
-      clientCache.current.set(
-        clientKey(
-          initialData.section,
-          initialData.window,
-          initialData.lens,
-          since,
-        ),
-        {
-          ...initialData,
-          items: markNewItems(initialData.items, lv),
-        },
-      );
+    if (initialData && clientCache.current) {
+      seedCache(clientCache.current, initialData, lv);
       setData((prev) =>
-        prev
-          ? { ...prev, items: markNewItems(prev.items, lv) }
-          : prev,
+        prev ? { ...prev, items: markNewItems(prev.items, lv) } : prev,
       );
     }
-    // Do not auto-switch to "since" on first paint when SSR already rendered
-    // window lens — keeps first viewport stable for reviewers.
-    if (lv != null && !initialData) setLens("since");
     const onHide = () => writeLastVisit(Date.now());
     window.addEventListener("pagehide", onHide);
     return () => window.removeEventListener("pagehide", onHide);
@@ -216,7 +218,7 @@ export function PulseWireApp({ initialData = null }: PulseWireAppProps) {
     (s: SectionId, w: TimeWindow, l: Lens) => {
       const since =
         l === "since" ? String(lastVisitRef.current ?? "") : null;
-      return clientCache.current.has(clientKey(s, w, l, since));
+      return clientCache.current!.has(clientKey(s, w, l, since));
     },
     []
   );
@@ -254,7 +256,7 @@ export function PulseWireApp({ initialData = null }: PulseWireAppProps) {
         );
         if (id !== requestId.current) return;
         json.items = markNewItems(json.items, lastVisitRef.current);
-        clientCache.current.set(key, json);
+        clientCache.current!.set(key, json);
         setData(json);
       } catch (e) {
         if (id !== requestId.current) return;

@@ -67,7 +67,7 @@ export function BentoGrid({
     <div
       data-testid="bento-grid"
       data-section={section}
-      className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-2 md:grid-cols-3"
+      className="grid grid-cols-1 gap-4 min-[480px]:grid-cols-2 md:grid-cols-3"
     >
       {assigned.map(({ item, tone, mega }, index) => (
         <div

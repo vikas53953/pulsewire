@@ -29,7 +29,7 @@ test.describe("BUG regressions", () => {
     await expect(page.getByTestId("verdict-hero")).toBeVisible({
       timeout: 15_000,
     });
-    await page.getByTestId("lens-window").click();
+    await expect(page.getByTestId("pill-4h")).toBeVisible({ timeout: 5_000 });
 
     // Visit India first so we have prior-section tiles in memory
     await page.getByTestId("chip-india").click();

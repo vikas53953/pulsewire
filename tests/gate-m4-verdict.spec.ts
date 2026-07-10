@@ -83,8 +83,8 @@ test.describe("M4 Verdict Engine", () => {
     expect(json.rawMode).toBe(true);
     expect(json.verdict.llmPolished).toBe(false);
     expect(json.items.length).toBeGreaterThanOrEqual(2);
-    // Cap raised 9 → 16 for denser mix visibility (owner feedback).
-    expect(json.items.length).toBeLessThanOrEqual(16);
+    // Cap raised then tightened for scanability (ALL ≤8, desk ≤10).
+    expect(json.items.length).toBeLessThanOrEqual(10);
 
     const topHeat = Math.max(
       ...json.items.map((i: { heat: number }) => i.heat ?? 0)

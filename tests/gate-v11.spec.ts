@@ -21,7 +21,7 @@ test.describe("v1.1 NEW stickers + X Pulse", () => {
     await expect(page.getByTestId("verdict-hero")).toBeVisible({
       timeout: 15_000,
     });
-    await page.getByTestId("lens-window").click();
+    await expect(page.getByTestId("pill-4h")).toBeVisible({ timeout: 5_000 });
     await page.getByTestId("chip-markets").click();
     await page.getByTestId("pill-1h").click();
     await expect(page.getByTestId("bento-grid")).toBeVisible({

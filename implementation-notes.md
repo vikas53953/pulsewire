@@ -155,5 +155,8 @@ Windows looked identical because (1) the cache was effectively window-shaped / s
 - **TREND** chip after World opens a dedicated Reddit + X panel only.
 - News desks (ALL / MKT / …) stay minimal: verdict + chips + tiles.
 - Quiet choice: dissolve VIBE; TREND is the social surface.
-- Lens label: **By time** (was “Windows” — reviewers misread “Since you left Windows” as junk).
-- First paint is **SSR** with real verdict + chips + tiles so no-JS / slow-JS / tunnel fetches are not an empty shell.
+- Lens: first visit shows **time pills only**; return visits get “Since last visit” / “By time”.
+- Brand is a single **PulseWire** wordmark (no split heading / RAW sticker noise).
+- Desk chips **wrap** (not horizontal-only scroll) so MKT…TREND stay visible.
+- Board density: ALL ≤8, desk ≤10 for a 30s scan.
+- First paint is **SSR** with real verdict + chips + tiles.

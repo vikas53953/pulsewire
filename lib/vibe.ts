@@ -1,4 +1,6 @@
+import Parser from "rss-parser";
 import { getXPulseHighlights } from "./x-pulse";
+import { isLlmConfigured } from "./llm";
 import { isFeedsDownForced, isTestMode } from "./test-mode";
 import type { TimeWindow } from "./types";
 
@@ -8,6 +10,7 @@ export interface VibeItem {
   source: string;
   publishedAt: string;
   column: "reddit" | "xpulse";
+  demo?: boolean;
 }
 
 export interface VibeResponse {
@@ -17,19 +20,32 @@ export interface VibeResponse {
   xPulseUsage?: { month: string; used: number; cap: number };
   redditEmpty?: boolean;
   xEmpty?: boolean;
+  /** Human-readable why a column is empty / demo */
+  redditNote?: string;
+  xNote?: string;
 }
 
-const SUBS = [
-  "all",
-  "india",
-  "IndiaInvestments",
-  "technology",
-  "worldnews",
+/** Atom RSS works from this environment; JSON API returns 403. */
+const REDDIT_FEEDS = [
+  { sub: "IndiaInvestments", url: "https://www.reddit.com/r/IndiaInvestments/.rss" },
+  { sub: "india", url: "https://www.reddit.com/r/india/.rss" },
+  { sub: "technology", url: "https://www.reddit.com/r/technology/.rss" },
+  { sub: "worldnews", url: "https://www.reddit.com/r/worldnews/.rss" },
+  { sub: "all", url: "https://www.reddit.com/r/all/.rss" },
 ] as const;
 
 const globalForVibe = globalThis as unknown as {
   __pulsewireVibe?: { at: number; payload: VibeResponse };
 };
+
+const parser = new Parser({
+  timeout: 8_000,
+  headers: {
+    "User-Agent":
+      "Mozilla/5.0 (compatible; PulseWire/0.1; +https://github.com/vikas53953/pulsewire)",
+    Accept: "application/atom+xml, application/rss+xml, application/xml, text/xml",
+  },
+});
 
 function fixtureReddit(): VibeItem[] {
   const now = Date.now();
@@ -58,51 +74,56 @@ function fixtureReddit(): VibeItem[] {
   ];
 }
 
-async function fetchSubredditRising(sub: string): Promise<VibeItem[]> {
-  const url = `https://www.reddit.com/r/${sub}/rising.json?limit=5`;
-  const res = await fetch(url, {
-    headers: {
-      "User-Agent": "PulseWire/0.1 (status page; contact: pulsewire-local)",
-      Accept: "application/json",
+function demoXPulse(): VibeItem[] {
+  const now = Date.now();
+  return [
+    {
+      title: "Demo: markets chatter after policy hold (set LLM_API_KEY for live X)",
+      url: "https://x.com",
+      source: "demo",
+      publishedAt: new Date(now - 15 * 60_000).toISOString(),
+      column: "xpulse",
+      demo: true,
     },
-    signal: AbortSignal.timeout(8_000),
-  });
-  if (!res.ok) return [];
-  const json = (await res.json()) as {
-    data?: {
-      children?: Array<{
-        data?: {
-          title?: string;
-          url?: string;
-          permalink?: string;
-          created_utc?: number;
-          subreddit_name_prefixed?: string;
-        };
-      }>;
-    };
-  };
-  const children = json.data?.children ?? [];
-  return children
-    .map((c) => c.data)
-    .filter(Boolean)
-    .map((d) => ({
-      title: (d!.title || "").trim(),
-      url: d!.url?.startsWith("http")
-        ? d!.url
-        : `https://www.reddit.com${d!.permalink || ""}`,
-      source: d!.subreddit_name_prefixed || `r/${sub}`,
-      publishedAt: new Date((d!.created_utc || 0) * 1000).toISOString(),
-      column: "reddit" as const,
-    }))
+  ];
+}
+
+async function fetchRedditFeed(feed: {
+  sub: string;
+  url: string;
+}): Promise<VibeItem[]> {
+  const parsed = await parser.parseURL(feed.url);
+  return (parsed.items || [])
+    .slice(0, 5)
+    .map((item) => {
+      const link = item.link || item.guid || "";
+      const publishedAt =
+        item.isoDate ||
+        (item.pubDate ? new Date(item.pubDate).toISOString() : new Date().toISOString());
+      return {
+        title: (item.title || "").trim(),
+        url: link.startsWith("http") ? link : `https://www.reddit.com${link}`,
+        source: `r/${feed.sub}`,
+        publishedAt,
+        column: "reddit" as const,
+      };
+    })
     .filter((i) => i.title && i.url);
 }
 
-async function loadReddit(): Promise<VibeItem[]> {
-  if (isTestMode()) return fixtureReddit();
-  if (isFeedsDownForced()) return [];
+async function loadReddit(): Promise<{
+  items: VibeItem[];
+  note?: string;
+}> {
+  if (isTestMode()) return { items: fixtureReddit() };
+  if (isFeedsDownForced()) {
+    return { items: [], note: "Feeds forced down (test)." };
+  }
 
   const batches = await Promise.all(
-    SUBS.map((s) => fetchSubredditRising(s).catch(() => [] as VibeItem[]))
+    REDDIT_FEEDS.map((f) =>
+      fetchRedditFeed(f).catch(() => [] as VibeItem[])
+    )
   );
   const seen = new Set<string>();
   const merged: VibeItem[] = [];
@@ -118,21 +139,31 @@ async function loadReddit(): Promise<VibeItem[]> {
     (a, b) =>
       new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
   );
-  return merged.slice(0, 5);
+  const items = merged.slice(0, 5);
+  if (items.length === 0) {
+    return {
+      items: [],
+      note: "Reddit RSS returned nothing (blocked or empty).",
+    };
+  }
+  return { items };
 }
 
 export async function getVibe(window: TimeWindow = "4h"): Promise<VibeResponse> {
   const hit = globalForVibe.__pulsewireVibe;
-  if (hit && Date.now() - hit.at < 5 * 60_000) {
-    return hit.payload;
-  }
+  // Don't keep a failed/empty vibe warm for 5 minutes
+  const usable =
+    hit &&
+    Date.now() - hit.at < 5 * 60_000 &&
+    (hit.payload.reddit.length > 0 || hit.payload.xpulse.length > 0);
+  if (usable) return hit!.payload;
 
-  const [reddit, xRes] = await Promise.all([
+  const [redditRes, xRes] = await Promise.all([
     loadReddit(),
     getXPulseHighlights({ window, forceRefresh: false }),
   ]);
 
-  const xpulse: VibeItem[] = (xRes.items || []).slice(0, 5).map((i) => ({
+  let xpulse: VibeItem[] = (xRes.items || []).slice(0, 5).map((i) => ({
     title: i.text,
     url: i.sources[0]?.url || "https://x.com",
     source: i.sources[0]?.name || "X",
@@ -140,15 +171,34 @@ export async function getVibe(window: TimeWindow = "4h"): Promise<VibeResponse> 
     column: "xpulse" as const,
   }));
 
+  let xNote: string | undefined;
+  if (xpulse.length === 0) {
+    if (!isTestMode() && !isLlmConfigured()) {
+      xpulse = demoXPulse();
+      xNote = "Live X needs LLM_API_KEY — showing labeled demo.";
+    } else {
+      xNote =
+        (xRes as { error?: string }).error ||
+        "X Pulse returned no posts this window.";
+    }
+  }
+
   const payload: VibeResponse = {
     generatedAt: new Date().toISOString(),
-    reddit,
+    reddit: redditRes.items,
     xpulse,
     xPulseUsage: xRes.xPulseUsage,
-    redditEmpty: reddit.length === 0,
+    redditEmpty: redditRes.items.length === 0,
     xEmpty: xpulse.length === 0,
+    redditNote: redditRes.note,
+    xNote,
   };
 
   globalForVibe.__pulsewireVibe = { at: Date.now(), payload };
   return payload;
+}
+
+/** Test / ops: drop in-memory vibe cache */
+export function clearVibeCacheForTests(): void {
+  globalForVibe.__pulsewireVibe = undefined;
 }

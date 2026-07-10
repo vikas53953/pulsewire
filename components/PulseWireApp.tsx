@@ -403,15 +403,22 @@ export function PulseWireApp() {
 
         {section === "radar" ? (
           <div data-testid="radar-panel" className="pw-tile bg-[var(--card)] p-4">
-            {radar?.clear !== false && !(radar?.trips?.length) ? (
-              <p className="m-0 text-[14px] font-bold">
-                Clear. Tripwires watching RBI / NSE / HF blog — push is M6.
-              </p>
-            ) : (
-              <ul className="m-0 list-none space-y-2 p-0">
+            <p className="m-0 text-[12px] font-bold uppercase tracking-wide opacity-60">
+              Radar ≠ Reddit — tripwires on official feeds
+            </p>
+            <p className="mt-2 m-0 text-[14px] font-bold leading-snug">
+              {radar?.summary ||
+                "Watching SEBI / Hugging Face / BBC Business. A trip means a new item appeared since the last check."}
+            </p>
+            {radar?.clear !== false && !(radar?.trips?.length) ? null : (
+              <ul className="mt-3 m-0 list-none space-y-2 p-0">
                 {(radar?.trips ?? []).map((t) => (
                   <li key={t.id} className="text-[14px] font-black">
-                    🔴 {t.name} — {t.title}
+                    🔴 {t.name}
+                    {t.blurb ? ` — ${t.blurb}` : ""}
+                    <span className="mt-1 block text-[13px] font-bold opacity-80">
+                      {t.title}
+                    </span>
                   </li>
                 ))}
               </ul>

@@ -143,7 +143,7 @@ export function ScoreChips({ scores, active, onSelect }: ScoreChipsProps) {
             : "bg-[var(--card)] shadow-none"
         }`}
       >
-        RAD
+        RADAR
       </button>
     </div>
   );

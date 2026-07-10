@@ -105,6 +105,16 @@ export async function summarizeAndDedupe(
     };
   }
 
+  // Cost guard: keep RSS in raw/merge mode unless explicitly enabled.
+  // X Pulse uses x_search separately and is metered by X_PULSE_MONTHLY_CAP.
+  if (getEnv("LLM_SUMMARIZE", "0") !== "1") {
+    return {
+      highlights: [],
+      rawMode: true,
+      error: "LLM_SUMMARIZE=0 — raw mode (set LLM_SUMMARIZE=1 to enable)",
+    };
+  }
+
   const baseUrl = getEnv("LLM_BASE_URL", "https://api.x.ai/v1").replace(
     /\/$/,
     ""

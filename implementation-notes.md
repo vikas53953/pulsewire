@@ -125,7 +125,10 @@ Windows looked identical because (1) the cache was effectively window-shaped / s
 - Monthly hard cap via `X_PULSE_MONTHLY_CAP` (default 60); usage shown in footer on that tab.
 - `PW_TEST=1` serves fixture pulses (no live x_search). Specs in `tests/gate-v11.spec.ts`.
 
-### Still deferred
-- WhatsApp share on tiles
-- PWA install + offline last bento
-- 60-second brief / swipe cards
+## Cost guards (xAI key)
+
+- `.env.local` holds `LLM_API_KEY` (gitignored). Never commit.
+- `LLM_SUMMARIZE=0` (default): RSS sections + Brief stay raw/merge — no Grok polish on warm.
+- `X_PULSE_MONTHLY_CAP=5` in local env (example default 10).
+- Warmer Vibe uses `allowXFetch: false` — boot does not burn `x_search`.
+- First intentional Vibe/X Pulse request spends **1** call; thereafter cache.

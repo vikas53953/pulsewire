@@ -525,11 +525,21 @@ export async function getHighlights(options: {
   // Always-visible mix strip (owner feedback) — independent of title-match fusion.
   let trend;
   try {
-    const reddit = await getRedditSignals();
-    const xSignals =
+    let reddit = await getRedditSignals();
+    if (reddit.length === 0) {
+      reddit = await getRedditSignals({ forceRefresh: true });
+    }
+    let xSignals =
       section === "all"
         ? await loadAllCachedXSignals()
         : await loadCachedXSignals(section as ContentSectionId);
+    // If section-scoped X is empty, still show global X pulse on the strip.
+    if (xSignals.length === 0) {
+      xSignals = await loadAllCachedXSignals();
+    }
+    if (xSignals.length === 0) {
+      xSignals = await loadXSignalsFromPulseCache();
+    }
     trend = buildTrendPack({
       section,
       items: sliced,
@@ -573,6 +583,30 @@ async function loadAllCachedXSignals(): Promise<SocialSignal[]> {
     const cached = getCache("xpulse");
     if (!cached.entry?.items?.length) return [];
     return cached.entry.items.slice(0, 12).map((i) => ({
+      plane: "x" as const,
+      title: i.text.replace(/^X Pulse:\s*/i, ""),
+      url: i.sources[0]?.url || "https://x.com",
+      source: i.sources[0]?.name || "@x",
+      publishedAt: i.publishedAt,
+      section: (i.section && i.section !== "xpulse"
+        ? i.section
+        : "markets") as ContentSectionId,
+      velocity: i.velocity,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+/** Read X via getXPulseHighlights (cache-only) so trend strip isn't empty after vibe warm. */
+async function loadXSignalsFromPulseCache(): Promise<SocialSignal[]> {
+  if (isTestMode()) return [];
+  try {
+    const xp = await getXPulseHighlights({
+      window: "4h",
+      forceRefresh: false,
+    });
+    return (xp.items || []).slice(0, 12).map((i) => ({
       plane: "x" as const,
       title: i.text.replace(/^X Pulse:\s*/i, ""),
       url: i.sources[0]?.url || "https://x.com",

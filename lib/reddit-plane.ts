@@ -74,9 +74,11 @@ export async function getRedditSignals(opts?: {
   forceRefresh?: boolean;
 }): Promise<SocialSignal[]> {
   const hit = globalForReddit.__pulsewireRedditSignals;
+  // Never treat an empty cache as fresh — empty often means a cold/failed pass.
   if (
     !opts?.forceRefresh &&
     hit &&
+    hit.signals.length > 0 &&
     Date.now() - hit.at < 10 * 60_000
   ) {
     return hit.signals;
@@ -95,7 +97,14 @@ export async function getRedditSignals(opts?: {
   const signals: SocialSignal[] = [];
   const seen = new Set<string>();
   for (const r of results) {
-    if (r.status !== "fulfilled") continue;
+    if (r.status !== "fulfilled") {
+      if (r.status === "rejected") {
+        console.warn(
+          `[pulsewire] reddit-plane sub fail: ${r.reason instanceof Error ? r.reason.message : String(r.reason)}`,
+        );
+      }
+      continue;
+    }
     for (const s of r.value) {
       const key = s.title.toLowerCase();
       if (seen.has(key)) continue;
@@ -104,7 +113,10 @@ export async function getRedditSignals(opts?: {
     }
   }
 
-  globalForReddit.__pulsewireRedditSignals = { at: Date.now(), signals };
+  // Only cache non-empty — keep retrying on the next request if quiet/failed.
+  if (signals.length > 0) {
+    globalForReddit.__pulsewireRedditSignals = { at: Date.now(), signals };
+  }
   console.info(`[pulsewire] reddit-plane signals=${signals.length}`);
   return signals;
 }

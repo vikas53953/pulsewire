@@ -33,6 +33,11 @@ const SESSION_KEY = "pulsewire-session-start";
 
 type ClientCache = Map<string, HighlightsResponse>;
 
+type PulseWireAppProps = {
+  /** Server-fetched first paint — avoids empty shell for reviewers / slow JS. */
+  initialData?: HighlightsResponse | null;
+};
+
 function clientKey(
   section: SectionId,
   timeWindow: TimeWindow,
@@ -132,12 +137,16 @@ function socialFirstLine(item: HighlightItem): string | undefined {
   return `First seen on X, ${mins} min before wires.`;
 }
 
-export function PulseWireApp() {
-  const [section, setSection] = useState<SectionId>("all");
-  const [timeWindow, setTimeWindow] = useState<TimeWindow>("4h");
-  const [lens, setLens] = useState<Lens>("window");
-  const [data, setData] = useState<HighlightsResponse | null>(null);
-  const [loading, setLoading] = useState(true);
+export function PulseWireApp({ initialData = null }: PulseWireAppProps) {
+  const [section, setSection] = useState<SectionId>(
+    initialData?.section ?? "all",
+  );
+  const [timeWindow, setTimeWindow] = useState<TimeWindow>(
+    initialData?.window ?? "4h",
+  );
+  const [lens, setLens] = useState<Lens>(initialData?.lens ?? "window");
+  const [data, setData] = useState<HighlightsResponse | null>(initialData);
+  const [loading, setLoading] = useState(!initialData);
   const [refreshing, setRefreshing] = useState(false);
   const [night, setNight] = useState(readInitialNight);
   const [error, setError] = useState<string | null>(null);
@@ -155,10 +164,35 @@ export function PulseWireApp() {
     const lv = readLastVisit();
     lastVisitRef.current = lv;
     setHasLastVisit(lv != null);
-    if (lv != null) setLens("since");
+    // Seed client cache with SSR payload so soft refresh doesn't flash empty.
+    if (initialData) {
+      const since =
+        initialData.lens === "since" && lv != null ? String(lv) : null;
+      clientCache.current.set(
+        clientKey(
+          initialData.section,
+          initialData.window,
+          initialData.lens,
+          since,
+        ),
+        {
+          ...initialData,
+          items: markNewItems(initialData.items, lv),
+        },
+      );
+      setData((prev) =>
+        prev
+          ? { ...prev, items: markNewItems(prev.items, lv) }
+          : prev,
+      );
+    }
+    // Do not auto-switch to "since" on first paint when SSR already rendered
+    // window lens — keeps first viewport stable for reviewers.
+    if (lv != null && !initialData) setLens("since");
     const onHide = () => writeLastVisit(Date.now());
     window.addEventListener("pagehide", onHide);
     return () => window.removeEventListener("pagehide", onHide);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- seed once
   }, []);
 
   useEffect(() => {

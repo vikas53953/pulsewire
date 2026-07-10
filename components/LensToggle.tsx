@@ -50,7 +50,7 @@ export function LensToggle({
               : "bg-transparent text-[var(--ink)]"
           }`}
         >
-          Windows
+          By time
         </button>
       </div>
 

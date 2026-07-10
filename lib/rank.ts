@@ -37,68 +37,91 @@ export function rankAndCapForWindow(
 
   if (filtered.length === 0) return [];
 
-  filtered.sort((a, b) => (b.heat ?? 0) - (a.heat ?? 0));
-  const topHeat = filtered[0].heat ?? 0;
+  // EARLY/BUILDING must survive the heat floor — rankWithSignalStates
+  // places them below confirmed; dropping them here hides social mix.
+  const socialLed = filtered.filter(
+    (i) => i.signalState === "early" || i.signalState === "building",
+  );
+  const rest = filtered.filter(
+    (i) => i.signalState !== "early" && i.signalState !== "building",
+  );
+
+  if (rest.length === 0) {
+    return socialLed
+      .sort((a, b) => (b.heat ?? 0) - (a.heat ?? 0))
+      .slice(0, CAP);
+  }
+
+  rest.sort((a, b) => (b.heat ?? 0) - (a.heat ?? 0));
+  const topHeat = rest[0].heat ?? 0;
   const floor = Math.max(0, topHeat * HEAT_FLOOR_RATIO);
 
-  let strong = filtered.filter((i) => (i.heat ?? 0) >= floor);
+  let strong = rest.filter((i) => (i.heat ?? 0) >= floor);
   if (strong.length < FLOOR_COUNT) {
-    strong = filtered.slice(0, Math.min(FLOOR_COUNT, filtered.length));
+    strong = rest.slice(0, Math.min(FLOOR_COUNT, rest.length));
   }
 
+  const socialBudget = Math.min(4, socialLed.length);
+  const confirmedCap = Math.max(FLOOR_COUNT, CAP - socialBudget);
+
+  let pickedConfirmed: HighlightItem[];
   if (window === "1h" || strong.length <= 3) {
-    return strong.slice(0, CAP);
-  }
+    pickedConfirmed = strong.slice(0, confirmedCap);
+  } else {
+    const head = strong.slice(0, 3);
+    const picked: HighlightItem[] = [...head];
+    const pickedKeys = new Set(head.map(itemKey));
 
-  const head = strong.slice(0, 3);
-  const picked: HighlightItem[] = [...head];
-  const pickedKeys = new Set(head.map(itemKey));
+    const allBuckets = ageBuckets(
+      rest.filter((i) => !pickedKeys.has(itemKey(i))),
+      window,
+      now
+    );
+    const strongBuckets = ageBuckets(
+      strong.filter((i) => !pickedKeys.has(itemKey(i))),
+      window,
+      now
+    );
 
-  const allBuckets = ageBuckets(
-    filtered.filter((i) => !pickedKeys.has(itemKey(i))),
-    window,
-    now
-  );
-  const strongBuckets = ageBuckets(
-    strong.filter((i) => !pickedKeys.has(itemKey(i))),
-    window,
-    now
-  );
-
-  // Reserve diversity first: one from each empty age bucket (may be below floor)
-  for (let bi = 0; bi < 3 && picked.length < CAP; bi++) {
-    const covered = picked.some((item) => bucketIndex(item, window, now) === bi);
-    if (covered) continue;
-    const candidate =
-      strongBuckets[bi].find((i) => !pickedKeys.has(itemKey(i))) ||
-      allBuckets[bi].find((i) => !pickedKeys.has(itemKey(i)));
-    if (candidate) {
-      picked.push(candidate);
-      pickedKeys.add(itemKey(candidate));
-    }
-  }
-
-  // Fill remaining by heat round-robin across strong buckets
-  let added = 0;
-  const maxRest = CAP - picked.length;
-  for (let guard = 0; guard < 40 && added < maxRest; guard++) {
-    let progressed = false;
-    for (const bucket of strongBuckets) {
-      if (added >= maxRest) break;
-      while (bucket.length > 0) {
-        const next = bucket.shift()!;
-        if (pickedKeys.has(itemKey(next))) continue;
-        picked.push(next);
-        pickedKeys.add(itemKey(next));
-        added++;
-        progressed = true;
-        break;
+    for (let bi = 0; bi < 3 && picked.length < confirmedCap; bi++) {
+      const covered = picked.some((item) => bucketIndex(item, window, now) === bi);
+      if (covered) continue;
+      const candidate =
+        strongBuckets[bi].find((i) => !pickedKeys.has(itemKey(i))) ||
+        allBuckets[bi].find((i) => !pickedKeys.has(itemKey(i)));
+      if (candidate) {
+        picked.push(candidate);
+        pickedKeys.add(itemKey(candidate));
       }
     }
-    if (!progressed) break;
+
+    let added = 0;
+    const maxRest = confirmedCap - picked.length;
+    for (let guard = 0; guard < 40 && added < maxRest; guard++) {
+      let progressed = false;
+      for (const bucket of strongBuckets) {
+        if (added >= maxRest) break;
+        while (bucket.length > 0) {
+          const next = bucket.shift()!;
+          if (pickedKeys.has(itemKey(next))) continue;
+          picked.push(next);
+          pickedKeys.add(itemKey(next));
+          added++;
+          progressed = true;
+          break;
+        }
+      }
+      if (!progressed) break;
+    }
+
+    pickedConfirmed = picked.slice(0, confirmedCap);
   }
 
-  return picked.slice(0, CAP);
+  const earlyKeep = socialLed
+    .sort((a, b) => (b.heat ?? 0) - (a.heat ?? 0))
+    .slice(0, socialBudget);
+
+  return [...pickedConfirmed, ...earlyKeep].slice(0, CAP);
 }
 
 function itemKey(item: HighlightItem): string {

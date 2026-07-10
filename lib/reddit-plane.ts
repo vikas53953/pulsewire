@@ -27,6 +27,7 @@ function fixtureSignals(): SocialSignal[] {
       source: "r/IndiaInvestments",
       publishedAt: new Date(now - 20 * 60_000).toISOString(),
       section: "markets",
+      sections: ["markets", "economy", "india"],
       velocity: 5,
     },
     {
@@ -36,6 +37,7 @@ function fixtureSignals(): SocialSignal[] {
       source: "r/india",
       publishedAt: new Date(now - 45 * 60_000).toISOString(),
       section: "india",
+      sections: ["india", "politics", "world"],
       velocity: 3,
     },
   ];
@@ -61,6 +63,7 @@ async function fetchSub(sub: (typeof REDDIT_SUBS)[number]): Promise<SocialSignal
       source: `r/${sub.sub}`,
       publishedAt,
       section: sub.sections[0],
+      sections: [...sub.sections],
       velocity,
     };
   }).filter((s) => s.title && s.url);

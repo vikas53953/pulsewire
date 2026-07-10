@@ -107,7 +107,7 @@ export const SECTIONS: { id: SectionId; label: string; chip: string }[] = [
   { id: "tech", label: "Tech", chip: "TEC" },
   { id: "vibe", label: "Vibe", chip: "VIBE" },
   { id: "xpulse", label: "X Pulse", chip: "X" },
-  { id: "radar", label: "Radar", chip: "RAD" },
+  { id: "radar", label: "Radar", chip: "RADAR 📡" },
 ];
 
 /** Content sections in Markets-first wedge order for chips. */

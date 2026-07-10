@@ -1,6 +1,6 @@
 "use client";
 
-import type { VibeItem, VibeResponse } from "@/lib/vibe";
+import type { VibeColumn, VibeItem, VibeResponse } from "@/lib/vibe";
 import { relativeAge } from "@/lib/time";
 
 type VibePanelProps = {
@@ -8,32 +8,66 @@ type VibePanelProps = {
   loading: boolean;
 };
 
+function statusTestId(testId: string, status: VibeColumn["status"]): string {
+  return `${testId}-state-${status}`;
+}
+
 function Column({
   title,
   testId,
-  items,
-  empty,
-  note,
+  column,
 }: {
   title: string;
   testId: string;
-  items: VibeItem[];
-  empty?: boolean;
-  note?: string;
+  column: VibeColumn | undefined;
 }) {
+  const status = column?.status ?? "pending";
+  const items: VibeItem[] = column?.items ?? [];
+  const note = column?.note;
+
   return (
-    <div data-testid={testId} className="min-w-0 flex-1">
+    <div data-testid={testId} data-status={status} className="min-w-0 flex-1">
       <h2 className="m-0 font-mono text-[11px] font-black uppercase tracking-wide">
         {title}
       </h2>
-      {empty || items.length === 0 ? (
+
+      {status === "pending" ? (
         <p
-          data-testid={`${testId}-empty`}
+          data-testid={statusTestId(testId, "pending")}
           className="mt-3 text-[13px] font-bold opacity-60"
         >
-          {note || "Nothing loaded for this column."}
+          Not fetched yet
         </p>
-      ) : (
+      ) : null}
+
+      {status === "needs_key" ? (
+        <p
+          data-testid={statusTestId(testId, "needs_key")}
+          className="mt-3 text-[13px] font-bold text-[var(--mega)]"
+        >
+          {note || "Needs LLM_API_KEY — X Pulse has never fetched (0 calls)."}
+        </p>
+      ) : null}
+
+      {status === "failed" ? (
+        <p
+          data-testid={statusTestId(testId, "failed")}
+          className="mt-3 text-[13px] font-bold text-[var(--mega)]"
+        >
+          {note || "Fetch failed"}
+        </p>
+      ) : null}
+
+      {status === "quiet" ? (
+        <p
+          data-testid={statusTestId(testId, "quiet")}
+          className="mt-3 text-[13px] font-bold opacity-60"
+        >
+          {note || "Quiet — fetched, nothing trending."}
+        </p>
+      ) : null}
+
+      {status === "ok" && items.length > 0 ? (
         <ul className="mt-3 list-none space-y-2 p-0">
           {items.map((item) => (
             <li key={`${item.column}-${item.url}-${item.title.slice(0, 24)}`}>
@@ -48,14 +82,23 @@ function Column({
                 </span>
                 <span className="mt-2 block text-[10px] font-bold uppercase opacity-60">
                   {item.source} · {relativeAge(item.publishedAt)}
-                  {item.demo ? " · demo" : ""}
                 </span>
               </a>
             </li>
           ))}
         </ul>
-      )}
-      {note && items.length > 0 ? (
+      ) : null}
+
+      {status === "ok" && items.length === 0 ? (
+        <p
+          data-testid={statusTestId(testId, "quiet")}
+          className="mt-3 text-[13px] font-bold opacity-60"
+        >
+          {note || "Quiet — fetched, nothing trending."}
+        </p>
+      ) : null}
+
+      {note && status === "ok" && items.length > 0 ? (
         <p
           data-testid={`${testId}-note`}
           className="mt-2 font-mono text-[10px] uppercase opacity-50"
@@ -84,20 +127,8 @@ export function VibePanel({ data, loading }: VibePanelProps) {
         What&apos;s loud on Reddit vs X right now — not a feed to scroll.
       </p>
       <div className="flex flex-col gap-4 sm:flex-row">
-        <Column
-          title="Reddit"
-          testId="vibe-reddit"
-          items={data.reddit}
-          empty={data.redditEmpty}
-          note={data.redditNote}
-        />
-        <Column
-          title="X Pulse"
-          testId="vibe-xpulse"
-          items={data.xpulse}
-          empty={data.xEmpty}
-          note={data.xNote}
-        />
+        <Column title="On X" testId="vibe-xpulse" column={data.xpulse} />
+        <Column title="On Reddit" testId="vibe-reddit" column={data.reddit} />
       </div>
     </div>
   );

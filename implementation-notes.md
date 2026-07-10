@@ -103,7 +103,14 @@ Windows looked identical because (1) the cache was effectively window-shaped / s
 - **Vibe:** Reddit rising + X Pulse side-by-side (`/api/vibe`). Instagram permanently OOS.
 - **Radar:** 60s tripwire poller; CLEAR/TRIPPED; red verdict hint; PWA manifest+SW stub (push = M6).
 - Gate: `tests/gate-v3.spec.ts`. Cost notes in `GATE-V3-REPORT.md` / `SPEC-v3-radar-vibe-brief.md`.
-- Quiet fixes after live feedback: Vibe uses Reddit **Atom RSS** (JSON API 403 from this host); empty columns show honest notes + labeled X demo when `LLM_API_KEY` missing; Radar trips only on **new RSS item ids** (not HTML fingerprints); chip label **RADAR** (not RAD) to avoid Reddit confusion.
+
+### Human-check re-gate (BUG-V1/V2/V3 + naming)
+
+- **BUG-V1:** Vibe columns are `{ status, items, note }` with honest states: `ok | quiet | failed | pending | needs_key`. Failure never looks like quiet. Chip click + warm cycle force `/api/vibe?refresh=1`. Headers **On X** / **On Reddit**.
+- **BUG-V2:** Radar compares listing item IDs (JSON snapshot in SQLite), never page hashes. Untitled / “changed” titles do not trip. Pure `detectNewRssItems` + Playwright `diff-fixture`.
+- **BUG-V3:** `radarVerdictFromTrips` only appends `🔴 Radar: {name} — {headline}`; malformed trips leave verdict alone. Radar tab StatusBar uses `radar.polledAt` (no blank UPDATED —).
+- **NAMING:** chip **RADAR 📡** (not RAD).
+- **@live smokes:** `tests/live-smoke.spec.ts` excluded from CI (`grepInvert`); run `npm run test:e2e:live` before gate reports. Fixtures ≠ reality.
 
 ## v1.1 — NEW stickers + X Pulse (done)
 

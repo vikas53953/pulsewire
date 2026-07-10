@@ -36,7 +36,7 @@ export function StatusBar({
   const left = leftLabel(lastVisit);
   return (
     <footer className="flex flex-wrap items-center justify-center gap-2 border-t-2 border-[var(--ink)] pt-4 text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--ink)]">
-      <span>
+      <span data-testid="status-updated">
         {updatedLabel(generatedAt)}
         {left ? ` · ${left}` : ""}
         {" · auto-refresh 10 min"}

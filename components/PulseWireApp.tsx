@@ -205,20 +205,25 @@ export function PulseWireApp() {
     []
   );
 
-  const loadVibe = useCallback(async () => {
-    setVibeLoading(true);
-    try {
-      const res = await fetch(`/api/vibe?window=${timeWindow}`, {
-        cache: "no-store",
-      });
-      if (!res.ok) throw new Error(`vibe ${res.status}`);
-      setVibe((await res.json()) as VibeResponse);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setVibeLoading(false);
-    }
-  }, [timeWindow]);
+  const loadVibe = useCallback(
+    async (opts?: { refresh?: boolean }) => {
+      setVibeLoading(true);
+      try {
+        const params = new URLSearchParams({ window: timeWindow });
+        if (opts?.refresh) params.set("refresh", "1");
+        const res = await fetch(`/api/vibe?${params.toString()}`, {
+          cache: "no-store",
+        });
+        if (!res.ok) throw new Error(`vibe ${res.status}`);
+        setVibe((await res.json()) as VibeResponse);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : String(e));
+      } finally {
+        setVibeLoading(false);
+      }
+    },
+    [timeWindow],
+  );
 
   const loadRadar = useCallback(async () => {
     try {
@@ -238,7 +243,8 @@ export function PulseWireApp() {
 
   useEffect(() => {
     if (section === "vibe") {
-      void loadVibe();
+      // Chip click / warm: always hit the API so "not fetched" cannot masquerade as quiet.
+      void loadVibe({ refresh: true });
       return;
     }
     if (section === "radar") {
@@ -319,11 +325,12 @@ export function PulseWireApp() {
     (data?.scores ?? []).every((s) => s.level === "green");
 
   const displayVerdict: VerdictPayload | null = (() => {
-    if (radar?.verdictHint && radar.verdictHint.level === "red") {
-      return radar.verdictHint;
-    }
+    // BUG-V3: only actionable radar trips (real headline) may override verdict.
+    const radarRed =
+      radar?.verdictHint?.level === "red" ? radar.verdictHint : null;
+    if (radarRed) return radarRed;
     if (section === "radar") {
-      return radar?.verdictHint ?? {
+      return {
         text: "Radar clear. No tripwires fired.",
         level: "green",
         llmPolished: false,
@@ -386,7 +393,7 @@ export function PulseWireApp() {
               type="button"
               className="ml-3 underline"
               onClick={() => {
-                if (section === "vibe") void loadVibe();
+                if (section === "vibe") void loadVibe({ refresh: true });
                 else if (section === "radar") void loadRadar();
                 else
                   void load(section, timeWindow, lens, { refresh: true });
@@ -444,14 +451,19 @@ export function PulseWireApp() {
           generatedAt={
             section === "vibe"
               ? vibe?.generatedAt ?? null
-              : data && data.section === section
-                ? data.generatedAt
-                : null
+              : section === "radar"
+                ? radar?.polledAt &&
+                  new Date(radar.polledAt).getTime() > 0
+                  ? radar.polledAt
+                  : null
+                : data && data.section === section
+                  ? data.generatedAt
+                  : null
           }
           lastVisit={lastVisitRef.current}
           refreshing={refreshing || vibeLoading}
           onRefresh={() => {
-            if (section === "vibe") void loadVibe();
+            if (section === "vibe") void loadVibe({ refresh: true });
             else if (section === "radar") void loadRadar();
             else
               void load(section, timeWindow, lens, {

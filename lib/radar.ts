@@ -1,8 +1,21 @@
 import Parser from "rss-parser";
 import { getHistoryDb } from "./history";
+import {
+  detectNewRssItems,
+  isActionableRadarHeadline,
+  radarVerdictFromTrips,
+  type RadarListItem,
+} from "./radar-detect";
 import { TRIPWIRES, type TripwireConfig } from "./radar.config";
 import { isTestMode } from "./test-mode";
 import type { VerdictPayload } from "./types";
+
+export type { RadarListItem };
+export {
+  detectNewRssItems,
+  isActionableRadarHeadline,
+  radarVerdictFromTrips,
+} from "./radar-detect";
 
 export interface RadarTrip {
   id: string;
@@ -32,7 +45,8 @@ const globalForRadar = globalThis as unknown as {
 const parser = new Parser({
   timeout: 8_000,
   headers: {
-    "User-Agent": "PulseWire-Radar/0.1",
+    "User-Agent":
+      "PulseWire-Radar/0.3 (+https://github.com/vikas53953/pulsewire)",
     Accept: "application/rss+xml, application/atom+xml, application/xml, text/xml",
   },
 });
@@ -49,15 +63,24 @@ function ensureRadarTable(): void {
   `);
 }
 
-function getLastSeen(id: string): string | null {
+/** Stored as JSON array of item ids (listing snapshot), never a page hash. */
+function getSeenIds(id: string): string[] | null {
   ensureRadarTable();
   const row = getHistoryDb()
     .prepare(`SELECT last_seen FROM radar_state WHERE tripwire_id = ?`)
     .get(id) as { last_seen: string } | undefined;
-  return row?.last_seen ?? null;
+  if (!row?.last_seen) return null;
+  try {
+    const parsed = JSON.parse(row.last_seen) as unknown;
+    if (Array.isArray(parsed)) return parsed.map(String);
+  } catch {
+    // Legacy single-key baseline from pre-V2 — treat as one-id set
+    return [row.last_seen];
+  }
+  return [row.last_seen];
 }
 
-function setLastSeen(id: string, seen: string, title: string): void {
+function setSeenIds(id: string, ids: string[], title: string): void {
   ensureRadarTable();
   getHistoryDb()
     .prepare(
@@ -66,80 +89,109 @@ function setLastSeen(id: string, seen: string, title: string): void {
        ON CONFLICT(tripwire_id) DO UPDATE SET
          last_seen = excluded.last_seen,
          last_title = excluded.last_title,
-         updated_at = excluded.updated_at`
+         updated_at = excluded.updated_at`,
     )
-    .run(id, seen, title, new Date().toISOString());
+    .run(id, JSON.stringify(ids), title, new Date().toISOString());
 }
 
-function itemKey(item: {
-  guid?: string;
-  id?: string;
-  link?: string;
-  title?: string;
-}): string {
-  return (item.guid || item.id || item.link || item.title || "").trim();
+function toListItems(
+  items: Parser.Item[],
+  match?: RegExp,
+): RadarListItem[] {
+  return items
+    .map((i) => {
+      const extra = i as Parser.Item & { id?: string };
+      const id = String(extra.guid || extra.id || extra.link || extra.title || "").trim();
+      const title = String(i.title || "").trim();
+      const link = String(i.link || "").trim();
+      return { id, title, link };
+    })
+    .filter((i) => {
+      if (!i.id) return false;
+      if (match && i.title && !match.test(i.title)) return false;
+      return true;
+    });
 }
 
 /**
- * Trip only when a *new* RSS item id appears.
- * First successful poll baselines (no trip) so restarts don't false-red.
+ * Trip only when a *new* listing item id appears with an extractable title.
+ * Timestamps/counters/ads changing with the same items → no trip.
+ * First successful poll baselines (no trip).
  */
-async function probeTripwire(tw: TripwireConfig): Promise<RadarTrip | null> {
+async function probeTripwire(tw: TripwireConfig): Promise<RadarTrip[]> {
   try {
     const parsed = await parser.parseURL(tw.url);
-    const items = (parsed.items || []).filter((i) => {
-      if (!i.title) return false;
-      if (tw.match && !tw.match.test(i.title)) return false;
-      return Boolean(itemKey(i));
-    });
-    if (items.length === 0) return null;
+    const items = toListItems(parsed.items || [], tw.match);
+    if (items.length === 0) return [];
 
-    const newest = items[0];
-    const key = itemKey(newest);
-    const prev = getLastSeen(tw.id);
+    const prevIds = getSeenIds(tw.id);
+    const nextIds = items.map((i) => i.id);
 
-    if (!prev) {
-      // Baseline — remember newest, do not trip
-      setLastSeen(tw.id, key, newest.title || tw.name);
-      return null;
+    if (!prevIds) {
+      setSeenIds(tw.id, nextIds, items[0]?.title || tw.name);
+      console.info(
+        `[pulsewire] radar baseline ${tw.id} items=${items.length}`,
+      );
+      return [];
     }
-    if (prev === key) return null;
 
-    // New headline since last poll
-    setLastSeen(tw.id, key, newest.title || tw.name);
-    return {
-      id: tw.id,
-      name: tw.name,
-      domain: tw.domain,
-      title: (newest.title || "").trim(),
-      url: newest.link || tw.url,
-      trippedAt: new Date().toISOString(),
-      blurb: tw.blurb,
-    };
+    const previous: RadarListItem[] = prevIds.map((id) => ({
+      id,
+      title: "",
+      link: "",
+    }));
+    const { newItems, skippedUntitled } = detectNewRssItems(previous, items);
+
+    for (const s of skippedUntitled) {
+      console.warn(
+        `[pulsewire] radar skip untitled new item ${tw.id} id=${s.id}`,
+      );
+    }
+
+    const trips: RadarTrip[] = [];
+    for (const item of newItems) {
+      if (!isActionableRadarHeadline(item.title, tw.name)) {
+        console.warn(
+          `[pulsewire] radar skip non-actionable title ${tw.id}: ${item.title}`,
+        );
+        continue;
+      }
+      trips.push({
+        id: tw.id,
+        name: tw.name,
+        domain: tw.domain,
+        title: item.title,
+        url: item.link || tw.url,
+        trippedAt: new Date().toISOString(),
+        blurb: tw.blurb,
+      });
+      console.info(
+        `[pulsewire] radar TRIP ${tw.id}: ${item.title.slice(0, 80)}`,
+      );
+    }
+
+    setSeenIds(tw.id, nextIds, items[0]?.title || tw.name);
+    return trips;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.warn(`[pulsewire] radar-probe fail ${tw.id}: ${message}`);
-    return null;
+    return [];
   }
 }
 
 function buildStatus(trips: RadarTrip[]): RadarStatus {
-  const clear = trips.length === 0;
+  const actionable = trips.filter((t) =>
+    isActionableRadarHeadline(t.title, t.name),
+  );
+  const clear = actionable.length === 0;
   return {
     clear,
-    trips,
+    trips: actionable,
     polledAt: new Date().toISOString(),
-    verdictHint:
-      trips.length > 0
-        ? {
-            text: `🔴 Radar — ${trips[0].name}: ${trips[0].title}`,
-            level: "red",
-            llmPolished: false,
-          }
-        : null,
+    verdictHint: radarVerdictFromTrips(actionable),
     summary: clear
       ? "Watching SEBI / Hugging Face / BBC Business. No new items since last check."
-      : `New item on ${trips.map((t) => t.name).join(", ")}. This is a tripwire — not a full news feed.`,
+      : `New item on ${actionable.map((t) => t.name).join(", ")}. This is a tripwire — not a full news feed.`,
   };
 }
 
@@ -174,15 +226,15 @@ export async function pollRadar(): Promise<RadarStatus> {
 
   const trips: RadarTrip[] = [];
   for (const tw of TRIPWIRES) {
-    const trip = await probeTripwire(tw);
-    if (trip) trips.push(trip);
+    const found = await probeTripwire(tw);
+    trips.push(...found);
   }
 
   const status = buildStatus(trips);
   globalForRadar.__pulsewireRadarStatus = status;
-  if (trips.length > 0) {
+  if (!status.clear) {
     console.info(
-      `[pulsewire] radar-trip ${trips.map((t) => t.id).join(",")} (push deferred to M6)`
+      `[pulsewire] radar-trip ${status.trips.map((t) => t.id).join(",")} (push deferred to M6)`,
     );
   }
   return status;
@@ -219,4 +271,28 @@ export function resetRadarStateForTests(): void {
   getHistoryDb().exec(`DELETE FROM radar_state`);
   globalForRadar.__pulsewireRadarStatus = undefined;
   globalForRadar.__pulsewireRadarForceTrip = null;
+}
+
+/**
+ * Test helper: run pure list-diff against an in-memory previous snapshot
+ * (Playwright / unit — no network).
+ */
+export function evaluateListingDiffForTests(
+  sourceName: string,
+  previous: RadarListItem[],
+  current: RadarListItem[],
+): { trips: RadarListItem[]; verdict: VerdictPayload | null } {
+  const { newItems, skippedUntitled } = detectNewRssItems(previous, current);
+  for (const s of skippedUntitled) {
+    console.warn(`[pulsewire] radar skip untitled (test) id=${s.id}`);
+  }
+  const trips = newItems.filter((i) =>
+    isActionableRadarHeadline(i.title, sourceName),
+  );
+  return {
+    trips,
+    verdict: radarVerdictFromTrips(
+      trips.map((t) => ({ name: sourceName, title: t.title })),
+    ),
+  };
 }

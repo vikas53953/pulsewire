@@ -151,8 +151,9 @@ Windows looked identical because (1) the cache was effectively window-shaped / s
 
 ## Mix visibility (owner feedback post-M8)
 
-- Always-visible **Trend** strip: On wires · On Reddit · On X (`lib/trend.ts`, `TrendStrip`) — mix without requiring title-match fusion.
+- Desk-scoped **Trend** strip only when a section chip is active (hidden on ALL).
+- Reddit/X columns filter to that desk’s subs / matching pulse — no global dump.
 - Pulse chips: legend “0–100 = how loud vs a normal hour” + clearer tooltips.
-- Per-tile plane badges (●/○ wires · reddit · x).
+- Per-tile plane badges **removed** — source/evidence line is enough.
 - Board cap 9 → 16; fusion match 0.62 → 0.55; EARLY orphans max 4; Reddit orphan velocity floor 8 → 4.
-- Quiet choice: keep VIBE tab dissolved; trend strip is the mix surface.
+- Quiet choice: keep VIBE tab dissolved; trend strip is the mix surface on a desk.

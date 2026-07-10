@@ -58,17 +58,6 @@ export function HighlightTile({
   const state = item.signalState ?? "confirmed";
   const isEarly = state === "early";
   const isBuilding = state === "building";
-  const evidence = item.evidence || [];
-  const hasRss =
-    evidence.some((e) => e.plane === "rss" || e.plane === "tripwire") ||
-    (item.sources || []).some(
-      (s) =>
-        !s.name.startsWith("r/") &&
-        !s.name.startsWith("@") &&
-        !s.name.startsWith("⚡"),
-    );
-  const hasReddit = evidence.some((e) => e.plane === "reddit");
-  const hasX = evidence.some((e) => e.plane === "x");
 
   const body = (
     <>
@@ -113,40 +102,9 @@ export function HighlightTile({
         {item.text}
       </p>
 
-      <div
-        data-testid="tile-planes"
-        className="mt-2 flex flex-wrap gap-1.5"
-        aria-label="Signal planes"
-      >
-        <span
-          data-testid="plane-rss"
-          data-on={hasRss ? "1" : "0"}
-          className="font-mono text-[9px] font-black uppercase tracking-wide"
-          style={{ color: fg, opacity: hasRss ? 0.9 : 0.35 }}
-        >
-          {hasRss ? "● wires" : "○ wires"}
-        </span>
-        <span
-          data-testid="plane-reddit"
-          data-on={hasReddit ? "1" : "0"}
-          className="font-mono text-[9px] font-black uppercase tracking-wide"
-          style={{ color: fg, opacity: hasReddit ? 0.9 : 0.35 }}
-        >
-          {hasReddit ? "● reddit" : "○ reddit"}
-        </span>
-        <span
-          data-testid="plane-x"
-          data-on={hasX ? "1" : "0"}
-          className="font-mono text-[9px] font-black uppercase tracking-wide"
-          style={{ color: fg, opacity: hasX ? 0.9 : 0.35 }}
-        >
-          {hasX ? "● x" : "○ x"}
-        </span>
-      </div>
-
       <p
         data-testid="tile-evidence"
-        className="mt-2 text-[10px] font-bold uppercase tracking-[0.08em]"
+        className="mt-3 text-[10px] font-bold uppercase tracking-[0.08em]"
         style={{ color: fg, opacity: 0.75 }}
       >
         {evidenceLine(item)}

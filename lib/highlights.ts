@@ -93,7 +93,7 @@ async function buildFromPool(
 
 /** X plane for fusion — cache only (M8 governor earns live calls). */
 async function loadCachedXSignals(
-  section: ContentSectionId,
+  _section: ContentSectionId,
 ): Promise<SocialSignal[]> {
   if (isTestMode()) {
     const { isEarlyXForced, isFusionForced } = await import("./test-mode");
@@ -109,6 +109,7 @@ async function loadCachedXSignals(
           source: "@marketswire",
           publishedAt: new Date(now - 15 * 60_000).toISOString(),
           section: "markets",
+          sections: ["markets"],
           velocity: 4,
         },
       ];
@@ -118,15 +119,29 @@ async function loadCachedXSignals(
   try {
     const cached = getCache("xpulse");
     if (!cached.entry?.items?.length) return [];
-    return cached.entry.items.slice(0, 8).map((i) => ({
-      plane: "x" as const,
-      title: i.text.replace(/^X Pulse:\s*/i, ""),
-      url: i.sources[0]?.url || "https://x.com",
-      source: i.sources[0]?.name || "@x",
-      publishedAt: i.publishedAt,
-      section,
-      velocity: i.velocity,
-    }));
+    // Do NOT stamp the active desk onto every X item — that made every
+    // section's "On X" column look identical / wrong. Untagged X attaches
+    // via title match to that desk's wires (fusion + trend).
+    return cached.entry.items.slice(0, 12).map((i) => {
+      const raw = i.section;
+      const tagged =
+        raw &&
+        raw !== "xpulse" &&
+        raw !== "vibe" &&
+        raw !== "radar"
+          ? (raw as ContentSectionId)
+          : undefined;
+      return {
+        plane: "x" as const,
+        title: i.text.replace(/^X Pulse:\s*/i, ""),
+        url: i.sources[0]?.url || "https://x.com",
+        source: i.sources[0]?.name || "@x",
+        publishedAt: i.publishedAt,
+        section: tagged,
+        sections: tagged ? [tagged] : undefined,
+        velocity: i.velocity,
+      };
+    });
   } catch {
     return [];
   }
@@ -522,34 +537,32 @@ export async function getHighlights(options: {
     // optional
   }
 
-  // Always-visible mix strip (owner feedback) — independent of title-match fusion.
+  // Desk-scoped mix strip — only for a content section chip (not ALL).
   let trend;
-  try {
-    let reddit = await getRedditSignals();
-    if (reddit.length === 0) {
-      reddit = await getRedditSignals({ forceRefresh: true });
+  if (section !== "all") {
+    try {
+      let reddit = await getRedditSignals();
+      if (reddit.length === 0) {
+        reddit = await getRedditSignals({ forceRefresh: true });
+      }
+      // Prefer section-tagged X; fall back to pulse cache but trend.ts
+      // will only keep items that match this desk (tag or wire fuzzy).
+      let xSignals = await loadCachedXSignals(section as ContentSectionId);
+      if (xSignals.length === 0) {
+        xSignals = await loadXSignalsFromPulseCache();
+      }
+      trend =
+        buildTrendPack({
+          section,
+          items: sliced,
+          reddit,
+          x: xSignals,
+        }) ?? undefined;
+    } catch (err) {
+      console.warn(
+        `[pulsewire] trend pack skip: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
-    let xSignals =
-      section === "all"
-        ? await loadAllCachedXSignals()
-        : await loadCachedXSignals(section as ContentSectionId);
-    // If section-scoped X is empty, still show global X pulse on the strip.
-    if (xSignals.length === 0) {
-      xSignals = await loadAllCachedXSignals();
-    }
-    if (xSignals.length === 0) {
-      xSignals = await loadXSignalsFromPulseCache();
-    }
-    trend = buildTrendPack({
-      section,
-      items: sliced,
-      reddit,
-      x: xSignals,
-    });
-  } catch (err) {
-    console.warn(
-      `[pulsewire] trend pack skip: ${err instanceof Error ? err.message : String(err)}`,
-    );
   }
 
   return {
@@ -570,35 +583,7 @@ export async function getHighlights(options: {
   };
 }
 
-/** X signals across sections for the ALL trend column. */
-async function loadAllCachedXSignals(): Promise<SocialSignal[]> {
-  if (isTestMode()) {
-    const { isEarlyXForced, isFusionForced } = await import("./test-mode");
-    if (isEarlyXForced() || isFusionForced()) {
-      return loadCachedXSignals("markets");
-    }
-    return [];
-  }
-  try {
-    const cached = getCache("xpulse");
-    if (!cached.entry?.items?.length) return [];
-    return cached.entry.items.slice(0, 12).map((i) => ({
-      plane: "x" as const,
-      title: i.text.replace(/^X Pulse:\s*/i, ""),
-      url: i.sources[0]?.url || "https://x.com",
-      source: i.sources[0]?.name || "@x",
-      publishedAt: i.publishedAt,
-      section: (i.section && i.section !== "xpulse"
-        ? i.section
-        : "markets") as ContentSectionId,
-      velocity: i.velocity,
-    }));
-  } catch {
-    return [];
-  }
-}
-
-/** Read X via getXPulseHighlights (cache-only) so trend strip isn't empty after vibe warm. */
+/** Untagged X pulse items for desk-scoped trend matching. */
 async function loadXSignalsFromPulseCache(): Promise<SocialSignal[]> {
   if (isTestMode()) return [];
   try {
@@ -606,17 +591,26 @@ async function loadXSignalsFromPulseCache(): Promise<SocialSignal[]> {
       window: "4h",
       forceRefresh: false,
     });
-    return (xp.items || []).slice(0, 12).map((i) => ({
-      plane: "x" as const,
-      title: i.text.replace(/^X Pulse:\s*/i, ""),
-      url: i.sources[0]?.url || "https://x.com",
-      source: i.sources[0]?.name || "@x",
-      publishedAt: i.publishedAt,
-      section: (i.section && i.section !== "xpulse"
-        ? i.section
-        : "markets") as ContentSectionId,
-      velocity: i.velocity,
-    }));
+    return (xp.items || []).slice(0, 12).map((i) => {
+      const raw = i.section;
+      const tagged =
+        raw &&
+        raw !== "xpulse" &&
+        raw !== "vibe" &&
+        raw !== "radar"
+          ? (raw as ContentSectionId)
+          : undefined;
+      return {
+        plane: "x" as const,
+        title: i.text.replace(/^X Pulse:\s*/i, ""),
+        url: i.sources[0]?.url || "https://x.com",
+        source: i.sources[0]?.name || "@x",
+        publishedAt: i.publishedAt,
+        section: tagged,
+        sections: tagged ? [tagged] : undefined,
+        velocity: i.velocity,
+      };
+    });
   } catch {
     return [];
   }

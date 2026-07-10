@@ -367,6 +367,7 @@ export function PulseWireApp() {
         />
 
         <TrendStrip
+          section={section}
           trend={
             data && data.section === section ? data.trend : undefined
           }

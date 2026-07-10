@@ -22,7 +22,10 @@ export type SocialSignal = {
   url: string;
   source: string;
   publishedAt: string;
+  /** Primary section (compat / ranking). */
   section?: ContentSectionId;
+  /** All desks this signal may appear under (Reddit subs map to several). */
+  sections?: ContentSectionId[];
   /** Velocity proxy (score+comments/hour or engagement rank). */
   velocity?: number;
 };
@@ -140,7 +143,14 @@ export function fuseSocialIntoItems(
 
     signals.forEach((sig, idx) => {
       if (used.has(idx)) return;
-      if (item.section && sig.section && item.section !== sig.section) return;
+      if (item.section) {
+        const desk = item.section as ContentSectionId | string;
+        const allowed =
+          sig.sections && sig.sections.length > 0
+            ? sig.sections.includes(desk as ContentSectionId)
+            : !sig.section || sig.section === desk;
+        if (!allowed) return;
+      }
       if (!isLikelyDuplicate(item.text, sig.title, threshold)) return;
       used.add(idx);
       evidence.push({

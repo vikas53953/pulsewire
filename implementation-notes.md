@@ -198,3 +198,8 @@ Windows looked identical because (1) the cache was effectively window-shaped / s
 - **Verdict why** is action/invalidation only — never re-quotes the event headline already in the verdict + hero tile. Yellow: “if X cools without a second wave…”. Red/early: open desk / don’t act on social alone.
 - **`drivingSection`** on the verdict payload; chip row gives that desk sticker-yellow emphasis + a dot while ALL (or another desk) is selected.
 - **Calibrating:** drop cryptic `~`; mute the pulse badge; one-time explainer (“Pulse gets accurate after ~2 weeks of history”).
+
+## Post-Ship leftovers (Fable)
+
+- First-visit dismissors sequenced: calibrating explainer only after onboarding Got it (or on a later visit).
+- Single-source noise floor raised to 28% of top heat so fixture-shaped “minor wire / limited follow-through” items cannot buy an ALL slot under a real lead.

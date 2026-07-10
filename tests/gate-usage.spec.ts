@@ -57,13 +57,27 @@ test.describe("usage beacon", () => {
       "desktop once",
     );
     await page.goto("/?pwQuiet=1");
-    await page.evaluate(() => localStorage.removeItem("pw_onboard_dismissed"));
+    await page.evaluate(() => {
+      localStorage.removeItem("pw_onboard_dismissed");
+      localStorage.removeItem("pw_calibrating_explained");
+    });
     await page.reload();
     await expect(page.getByTestId("onboarding-line")).toBeVisible({
       timeout: 15_000,
     });
+    // No stacked Got its while onboarding is up
+    await expect(page.getByTestId("calibrating-explainer")).toHaveCount(0);
     await page.getByTestId("onboarding-dismiss").click();
     await expect(page.getByTestId("onboarding-line")).toHaveCount(0);
+    // Calibrating explainer only if chips are still calibrating this run
+    const calChips = page.locator('[data-calibrating="1"]');
+    if ((await calChips.count()) > 0) {
+      await expect(page.getByTestId("calibrating-explainer")).toBeVisible({
+        timeout: 5_000,
+      });
+    } else {
+      await expect(page.getByTestId("calibrating-explainer")).toHaveCount(0);
+    }
     await page.reload();
     await expect(page.getByTestId("verdict-hero")).toBeVisible({
       timeout: 15_000,

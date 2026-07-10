@@ -1,12 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-
-const ONBOARD_KEY = "pw_onboard_dismissed";
+import {
+  ONBOARD_DISMISSED_EVENT,
+  ONBOARD_KEY,
+} from "@/lib/first-visit";
 
 /**
  * One dismissible first-visit sentence — sets the product contract.
  * Returning users (flag set) render nothing so layout does not shift.
+ * Calibrating explainer waits until this is dismissed (no stacked Got its).
  */
 export function OnboardingLine() {
   const [show, setShow] = useState(false);
@@ -43,6 +46,11 @@ export function OnboardingLine() {
             // ignore
           }
           setShow(false);
+          try {
+            window.dispatchEvent(new Event(ONBOARD_DISMISSED_EVENT));
+          } catch {
+            // ignore
+          }
         }}
       >
         Got it

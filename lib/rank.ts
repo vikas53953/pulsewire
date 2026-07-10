@@ -23,8 +23,14 @@ const FLOOR_COUNT = 2;
  * Real noise floor — heat/breadth, not a regex of review quotes.
  * Keeps early/building social even when heat is still low.
  * Lets boards shrink when there isn't enough signal.
+ * On ALL (`strictSingle`), single-source items need a higher bar so
+ * recency-boosted "minor wire" notes cannot buy a slot under a real lead.
+ * Desk boards keep the softer floor so age-diversity singles can survive.
  */
-export function suppressNoise(items: HighlightItem[]): HighlightItem[] {
+export function suppressNoise(
+  items: HighlightItem[],
+  opts?: { strictSingle?: boolean },
+): HighlightItem[] {
   if (items.length === 0) return items;
   const heats = items
     .map((i) => i.heat ?? 0)
@@ -32,6 +38,8 @@ export function suppressNoise(items: HighlightItem[]): HighlightItem[] {
     .sort((a, b) => b - a);
   const topHeat = heats[0] ?? 0;
   const softFloor = topHeat > 0 ? topHeat * 0.12 : 0;
+  const singleFloor =
+    opts?.strictSingle && topHeat > 0 ? topHeat * 0.28 : softFloor;
 
   return items.filter((i) => {
     if (i.signalState === "early" || i.signalState === "building") return true;
@@ -40,9 +48,8 @@ export function suppressNoise(items: HighlightItem[]): HighlightItem[] {
     const breadth = i.sources?.length ?? 0;
     if (breadth >= 2) return true;
     if (i.hot && heat > 0) return true;
-    if (topHeat <= 0) return breadth >= 1;
-    // Single-source thin notes below soft floor die — boards may shrink.
-    return heat >= softFloor && heat > 0;
+    if (topHeat <= 0) return opts?.strictSingle ? false : breadth >= 1;
+    return heat >= singleFloor && heat > 0;
   });
 }
 
@@ -79,7 +86,8 @@ export function rankAndCapForWindow(
   items: HighlightItem[],
   window: TimeWindow,
   maxItems: number,
-  now = Date.now()
+  now = Date.now(),
+  opts?: { strictSingle?: boolean },
 ): HighlightItem[] {
   const cap = Math.min(CAP, Math.max(FLOOR_COUNT, maxItems || CAP));
   const maxAge = windowToMs(window);
@@ -178,7 +186,7 @@ export function rankAndCapForWindow(
 
   const ranked = [...pickedConfirmed, ...earlyKeep].slice(0, cap);
   // Dedup after rank so ALL never spends its budget on photocopies.
-  return dedupeBoard(suppressNoise(ranked));
+  return dedupeBoard(suppressNoise(ranked, opts));
 }
 
 function itemKey(item: HighlightItem): string {

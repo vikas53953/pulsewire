@@ -125,18 +125,18 @@ async function fetchRedditFeed(feed: {
 }
 
 async function loadRedditColumn(): Promise<VibeColumn> {
-  if (isTestMode()) {
-    return {
-      status: "ok",
-      items: fixtureReddit(),
-      note: "Fixture Reddit.",
-    };
-  }
   if (isFeedsDownForced()) {
     return {
       status: "failed",
       items: [],
       note: "Fetch failed — feeds forced down.",
+    };
+  }
+  if (isTestMode()) {
+    return {
+      status: "ok",
+      items: fixtureReddit(),
+      note: "Fixture Reddit.",
     };
   }
 

@@ -140,3 +140,11 @@ Windows looked identical because (1) the cache was effectively window-shaped / s
 - Reddit plane via `reddit.config.ts` (RSS); X attach from cache only (M8 earns live calls).
 - VIBE/RAD chips removed; Radar strip only when tripped; tile evidence line.
 - Gate: `tests/gate-m7-fusion.spec.ts` + `GATE-M7-REPORT.md`.
+
+## v4 M8 — X Governor (done)
+
+- `lib/x-governor.ts`: earned triggers only (heat / Reddit spike / tripwire / manual deep).
+- Caps: daily 20, cooldown 30m/section, monthly 300. Footer `X: n/20 today` + pause strip.
+- Long-press refresh → `/api/x-governor` deep-refresh (4/day).
+- `getXPulseHighlights` is cache-only; live calls via `fetchXAfterGrant` after grant.
+- Gate: `tests/gate-m8-x-governor.spec.ts` + live smoke one earned call.

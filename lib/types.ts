@@ -116,7 +116,23 @@ export interface HighlightsResponse {
   rawMode: boolean;
   sourcesUnreachable?: boolean;
   cacheMiss?: boolean;
-  xPulseUsage?: { month: string; used: number; cap: number };
+  xPulseUsage?: {
+    month: string;
+    used: number;
+    cap: number;
+    dailyUsed?: number;
+    dailyCap?: number;
+    paused?: boolean;
+  };
+  /** M8 X governor status for footer / pause strip */
+  xGovernor?: {
+    dailyUsed: number;
+    dailyCap: number;
+    monthlyUsed: number;
+    monthlyCap: number;
+    paused: boolean;
+    pauseNote: string | null;
+  };
   verdict: VerdictPayload;
   scores: SectionScore[];
   items: HighlightItem[];

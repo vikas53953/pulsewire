@@ -423,18 +423,64 @@ export async function getHighlights(options: {
     since,
     now,
   );
-  // Re-score visible section pool including fused signal states for verdict
   const scoredFromSliced =
     section !== "all"
       ? scoreSection(section as ContentSectionId, sliced, now, {
           persistHistory: false,
         })
       : null;
-  const finalScores = scoredFromSliced
+  let finalScores = scoredFromSliced
     ? scoresWithFusion.map((s) =>
         s.section === scoredFromSliced.section ? scoredFromSliced : s,
       )
     : scoresWithFusion;
+
+  // M8: earn X from heat escalation / Reddit spikes (never on a timer).
+  try {
+    const {
+      maybeEarnHeatEscalation,
+      maybeEarnRedditSpike,
+      getXGovernorStatus,
+    } = await import("./x-governor");
+    const { fetchXAfterGrant } = await import("./x-pulse");
+    const { getRedditSignals } = await import("./reddit-plane");
+
+    for (const s of finalScores) {
+      const decision = maybeEarnHeatEscalation({
+        section: s.section,
+        score: s.score,
+        socialLed: s.socialLed,
+      });
+      if (decision?.allowed) {
+        await fetchXAfterGrant(decision, window);
+        break; // one earned call per request max
+      }
+    }
+
+    const reddit = await getRedditSignals();
+    for (const sig of reddit) {
+      if (!sig.section || (sig.velocity ?? 0) < 5) continue;
+      const decision = maybeEarnRedditSpike({
+        section: sig.section,
+        title: sig.title,
+        velocity: sig.velocity ?? 0,
+      });
+      if (decision?.allowed) {
+        await fetchXAfterGrant(decision, window);
+        break;
+      }
+    }
+
+    // If EARLY plane paused, strip unlabeled early items from response honesty
+    const gov = getXGovernorStatus();
+    if (gov.paused) {
+      sliced = sliced.filter((i) => i.signalState !== "early");
+    }
+  } catch (err) {
+    console.warn(
+      `[pulsewire] x-governor skip: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
 
   const verdictBase = buildVerdictTemplate({
     scores: finalScores,
@@ -456,6 +502,25 @@ export async function getHighlights(options: {
     // radar optional at boot
   }
 
+  let xGovernor;
+  let xPulseUsage;
+  try {
+    const { getXGovernorStatus } = await import("./x-governor");
+    const { getXPulseUsage } = await import("./x-pulse");
+    const gov = getXGovernorStatus();
+    xGovernor = {
+      dailyUsed: gov.dailyUsed,
+      dailyCap: gov.dailyCap,
+      monthlyUsed: gov.monthlyUsed,
+      monthlyCap: gov.monthlyCap,
+      paused: gov.paused,
+      pauseNote: gov.pauseNote,
+    };
+    xPulseUsage = getXPulseUsage();
+  } catch {
+    // optional
+  }
+
   return {
     section,
     window,
@@ -468,6 +533,8 @@ export async function getHighlights(options: {
     verdict,
     scores: finalScores,
     items: sliced,
+    xGovernor,
+    xPulseUsage,
   };
 }
 

@@ -64,4 +64,30 @@ test.describe("@live external smoke", () => {
       expect(body.verdictHint.text).not.toMatch(/changed$/i);
     }
   });
+
+  test("@live one earned X call via deep-refresh logs trigger reason", async ({
+    request,
+  }) => {
+    // Manual deep refresh is an earned trigger (SPEC §4.4). One call only.
+    const before = await (await request.get("/api/x-governor")).json();
+    const res = await request.post("/api/x-governor", {
+      data: { action: "deep-refresh", section: "markets" },
+    });
+    // May 429 if capped — still assert honest response
+    const body = await res.json();
+    if (res.ok()) {
+      expect(body.decision.trigger).toBe("manual_deep");
+      expect(body.status.lastCall.reason).toMatch(/deep refresh/i);
+      expect(body.status.dailyUsed).toBeGreaterThanOrEqual(
+        (before.dailyUsed ?? 0) + 1,
+      );
+      console.info(
+        `[live-smoke] x earned trigger=${body.decision.trigger} used=${body.status.dailyUsed}/${body.status.dailyCap}`,
+      );
+    } else {
+      expect(body.decision.allowed).toBe(false);
+      expect(String(body.decision.reason)).toMatch(/cap|cooldown|deny/i);
+      console.info(`[live-smoke] x denied: ${body.decision.reason}`);
+    }
+  });
 });

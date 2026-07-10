@@ -243,6 +243,24 @@ export async function pollRadar(): Promise<RadarStatus> {
     console.info(
       `[pulsewire] radar-trip ${status.trips.map((t) => t.id).join(",")} (push deferred to M6)`,
     );
+    // M8: tripwire earns one x_search for social context
+    try {
+      const { maybeEarnTripwire } = await import("./x-governor");
+      const { fetchXAfterGrant } = await import("./x-pulse");
+      const top = status.trips[0];
+      const decision = maybeEarnTripwire({
+        title: top.title,
+        sourceName: top.name,
+        section: "markets",
+      });
+      if (decision.allowed) {
+        await fetchXAfterGrant(decision, "4h");
+      }
+    } catch (err) {
+      console.warn(
+        `[pulsewire] tripwire x-earn skip: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
   }
   return status;
 }

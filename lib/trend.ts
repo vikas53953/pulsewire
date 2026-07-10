@@ -33,6 +33,7 @@ function toTrendItem(
 function isContentSection(id: SectionId): id is ContentSectionId {
   return (
     id !== "all" &&
+    id !== "trend" &&
     id !== "xpulse" &&
     id !== "vibe" &&
     id !== "radar"

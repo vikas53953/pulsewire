@@ -5,10 +5,9 @@ import { BentoGrid, StaleBanner } from "@/components/BentoGrid";
 import { BriefOverlay } from "@/components/BriefOverlay";
 import { Header } from "@/components/Header";
 import { RadarStrip } from "@/components/RadarStrip";
-import { ScoreChips } from "@/components/ScoreChips";
+import { ScoreChips, type ChipId } from "@/components/ScoreChips";
 import { StatusBar } from "@/components/StatusBar";
 import { SocialTrendsBoard } from "@/components/SocialTrendsBoard";
-import { TrendStrip } from "@/components/TrendStrip";
 import { VerdictHero } from "@/components/VerdictHero";
 import type { BriefPayload } from "@/lib/brief";
 import type { RadarStatus } from "@/lib/radar";
@@ -33,7 +32,6 @@ const THEME_KEY = "pulsewire-theme";
 const SESSION_KEY = "pulsewire-session-start";
 
 type ClientCache = Map<string, HighlightsResponse>;
-type ChipId = ContentSectionId | "all";
 
 function clientKey(
   section: SectionId,
@@ -196,7 +194,13 @@ export function PulseWireApp() {
       nextLens: Lens,
       opts?: { refresh?: boolean; soft?: boolean }
     ) => {
-      if (targetSection === "vibe" || targetSection === "radar") return;
+      if (
+        targetSection === "vibe" ||
+        targetSection === "radar" ||
+        targetSection === "xpulse"
+      ) {
+        return;
+      }
       const id = ++requestId.current;
       const since =
         nextLens === "since" && lastVisitRef.current != null
@@ -306,21 +310,26 @@ export function PulseWireApp() {
   const showStale =
     Boolean(data?.stale) || Boolean(data?.sourcesUnreachable);
 
+  const isTrend = section === "trend";
   const visibleItems =
-    data && data.section === section ? data.items : [];
+    data && data.section === section && !isTrend ? data.items : [];
   const showSkeleton = loading || !data || data.section !== section;
 
   const quietTop =
-    data?.verdict?.level === "green" && visibleItems[0]
+    !isTrend &&
+    data?.verdict?.level === "green" &&
+    visibleItems[0]
       ? `Top of the quiet: ${visibleItems[0].text}`
       : null;
 
   const quietHero =
+    !isTrend &&
     data?.verdict?.level === "green" &&
     !showSkeleton &&
     (data?.scores ?? []).every((s) => s.level === "green");
 
   const displayVerdict: VerdictPayload | null = (() => {
+    if (isTrend) return null;
     const radarRed =
       radar?.verdictHint?.level === "red" ? radar.verdictHint : null;
     if (radarRed) return radarRed;
@@ -330,7 +339,9 @@ export function PulseWireApp() {
   const chipActive: ChipId =
     section === "xpulse" || section === "vibe" || section === "radar"
       ? "all"
-      : (section as ContentSectionId | "all");
+      : section === "trend"
+        ? "trend"
+        : (section as ContentSectionId | "all");
 
   const radarTripped = Boolean(radar && !radar.clear && radar.trips?.length);
 
@@ -356,10 +367,12 @@ export function PulseWireApp() {
           />
         ) : null}
 
-        <VerdictHero
-          verdict={displayVerdict}
-          quietTop={quietHero ? quietTop : null}
-        />
+        {!isTrend ? (
+          <VerdictHero
+            verdict={displayVerdict}
+            quietTop={quietHero ? quietTop : null}
+          />
+        ) : null}
 
         <ScoreChips
           scores={data?.scores ?? []}
@@ -367,15 +380,7 @@ export function PulseWireApp() {
           onSelect={onChipSelect}
         />
 
-        <TrendStrip
-          section={section}
-          trend={
-            data && data.section === section ? data.trend : undefined
-          }
-          loading={showSkeleton}
-        />
-
-        <StaleBanner show={showStale && !showSkeleton} />
+        <StaleBanner show={showStale && !showSkeleton && !isTrend} />
 
         {error ? (
           <div className="pw-tile bg-[var(--card)] p-4 text-[13px] font-bold uppercase tracking-wide text-[var(--ink)]">
@@ -392,7 +397,14 @@ export function PulseWireApp() {
           </div>
         ) : null}
 
-        {!quietHero ? (
+        {isTrend ? (
+          <SocialTrendsBoard
+            pack={
+              data && data.section === "trend" ? data.socialTrends : undefined
+            }
+            loading={showSkeleton}
+          />
+        ) : !quietHero ? (
           <BentoGrid
             key={`${section}-${timeWindow}-${lens}`}
             items={visibleItems}
@@ -405,13 +417,6 @@ export function PulseWireApp() {
             onOpenBrief={onOpenBrief}
           />
         ) : null}
-
-        <SocialTrendsBoard
-          pack={
-            data && data.section === section ? data.socialTrends : undefined
-          }
-          loading={showSkeleton}
-        />
 
         <StatusBar
           generatedAt={
@@ -433,7 +438,7 @@ export function PulseWireApp() {
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({
                     action: "deep-refresh",
-                    section,
+                    section: isTrend ? "all" : section,
                   }),
                 });
                 const body = await res.json();

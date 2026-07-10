@@ -2,6 +2,7 @@ import { createHash } from "crypto";
 import Parser from "rss-parser";
 import { FEEDS, feedsForSection } from "./feeds.config";
 import { resolveArticleUrls } from "./resolve-url";
+import { sanitizeHttpUrl } from "./safe-url";
 import { stripPublisherSuffix } from "./similarity";
 import {
   fixtureItemsForSection,
@@ -86,7 +87,7 @@ async function fetchOneFeed(
     for (const entry of parsed.items ?? []) {
       const rawTitle = stripHtml(entry.title ?? "");
       const title = stripPublisherSuffix(rawTitle) || rawTitle;
-      const url = (entry.link || entry.guid || "").trim();
+      const url = sanitizeHttpUrl(entry.link || entry.guid || "");
       if (!title || !url) continue;
 
       const publishedAt = parsePublishedAt(entry);
@@ -127,10 +128,12 @@ async function fetchOneFeed(
 
 async function resolveItemUrls(items: RawFeedItem[]): Promise<RawFeedItem[]> {
   const map = await resolveArticleUrls(items.map((i) => i.url));
-  return items.map((item) => ({
-    ...item,
-    url: map.get(item.url) ?? item.url,
-  }));
+  return items
+    .map((item) => {
+      const resolved = sanitizeHttpUrl(map.get(item.url) ?? item.url);
+      return resolved ? { ...item, url: resolved } : null;
+    })
+    .filter((item): item is RawFeedItem => item != null);
 }
 
 export interface SectionFetchResult {

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { canSpend, spendForbiddenResponse } from "@/lib/beta-auth";
 import {
   getXGovernorStatus,
   requestManualDeep,
@@ -27,6 +28,9 @@ export async function POST(request: NextRequest) {
   };
 
   if (body.action === "deep-refresh") {
+    if (!canSpend(request)) {
+      return spendForbiddenResponse();
+    }
     const section =
       body.section && isSectionId(body.section) && body.section !== "all"
         ? (body.section as ContentSectionId)

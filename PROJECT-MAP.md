@@ -4,7 +4,12 @@
 - `app/page.tsx` — Renders the Bento Zine dashboard (`PulseWireApp`).
 - `app/layout.tsx` — Shared HTML shell + early theme script (no flash).
 - `app/globals.css` — Bento Zine design tokens, tile press, skeleton shimmer.
-- `app/api/highlights/route.ts` — `GET /api/highlights` (force-dynamic). Returns hot highlights JSON for a section + time window.
+- `app/api/highlights/route.ts` — `GET /api/highlights` (force-dynamic). Returns hot highlights JSON for a section + time window. `?refresh=1` requires beta token when `BETA_TOKEN` is set.
+- `app/api/health/route.ts` — `GET /api/health` ops JSON (cache ages, warmer, X governor, LLM mode, DB rows). Open without beta cookie.
+- `middleware.ts` — Optional `BETA_TOKEN` door (`/?key=…` → cookie). Skipped under `PW_TEST=1`.
+- `lib/beta-auth.ts` — Shared spend-path gate for refresh + X deep-refresh.
+- `lib/safe-url.ts` — http(s) allowlist for feed/trend links.
+- `lib/backup.ts` / `scripts/backup-db.mjs` — `VACUUM INTO` snapshot of the history DB (`npm run backup:db`).
 - `components/PulseWireApp.tsx` — Client shell: section/window state, fetch, auto-refresh, theme.
 - `components/Header.tsx` — PULSE[WIRE] logo, RAW sticker, time pills, night toggle.
 - `components/ScoreChips.tsx` — NOC score chips (MKT 87🔴…) — tap to filter; replaces section tabs.
@@ -55,5 +60,17 @@
 - `tests/` — Playwright gate: bugs, gate-m1-m2, gate-m3-ui, gate-v11, gate-m4-verdict, gate-m5-baselines, boot-velocity, gate-v3.
 - `SPEC-v2-verdict-engine.md` — Locked product pivot: status page / Pulse Score / verdict hero.
 - `playwright.config.ts` — webServer with PW_TEST=1; projects 1280×900 and 360×740.
-- `.github/workflows/e2e.yml` — CI: install, build, test:e2e, upload HTML report + traces.
+- `.github/workflows/e2e.yml` — CI: audit, unit tests, build, test:e2e, upload HTML report + traces.
+- `.github/workflows/live-feeds.yml` — Nightly `@live` smoke (real network).
+- `tests/unit/` — Vitest: verdict / rank / score / similarity / safe-url.
 - `PROJECT-MAP.md` — This file.
+
+## API (short)
+
+| Route | Params | Notes |
+|---|---|---|
+| `GET /api/highlights` | `section`, `window`, `lens`, `since`, `refresh=1` | 400 on bad enums. `refresh=1` burns cache (+ beta). |
+| `GET /api/health` | — | Ops counters; no auth. |
+| `GET/POST /api/x-governor` | POST `action=deep-refresh` | Deep-refresh spends X; beta-gated when token set. |
+| `GET /api/brief` · `/api/vibe` · `/api/radar` | per route | See route files. |
+| Errors | — | `{ error, detail? }` with 400/401/429/500. |

@@ -169,3 +169,16 @@ Windows looked identical because (1) the cache was effectively window-shaped / s
 - Mega/red tiles only for confirmed multi-source heat — no decorative pastels.
 - Footer no longer leaks `X: n/cap today` (governor stays on `/api/x-governor`).
 - Soft-ship coherence: computed verdict lead (no “Mostly quiet” over all-yellow); same-event desk merge; heat/breadth noise floor; blind empty state (no QUIET HOUR); feedsDown cache no longer sticky; single freshness under chips.
+
+## Pre-beta hardening
+
+- **Deploy:** single persistent Node instance only (Fly/Railway/VPS). Serverless breaks cache, warmer, SQLite, X governor — documented in README.
+- **Beta door:** `BETA_TOKEN` + middleware cookie from `/?key=…`; spend paths (`refresh=1`, X deep-refresh) check the same token. `PW_TEST=1` skips the gate.
+- **URL allowlist:** feed/trend ingestion keeps `http:`/`https:` only (`lib/safe-url.ts`). GN resolver restricted to `news.google.com`.
+- **Security headers:** CSP (theme script hashed), `X-Frame-Options`, `nosniff`, `Referrer-Policy` in `next.config.mjs`.
+- **Moat backup:** `npm run backup:db` (`VACUUM INTO`); cron + `PULSEWIRE_BACKUP_DIR` in README.
+- **Health:** `GET /api/health` for cache/warm/X/LLM/DB.
+- **Engines:** `engines.node` `>=20 <23` + `.nvmrc`. `better-sqlite3` needs node-gyp.
+- **npm audit:** `glob` overridden to `^10.5.0`. Remaining Next 14 advisories need a conscious Next 15 upgrade (instrumentationHook is load-bearing) — accepted until that migration.
+- **Vitest** covers verdict matrix, noise floor, chip-why invariant. Nightly `@live` workflow watches real feeds.
+- **schema_version** table added (v1) for future ALTERs.

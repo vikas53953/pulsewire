@@ -93,6 +93,42 @@ export function getRefreshing(
   return cache.get(cacheKey(section))?.refreshing;
 }
 
+/** Snapshot for /api/health — ages and freshness per section key. */
+export function listCacheStats(): Array<{
+  section: string;
+  ageMs: number;
+  fresh: boolean;
+  itemCount: number;
+  rawMode: boolean;
+  sourcesUnreachable: boolean;
+  generatedAt: string | null;
+}> {
+  const out: Array<{
+    section: string;
+    ageMs: number;
+    fresh: boolean;
+    itemCount: number;
+    rawMode: boolean;
+    sourcesUnreachable: boolean;
+    generatedAt: string | null;
+  }> = [];
+  for (const [key, stored] of Array.from(cache.entries())) {
+    const section = key.replace(/^section:/, "");
+    const { fresh, ageMs, entry } = getCache(section);
+    out.push({
+      section,
+      ageMs,
+      fresh,
+      itemCount: entry?.items.length ?? stored.entry.items.length,
+      rawMode: entry?.rawMode ?? stored.entry.rawMode,
+      sourcesUnreachable:
+        entry?.sourcesUnreachable ?? stored.entry.sourcesUnreachable,
+      generatedAt: entry?.generatedAt ?? stored.entry.generatedAt ?? null,
+    });
+  }
+  return out.sort((a, b) => a.section.localeCompare(b.section));
+}
+
 export function setRefreshing(
   section: string,
   promise: Promise<CacheEntry> | undefined

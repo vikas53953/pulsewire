@@ -116,7 +116,9 @@ test.describe("v3 Brief · Vibe · Radar", () => {
     await expect(page.getByTestId("verdict-hero")).toContainText(/Radar/i);
 
     // Manifest present for PWA install hook
-    const manifest = page.locator('link[rel="manifest"]');
-    await expect(manifest).toHaveAttribute("href", "/manifest.webmanifest");
+    await expect(page.locator('link[rel="manifest"]').first()).toHaveAttribute(
+      "href",
+      "/manifest.webmanifest"
+    );
   });
 });

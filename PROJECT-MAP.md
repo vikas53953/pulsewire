@@ -44,7 +44,15 @@
 - `lib/last-visit.ts` — localStorage last-visit helpers for NEW stickers.
 - `lib/x-pulse.ts` — X Pulse via Grok Responses API + x_search; monthly cap; PW_TEST fixtures.
 - `fixtures/feeds/` — Committed sample RSS documenting controlled ages; runtime serves in-memory fixtures.
-- `tests/` — Playwright gate: bugs, gate-m1-m2, gate-m3-ui, gate-v11, gate-m4-verdict, gate-m5-baselines, boot-velocity.
+- `lib/brief.ts` — Brief LLM + SQLite cache per clusterId (v3.1).
+- `lib/vibe.ts` — Reddit rising + X Pulse dual column (v3.2).
+- `lib/radar.ts` / `lib/radar.config.ts` — tripwire poller (v3.3).
+- `components/BriefOverlay.tsx` — zine Brief dialog.
+- `components/VibePanel.tsx` — Reddit \| X columns.
+- `components/RadarStrip.tsx` — CLEAR / TRIPPED strip.
+- `app/api/brief/route.ts` · `app/api/vibe/route.ts` · `app/api/radar/route.ts`
+- `SPEC-v3-radar-vibe-brief.md` — v3 product contract.
+- `tests/` — Playwright gate: bugs, gate-m1-m2, gate-m3-ui, gate-v11, gate-m4-verdict, gate-m5-baselines, boot-velocity, gate-v3.
 - `SPEC-v2-verdict-engine.md` — Locked product pivot: status page / Pulse Score / verdict hero.
 - `playwright.config.ts` — webServer with PW_TEST=1; projects 1280×900 and 360×740.
 - `.github/workflows/e2e.yml` — CI: install, build, test:e2e, upload HTML report + traces.

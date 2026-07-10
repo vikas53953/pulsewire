@@ -49,7 +49,11 @@ export async function GET(request: NextRequest) {
   // Pool-shape overrides replace the fixture set; must bust cache in/out.
   // llmFail/feedsDown keep the same pool — leave cache so short-TTL HIT tests work.
   const poolOverride = Boolean(
-    overrides.empty || overrides.quiet || overrides.hotMarkets
+    overrides.empty ||
+      overrides.quiet ||
+      overrides.hotMarkets ||
+      overrides.earlyX ||
+      overrides.fusion
   );
   const overrideBust = Boolean(
     overrides.llmFail || overrides.feedsDown || poolOverride

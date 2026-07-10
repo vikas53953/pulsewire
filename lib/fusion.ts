@@ -1,4 +1,5 @@
 import { isLikelyDuplicate } from "./similarity";
+import { isTestMode } from "./test-mode";
 import type {
   ContentSectionId,
   HighlightItem,
@@ -165,12 +166,22 @@ export function fuseSocialIntoItems(
     };
   });
 
-  // Orphan social → EARLY tiles (max handled by ranker)
+  // Orphan social → EARLY tiles (max handled by ranker).
+  // Reddit orphans need extreme velocity; X-only always eligible as EARLY.
+  // In PW_TEST, skip Reddit orphans unless an explicit early/fusion fixture
+  // so RSS window gates stay deterministic.
   const orphans: HighlightItem[] = [];
+  const allowRedditOrphans =
+    !isTestMode() ||
+    process.env.PW_EARLY_X === "1" ||
+    process.env.PW_FUSION === "1";
+
   signals.forEach((sig, idx) => {
     if (used.has(idx)) return;
-    // Extreme velocity only for Reddit-only EARLY; X-only always eligible as EARLY
-    if (sig.plane === "reddit" && (sig.velocity ?? 0) < 2) return;
+    if (sig.plane === "reddit") {
+      if (!allowRedditOrphans) return;
+      if ((sig.velocity ?? 0) < 8) return;
+    }
     const evidence: PlaneEvidence[] = [
       {
         plane: sig.plane,

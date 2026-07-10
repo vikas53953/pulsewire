@@ -101,8 +101,10 @@ export function computeWeightedVelocity(
 }
 
 export function recencyWeight(ageHours: number, windowHours = 24): number {
-  // Scale decay to the selected window so 24H is not a 4H board in disguise.
-  const tau = Math.max(1.5, windowHours / 4);
+  // ≤4h keeps legacy τ=6 (scan windows). 12h/24h scale up so morning
+  // stories retain heat inside their age band — τ=window/4 alone left 24h
+  // identical to before and made 4h crush the board.
+  const tau = windowHours <= 4 ? 6 : Math.max(6, windowHours / 2);
   return Math.exp(-ageHours / tau);
 }
 

@@ -108,10 +108,12 @@ export interface VerdictPayload {
   text: string;
   level: TrafficLevel;
   llmPolished: boolean;
-  /** One-line why for warming/hot desks (esp. MKT / ECO / POL). */
+  /** One-line why — action/invalidation only; never re-quotes the verdict story. */
   why?: string | null;
   /** True when feeds are unreachable — never present as quiet. */
   blind?: boolean;
+  /** Desk named as the primary driver — chip row emphasis. */
+  drivingSection?: ContentSectionId | null;
 }
 
 /** Always-visible mix row — one plane's trending headlines. */

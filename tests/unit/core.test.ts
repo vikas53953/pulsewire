@@ -254,7 +254,49 @@ describe("chip why invariant", () => {
 
     const vWhy = verdictWhy(markets);
     expect(vWhy).toBeTruthy();
+    expect(vWhy!).toMatch(/Watch:/i);
     expect(vWhy!).toMatch(/Markets/i);
-    expect(vWhy!).not.toMatch(/Parliament|farm bill/i);
+    expect(vWhy!).not.toMatch(/Sensex|Parliament|farm bill/i);
+    // Must not re-quote the event headline — action/invalidation only.
+    expect(vWhy!).toMatch(/second wave|ignore it|open Markets/i);
+  });
+});
+
+describe("verdict why de-dupe", () => {
+  it("yellow why is invalidation, not a headline echo", () => {
+    const v = buildVerdictTemplate({
+      scores: [
+        {
+          section: "markets",
+          score: 48,
+          level: "yellow",
+          calibrating: false,
+          topText: "Sensex plunges 800 points on FII selloff",
+          topBreadth: 4,
+        },
+        {
+          section: "economy",
+          score: 10,
+          level: "green",
+          calibrating: false,
+        },
+        {
+          section: "politics",
+          score: 8,
+          level: "green",
+          calibrating: false,
+        },
+        { section: "india", score: 8, level: "green", calibrating: false },
+        { section: "sports", score: 5, level: "green", calibrating: false },
+        { section: "world", score: 6, level: "green", calibrating: false },
+        { section: "tech", score: 7, level: "green", calibrating: false },
+      ],
+      lens: "window",
+    });
+    expect(v.drivingSection).toBe("markets");
+    expect(v.why).toBeTruthy();
+    expect(v.why!).toMatch(/Watch:/i);
+    expect(v.why!).not.toMatch(/Sensex|plunges|FII/i);
+    expect(v.text).toMatch(/Sensex/i);
   });
 });

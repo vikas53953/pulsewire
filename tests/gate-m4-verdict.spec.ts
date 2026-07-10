@@ -35,6 +35,8 @@ test.describe("M4 Verdict Engine", () => {
     expect(hot.verdict.text).toMatch(/\d+ sources/i);
     expect(hot.verdict.why).toMatch(/Watch:/i);
     expect(hot.verdict.why).not.toMatch(/pulse \d+/i);
+    expect(hot.verdict.why).not.toMatch(/Sensex|FIIs|jumps/i);
+    expect(hot.verdict.drivingSection).toBe("markets");
     expect(hot.verdict.text).not.toMatch(/credible/i);
   });
 
@@ -195,5 +197,21 @@ test.describe("M4 Verdict Engine", () => {
       "true"
     );
     await expect(page.getByTestId("verdict-hero")).toBeVisible();
+  });
+
+  test("verdict-driving chip is emphasized on ALL", async ({ page }) => {
+    await page.goto("/?pwHotMarkets=1");
+    await expect(page.getByTestId("verdict-hero")).toBeVisible({
+      timeout: 15_000,
+    });
+    await expect(page.getByTestId("chip-all")).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    await expect(page.getByTestId("chip-markets")).toHaveAttribute(
+      "data-driving",
+      "1",
+    );
+    await expect(page.getByTestId("driving-dot-markets")).toBeVisible();
   });
 });

@@ -89,8 +89,13 @@ test.describe("M5 baselines & history", () => {
     await requestReset(page);
     await page.goto("/?pwQuiet=1");
     await expect(page.getByTestId("score-chips")).toBeVisible();
-    // After reset, buckets are empty → ~ calibrating marks
-    await expect(page.getByTestId("calibrating-markets")).toBeVisible();
+    // After reset, buckets are empty → muted calibrating (no cryptic ~)
+    await expect(page.getByTestId("calibrating-markets")).toBeAttached();
+    await expect(page.locator('[data-testid="chip-markets"]')).toHaveAttribute(
+      "data-calibrating",
+      "1",
+    );
+    await expect(page.getByTestId("calibrating-explainer")).toBeVisible();
   });
 
   test("baseline math: median/MAD/sigmoid unit via stats endpoint", async ({

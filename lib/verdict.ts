@@ -112,24 +112,33 @@ function calmDesksPhrase(greens: SectionScore[]): string | null {
 }
 
 /**
- * Why-it-matters: consequence / what to watch — never restate the pulse number.
+ * Why-it-matters: action / invalidation only — never restate the event headline
+ * (verdict + hero tile already carry the story). Return null when we'd only re-quote.
  */
 export function verdictWhy(s: SectionScore | null | undefined): string | null {
   if (!s || s.unknown || s.level === "green") return null;
   if (!WHY_DESKS.has(s.section)) return null;
-  const event = eventPhrase(s);
+  const label = sectionLabel(s.section);
   const n = sourceCount(s);
+
   if (s.socialLed || s.topSignalState === "early") {
-    return `Watch: ${event} is loud on social with no wire confirmation yet — do not act on it alone.`;
+    return "Watch: no wire confirmation yet — do not act on social alone.";
   }
   if (s.level === "red") {
-    return n != null
-      ? `Watch: ${event} has ${n} sources moving fast — check the ${sectionLabel(s.section)} desk before your next move.`
-      : `Watch: ${event} is moving fast — check the ${sectionLabel(s.section)} desk before your next move.`;
+    return n != null && n >= 2
+      ? `Watch: ${n} sources moving together — open ${label} before your next move.`
+      : `Watch: open the ${label} desk before your next move.`;
   }
-  return n != null
-    ? `Watch: ${event} is lifting ${sectionLabel(s.section)} above a normal hour (${n} sources).`
-    : `Watch: ${event} is lifting ${sectionLabel(s.section)} above a normal hour.`;
+  // Yellow: invalidation condition — new information, not a headline echo.
+  return `Watch: if ${label} cools without a second wave in the next hour, you can ignore it.`;
+}
+
+function withDriver(
+  payload: VerdictPayload,
+  driver: SectionScore | null | undefined,
+): VerdictPayload {
+  if (!driver) return payload;
+  return { ...payload, drivingSection: driver.section };
 }
 
 function blindVerdict(ctx: VerdictContext): VerdictPayload {
@@ -202,24 +211,30 @@ export function buildVerdictTemplate(ctx: VerdictContext): VerdictPayload {
   if (reds.length >= 2) {
     const a = reds[0];
     const b = reds[1];
-    return {
-      text: `Busy: ${sectionLabel(a.section)} and ${sectionLabel(b.section)} both hot. Start with ${sectionLabel(a.section)} — ${eventPhrase(a)}.`,
-      level: "red",
-      llmPolished: false,
-      why: verdictWhy(a),
-    };
+    return withDriver(
+      {
+        text: `Busy: ${sectionLabel(a.section)} and ${sectionLabel(b.section)} both hot. Start with ${sectionLabel(a.section)} — ${eventPhrase(a)}.`,
+        level: "red",
+        llmPolished: false,
+        why: verdictWhy(a),
+      },
+      a,
+    );
   }
 
   if (reds.length === 1) {
     const s = reds[0];
     const calm = calmDesksPhrase(greens);
     const calmBit = calm ? ` ${calm}.` : "";
-    return {
-      text: `${sectionLabel(s.section)} hot: ${eventPhrase(s)}${sourcesClause(s)}.${calmBit}`,
-      level: "red",
-      llmPolished: false,
-      why: verdictWhy(s),
-    };
+    return withDriver(
+      {
+        text: `${sectionLabel(s.section)} hot: ${eventPhrase(s)}${sourcesClause(s)}.${calmBit}`,
+        level: "red",
+        llmPolished: false,
+        why: verdictWhy(s),
+      },
+      s,
+    );
   }
 
   const brewing =
@@ -234,12 +249,15 @@ export function buildVerdictTemplate(ctx: VerdictContext): VerdictPayload {
     parts.push(
       `${sectionLabel(brewing.section)} brewing on social — no wire confirmation yet.`,
     );
-    return {
-      text: parts.join(" ").replace(/\s+/g, " ").trim(),
-      level: "yellow",
-      llmPolished: false,
-      why: verdictWhy(brewing),
-    };
+    return withDriver(
+      {
+        text: parts.join(" ").replace(/\s+/g, " ").trim(),
+        level: "yellow",
+        llmPolished: false,
+        why: verdictWhy(brewing),
+      },
+      brewing,
+    );
   }
 
   if (yellows.length >= 1 && reds.length === 0) {
@@ -252,12 +270,15 @@ export function buildVerdictTemplate(ctx: VerdictContext): VerdictPayload {
       parts.push(
         `${sectionLabel(s.section)} brewing on social — no wire confirmation yet.`,
       );
-      return {
-        text: parts.join(" ").replace(/\s+/g, " ").trim(),
-        level: "yellow",
-        llmPolished: false,
-        why: verdictWhy(s),
-      };
+      return withDriver(
+        {
+          text: parts.join(" ").replace(/\s+/g, " ").trim(),
+          level: "yellow",
+          llmPolished: false,
+          why: verdictWhy(s),
+        },
+        s,
+      );
     }
 
     const same = yellows.filter((y) => y !== s && sameEvent(s, y));
@@ -295,12 +316,15 @@ export function buildVerdictTemplate(ctx: VerdictContext): VerdictPayload {
       }
     }
 
-    return {
-      text: parts.join(" ").replace(/\s+/g, " ").trim(),
-      level: "yellow",
-      llmPolished: false,
-      why: verdictWhy(s),
-    };
+    return withDriver(
+      {
+        text: parts.join(" ").replace(/\s+/g, " ").trim(),
+        level: "yellow",
+        llmPolished: false,
+        why: verdictWhy(s),
+      },
+      s,
+    );
   }
 
   return {
@@ -326,6 +350,7 @@ export async function polishVerdict(
       llmPolished: true,
       why: template.why,
       blind: template.blind,
+      drivingSection: template.drivingSection,
     };
   } catch {
     return template;

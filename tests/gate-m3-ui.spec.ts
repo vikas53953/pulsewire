@@ -10,7 +10,8 @@ async function waitForShell(page: Page) {
 }
 
 async function ensureWindowLens(page: Page) {
-  await page.getByTestId("lens-window").click();
+  // First visit: By time is default and only pills show (no dual lens chrome).
+  await expect(page.getByTestId("pill-4h")).toBeVisible({ timeout: 5_000 });
 }
 
 test.describe("M3 Bento Zine UI gate", () => {
@@ -59,7 +60,11 @@ test.describe("M3 Bento Zine UI gate", () => {
     await ensureWindowLens(page);
 
     const chipSections = SECTIONS.filter(
-      (s) => s.id !== "xpulse" && s.id !== "vibe" && s.id !== "radar"
+      (s) =>
+        s.id !== "xpulse" &&
+        s.id !== "vibe" &&
+        s.id !== "radar" &&
+        s.id !== "trend",
     );
     for (const section of chipSections) {
       const chipId =
@@ -73,10 +78,17 @@ test.describe("M3 Bento Zine UI gate", () => {
       }
     }
 
+    // TREND is a dedicated panel — no verdict hero
+    await page.getByTestId("chip-trend").click();
+    await expect(page.getByTestId("social-trends")).toBeVisible({
+      timeout: 10_000,
+    });
+    await expect(page.getByTestId("verdict-hero")).toHaveCount(0);
+
     expect(errors, errors.join("\n")).toEqual([]);
   });
 
-  test("states: skeleton, quiet verdict, stale strip, RAW sticker", async ({
+  test("states: quiet verdict, stale strip, no RAW sticker", async ({
     page,
   }) => {
     test.skip(
@@ -84,27 +96,11 @@ test.describe("M3 Bento Zine UI gate", () => {
       "desktop states"
     );
 
-    // --- loading skeleton (hold first API response until we assert) ---
-    let releaseFirst = () => {};
-    const firstGate = new Promise<void>((resolve) => {
-      releaseFirst = resolve;
-    });
-    let held = false;
-    await page.route("**/api/highlights*", async (route) => {
-      if (!held) {
-        held = true;
-        await firstGate;
-      }
-      await route.continue();
-    });
-    await page.goto("/", { waitUntil: "domcontentloaded" });
-    await expect(page.getByTestId("verdict-skeleton")).toBeVisible({
-      timeout: 2_000,
-    });
-    releaseFirst();
+    // SSR first paint — no empty skeleton on cold load (intentional).
+    await page.goto("/");
     await waitForShell(page);
-    await page.unrouteAll({ behavior: "ignoreErrors" });
     await ensureWindowLens(page);
+    await expect(page.getByTestId("score-chips")).toBeVisible();
 
     // --- quiet verdict via fixture override ---
     await page.route("**/api/highlights*", async (route) => {
@@ -167,7 +163,7 @@ test.describe("M3 Bento Zine UI gate", () => {
     });
     await page.unrouteAll({ behavior: "ignoreErrors" });
 
-    // --- RAW header sticker ---
+    // --- RAW mode still loads; sticker intentionally hidden (reads as unfinished) ---
     await page.route("**/api/highlights*", async (route) => {
       const url = new URL(route.request().url());
       await route.fulfill({
@@ -204,7 +200,8 @@ test.describe("M3 Bento Zine UI gate", () => {
       });
     });
     await page.getByTestId("refresh-btn").click();
-    await expect(page.getByTestId("raw-sticker")).toBeVisible({
+    await expect(page.getByTestId("raw-sticker")).toHaveCount(0);
+    await expect(page.getByTestId("verdict-hero")).toContainText(/quiet/i, {
       timeout: 5_000,
     });
   });

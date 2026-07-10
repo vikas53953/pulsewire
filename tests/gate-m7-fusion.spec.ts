@@ -38,7 +38,7 @@ test.describe("M7 Signal Fusion", () => {
     }
 
     await page.goto("/?pwEarlyX=1");
-    await page.getByTestId("lens-window").click();
+    await expect(page.getByTestId("pill-4h")).toBeVisible({ timeout: 5_000 });
     await page.getByTestId("chip-markets").click();
     await expect(page.locator('[data-signal="early"]').first()).toBeVisible({
       timeout: 15_000,
@@ -98,7 +98,7 @@ test.describe("M7 Signal Fusion", () => {
     await expect(page.getByTestId("verdict-hero")).toBeVisible({
       timeout: 15_000,
     });
-    await page.getByTestId("lens-window").click();
+    await expect(page.getByTestId("pill-4h")).toBeVisible({ timeout: 5_000 });
     await page.getByTestId("chip-markets").click();
     await expect(page.getByTestId("bento-grid")).toBeVisible({
       timeout: 5_000,

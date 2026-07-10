@@ -19,7 +19,7 @@ import {
   clusterBySimilarity,
   clustersToRawHighlights,
 } from "./merge";
-import { filterSince, rankAndCapForWindow } from "./rank";
+import { filterSince, rankAndCapForWindow, ALL_CAP, DESK_CAP } from "./rank";
 import { getRedditSignals } from "./reddit-plane";
 import { enrichItemHeat, scoreSection } from "./score";
 import type {
@@ -423,6 +423,7 @@ export async function getHighlights(options: {
 
   let sliced: HighlightItem[];
   let sinceEmpty = false;
+  const boardCap = section === "all" ? ALL_CAP : DESK_CAP;
 
   if (lens === "since" && since) {
     const sinceItems = filterSince(pool, since).map((i) =>
@@ -430,11 +431,11 @@ export async function getHighlights(options: {
     );
     sinceEmpty = sinceItems.length === 0;
     sliced = rankWithSignalStates(
-      rankAndCapForWindow(sinceItems, "24h", getMaxItems(), now),
+      rankAndCapForWindow(sinceItems, "24h", boardCap, now),
     );
   } else {
     sliced = rankWithSignalStates(
-      rankAndCapForWindow(pool, window, getMaxItems(), now),
+      rankAndCapForWindow(pool, window, boardCap, now),
     );
   }
 

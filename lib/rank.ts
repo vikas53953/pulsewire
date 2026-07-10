@@ -11,22 +11,26 @@ export function earliestPublishedAt(isos: string[]): string {
 }
 
 const HEAT_FLOOR_RATIO = 0.15;
-/** Raised from 9 → 16 so the board can show denser mix (owner feedback). */
-const CAP = 16;
+/** Per-desk board — fewer-but-stronger for a 30s scan. */
+export const DESK_CAP = 10;
+/** ALL overview — tighter so it is not a wall of mixed cards. */
+export const ALL_CAP = 8;
+const CAP = DESK_CAP;
 const FLOOR_COUNT = 2;
 
 /**
- * SPEC v2 §5 ranking (cap raised for mix visibility):
+ * SPEC v2 §5 ranking:
  * 1) storyHeat desc
- * 2) age-diversity for 4h+ after top 3 (may pull one below-floor item per empty bucket)
- * 3) fewer-but-stronger: heat ≥ 15% of top, floor 2, cap 16
+ * 2) age-diversity for 4h+ after top 3
+ * 3) fewer-but-stronger: heat ≥ 15% of top, floor 2, cap 10 (ALL uses 8)
  */
 export function rankAndCapForWindow(
   items: HighlightItem[],
   window: TimeWindow,
-  _maxItemsIgnored: number,
+  maxItems: number,
   now = Date.now()
 ): HighlightItem[] {
+  const cap = Math.min(CAP, Math.max(FLOOR_COUNT, maxItems || CAP));
   const maxAge = windowToMs(window);
   const filtered = items
     .filter((item) => {
@@ -49,7 +53,7 @@ export function rankAndCapForWindow(
   if (rest.length === 0) {
     return socialLed
       .sort((a, b) => (b.heat ?? 0) - (a.heat ?? 0))
-      .slice(0, CAP);
+      .slice(0, cap);
   }
 
   rest.sort((a, b) => (b.heat ?? 0) - (a.heat ?? 0));
@@ -62,7 +66,7 @@ export function rankAndCapForWindow(
   }
 
   const socialBudget = Math.min(4, socialLed.length);
-  const confirmedCap = Math.max(FLOOR_COUNT, CAP - socialBudget);
+  const confirmedCap = Math.max(FLOOR_COUNT, cap - socialBudget);
 
   let pickedConfirmed: HighlightItem[];
   if (window === "1h" || strong.length <= 3) {
@@ -121,7 +125,7 @@ export function rankAndCapForWindow(
     .sort((a, b) => (b.heat ?? 0) - (a.heat ?? 0))
     .slice(0, socialBudget);
 
-  return [...pickedConfirmed, ...earlyKeep].slice(0, CAP);
+  return [...pickedConfirmed, ...earlyKeep].slice(0, cap);
 }
 
 function itemKey(item: HighlightItem): string {

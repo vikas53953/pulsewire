@@ -224,3 +224,7 @@ Windows looked identical because (1) the cache was effectively window-shaped / s
 
 - **C1** `tests/live-sanity/` + `npm run test:human` (playwright.human.config.ts, no PW_TEST). Light + Night Zine screenshots under `test-results/live-sanity/`. Nightly live-feeds workflow runs it; failures page the `canary` issue.
 - **C2** Adversarial PW_TEST pool: hyphenated titles, 2/6/13/22h ages, long headline; `tests/gate-adversarial.spec.ts` reader-POV gate.
+
+## C1 placebo fix
+
+- `tests/live-sanity/human.spec.ts`: full 24h board (`items.length >= 8`) requires ≥1 item older than 12h; thin pools annotate skip — never `>= 0` fake pass.

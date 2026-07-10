@@ -46,3 +46,9 @@ pulsewire.db
 # local tools
 cloudflared
 
+# Fable↔Grok autonomous loop (never commit)
+.fable-loop-state.json
+.fable-loop.log
+.fable-wake-prompt.txt
+.fable-loop.pid
+

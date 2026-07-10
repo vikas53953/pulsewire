@@ -132,3 +132,11 @@ Windows looked identical because (1) the cache was effectively window-shaped / s
 - `X_PULSE_MONTHLY_CAP=5` in local env (example default 10).
 - Warmer Vibe uses `allowXFetch: false` — boot does not burn `x_search`.
 - First intentional Vibe/X Pulse request spends **1** call; thereafter cache.
+
+## v4 M7 — Signal Fusion core (done)
+
+- Multi-plane evidence on clusters (`lib/fusion.ts`); EARLY/BUILDING/CONFIRMED.
+- Pulse Score v2 plane weights + crossBonus; early-never-red brewing verdict.
+- Reddit plane via `reddit.config.ts` (RSS); X attach from cache only (M8 earns live calls).
+- VIBE/RAD chips removed; Radar strip only when tripped; tile evidence line.
+- Gate: `tests/gate-m7-fusion.spec.ts` + `GATE-M7-REPORT.md`.

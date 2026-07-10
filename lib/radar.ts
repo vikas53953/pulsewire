@@ -72,12 +72,19 @@ function getSeenIds(id: string): string[] | null {
   if (!row?.last_seen) return null;
   try {
     const parsed = JSON.parse(row.last_seen) as unknown;
-    if (Array.isArray(parsed)) return parsed.map(String);
+    if (Array.isArray(parsed)) {
+      const ids = parsed.map(String).filter(Boolean);
+      // Empty snapshot → re-baseline (never treat as "everything is new").
+      return ids.length > 0 ? ids : null;
+    }
   } catch {
-    // Legacy single-key baseline from pre-V2 — treat as one-id set
-    return [row.last_seen];
+    // Legacy single-key baseline from pre-V2 — re-baseline, do not storm.
+    console.info(
+      `[pulsewire] radar migrate legacy baseline ${id} → re-baseline`,
+    );
+    return null;
   }
-  return [row.last_seen];
+  return null;
 }
 
 function setSeenIds(id: string, ids: string[], title: string): void {
@@ -127,7 +134,7 @@ async function probeTripwire(tw: TripwireConfig): Promise<RadarTrip[]> {
     const prevIds = getSeenIds(tw.id);
     const nextIds = items.map((i) => i.id);
 
-    if (!prevIds) {
+    if (!prevIds || prevIds.length === 0) {
       setSeenIds(tw.id, nextIds, items[0]?.title || tw.name);
       console.info(
         `[pulsewire] radar baseline ${tw.id} items=${items.length}`,

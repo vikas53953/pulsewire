@@ -243,8 +243,9 @@ export function PulseWireApp() {
 
   useEffect(() => {
     if (section === "vibe") {
-      // Chip click / warm: always hit the API so "not fetched" cannot masquerade as quiet.
-      void loadVibe({ refresh: true });
+      // Chip click must hit /api/vibe (trigger is not dead). Soft fetch uses
+      // server cache when fresh; Refresh button / warmer use refresh=1.
+      void loadVibe();
       return;
     }
     if (section === "radar") {

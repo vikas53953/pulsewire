@@ -117,8 +117,7 @@ test.describe("v3 Brief · Vibe · Radar", () => {
       (r) => r.url().includes("/api/vibe") && r.method() === "GET",
     );
     await page.getByTestId("chip-vibe").click();
-    const req = await vibeReq;
-    expect(req.url()).toMatch(/refresh=1/);
+    await vibeReq;
 
     await expect(page.getByTestId("vibe-panel")).toBeVisible();
     await expect(page.getByTestId("vibe-reddit")).toHaveAttribute(

@@ -34,9 +34,13 @@ Fixtures prove logic; live smokes prove Reddit RSS / Radar feeds / X key reality
 
 ## Evidence
 
-<img alt="Vibe both columns" src="/opt/cursor/artifacts/screenshots/v3-vibe-both-columns.png" />
+<img alt="Vibe fixture both columns" src="/opt/cursor/artifacts/screenshots/v3-vibe-both-columns.png" />
 
-Fixture Vibe under `PW_TEST`: both columns populated; RADAR 📡 chip; footer `UPDATED JUST NOW`.
+Fixture Vibe (`PW_TEST`): both columns populated; **RADAR 📡**; footer `UPDATED JUST NOW`.
+
+<img alt="Vibe live Reddit + honest X needs_key" src="/opt/cursor/artifacts/screenshots/v3-vibe-live-reddit.png" />
+
+Live: Reddit RSS **ok** (5 items); X **needs_key** (honest — no `LLM_API_KEY`, 0 x_search calls). Both-columns live X requires a key; without it, lying “quiet” is forbidden.
 
 ---
 

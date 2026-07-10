@@ -36,10 +36,6 @@ export function FreshnessLine({ generatedAt, loading }: Props) {
       data-testid="freshness-line"
     >
       {formatFreshness(generatedAt)}
-      <span className="mx-1.5 opacity-40">·</span>
-      <span className="normal-case tracking-normal opacity-80">
-        board freshness
-      </span>
     </p>
   );
 }

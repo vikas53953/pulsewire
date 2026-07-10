@@ -82,7 +82,7 @@ test.describe("M7 Signal Fusion", () => {
     );
     const hotBody = await hot.json();
     expect(hotBody.verdict.level).toBe("red");
-    expect(hotBody.verdict.text).toMatch(/Markets is hot/i);
+    expect(hotBody.verdict.text).toMatch(/Markets hot/i);
 
     const early = await request.get(
       "/api/highlights?section=markets&window=4h&pwEarlyX=1&pwQuiet=1&refresh=1",

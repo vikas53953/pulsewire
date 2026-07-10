@@ -184,7 +184,7 @@ export function HighlightTile({
   );
 }
 
-/** Deterministic bento assignment — mega = top heat (SPEC v2). */
+/** Deterministic bento assignment — mega only when truly hot (not decorative). */
 export function assignTileTones(
   items: HighlightItem[]
 ): { item: HighlightItem; tone: TileTone; mega: boolean }[] {
@@ -200,23 +200,16 @@ export function assignTileTones(
   });
 
   return sorted.map((item, index) => {
-    if (index === 0) {
+    // Unearned red kills the calm NOC pitch — mega only for confirmed multi-source heat.
+    const trulyHot =
+      index === 0 &&
+      Boolean(item.hot) &&
+      (item.sources?.length ?? 0) >= 3 &&
+      (item.heat ?? 0) >= 8;
+    if (trulyHot) {
       return { item, tone: "mega" as const, mega: true };
     }
-    if (index === 1) {
-      return {
-        item,
-        tone: item.hot ? ("teal" as const) : ("card" as const),
-        mega: false,
-      };
-    }
-    if (index === 2) {
-      return {
-        item,
-        tone: item.hot ? ("lav" as const) : ("card" as const),
-        mega: false,
-      };
-    }
+    // No decorative pastels — color must mean status; default to card.
     return { item, tone: "card" as const, mega: false };
   });
 }

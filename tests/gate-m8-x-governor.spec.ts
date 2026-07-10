@@ -6,15 +6,21 @@ test.describe("M8 X Governor", () => {
     await request.post("/api/x-governor", { data: { action: "reset" } });
   });
 
-  test("footer shows X: n/cap today", async ({ page }) => {
+  test("API exposes X daily usage (not leaked in footer)", async ({
+    request,
+    page,
+  }) => {
     await page.goto("/?pwQuiet=1");
     await expect(page.getByTestId("score-chips")).toBeVisible({
       timeout: 15_000,
     });
-    await expect(page.getByTestId("x-daily-usage")).toBeVisible({
-      timeout: 10_000,
-    });
-    await expect(page.getByTestId("x-daily-usage")).toContainText(/X:\s*\d+\/\d+\s*today/i);
+    // User-facing footer must not leak API quota.
+    await expect(page.getByTestId("x-daily-usage")).toHaveCount(0);
+    await expect(page.getByTestId("status-updated")).not.toContainText(/X:\s*\d+\/\d+/i);
+
+    const before = await (await request.get("/api/x-governor")).json();
+    expect(before).toHaveProperty("dailyUsed");
+    expect(before).toHaveProperty("dailyCap");
   });
 
   test("manual deep-refresh earns one call with trigger reason", async ({
@@ -77,7 +83,7 @@ test.describe("M8 X Governor", () => {
     await expect(page.getByTestId("x-plane-paused")).toContainText(
       /early-signal plane paused/i,
     );
-    await expect(page.getByTestId("x-daily-usage")).toContainText(/X:\s*20\/20/);
+    await expect(page.getByTestId("x-daily-usage")).toHaveCount(0);
   });
 
   test("heat escalation + reddit spike + tripwire triggers via unit API", async ({

@@ -23,6 +23,7 @@ const LEVEL_DOT: Record<string, string> = {
   green: "🟢",
   yellow: "🟡",
   red: "🔴",
+  unknown: "⚪",
 };
 
 function Spark({ values }: { values: number[] }) {
@@ -96,11 +97,12 @@ export function ScoreChips({ scores, active, onSelect }: ScoreChipsProps) {
         </button>
         {SCORE_CHIP_ORDER.map((id) => {
           const score = byId.get(id);
-          const value = score?.score ?? 0;
+          const unknown = Boolean(score?.unknown);
+          const value = unknown ? 0 : (score?.score ?? 0);
           const level = (score?.level ?? "green") as TrafficLevel;
           const selected = active === id;
-          const calibrating = Boolean(score?.calibrating);
-          const socialLed = Boolean(score?.socialLed);
+          const calibrating = Boolean(score?.calibrating) && !unknown;
+          const socialLed = Boolean(score?.socialLed) && !unknown;
           const why = score
             ? pulseWhy(score)
             : `${sectionChip(id)} pulse ${value}`;
@@ -112,8 +114,9 @@ export function ScoreChips({ scores, active, onSelect }: ScoreChipsProps) {
               aria-selected={selected}
               aria-describedby={peek === id ? "pulse-why-line" : undefined}
               data-testid={`chip-${id}`}
-              data-level={level}
-              data-score={value}
+              data-level={unknown ? "unknown" : level}
+              data-score={unknown ? "" : String(value)}
+              data-unknown={unknown ? "1" : "0"}
               data-calibrating={calibrating ? "1" : "0"}
               data-social-led={socialLed ? "1" : "0"}
               title={why}
@@ -127,19 +130,25 @@ export function ScoreChips({ scores, active, onSelect }: ScoreChipsProps) {
               <span>{sectionChip(id)}</span>
               <span
                 data-testid={`pulse-num-${id}`}
-                aria-label={`Pulse ${value}`}
+                aria-label={unknown ? "Pulse unknown" : `Pulse ${value}`}
                 className={`inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[13px] font-black tabular-nums leading-none ${
                   selected
                     ? "bg-[var(--ink)]/10"
-                    : level === "red"
-                      ? "bg-[var(--mega)]/15 text-[var(--mega)]"
-                      : level === "yellow"
-                        ? "bg-amber-100 text-amber-900"
-                        : "bg-emerald-100 text-emerald-900"
+                    : unknown
+                      ? "bg-zinc-100 text-zinc-500"
+                      : level === "red"
+                        ? "bg-[var(--mega)]/15 text-[var(--mega)]"
+                        : level === "yellow"
+                          ? "bg-amber-100 text-amber-900"
+                          : "bg-emerald-100 text-emerald-900"
                 }`}
               >
-                <span data-testid={`pulse-score-${id}`}>{value}</span>
-                <span aria-hidden="true">{LEVEL_DOT[level]}</span>
+                <span data-testid={`pulse-score-${id}`}>
+                  {unknown ? "—" : value}
+                </span>
+                <span aria-hidden="true">
+                  {unknown ? LEVEL_DOT.unknown : LEVEL_DOT[level]}
+                </span>
               </span>
               {socialLed ? (
                 <span data-testid={`social-led-${id}`} className="ml-0.5">
@@ -154,7 +163,7 @@ export function ScoreChips({ scores, active, onSelect }: ScoreChipsProps) {
                   ~
                 </span>
               ) : null}
-              {level === "red" && score?.velocitySpark?.length ? (
+              {!unknown && level === "red" && score?.velocitySpark?.length ? (
                 <Spark values={score.velocitySpark} />
               ) : null}
             </button>
@@ -188,7 +197,7 @@ export function ScoreChips({ scores, active, onSelect }: ScoreChipsProps) {
           className="m-0 px-0.5 font-mono text-[10px] font-bold uppercase tracking-[0.06em] opacity-55"
         >
           Pulse 0–100 = how loud vs a normal hour · 🟢 quiet · 🟡 warming · 🔴
-          hot · hover a chip for why
+          hot · ⚪ unknown · hover a chip for why
         </p>
       )}
     </div>

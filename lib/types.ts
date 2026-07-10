@@ -88,6 +88,8 @@ export interface SectionScore {
   score: number;
   level: TrafficLevel;
   calibrating: boolean;
+  /** Sources unreachable — unknown ≠ quiet. */
+  unknown?: boolean;
   topHeat?: number;
   topText?: string;
   topBreadth?: number;
@@ -108,6 +110,8 @@ export interface VerdictPayload {
   llmPolished: boolean;
   /** One-line why for warming/hot desks (esp. MKT / ECO / POL). */
   why?: string | null;
+  /** True when feeds are unreachable — never present as quiet. */
+  blind?: boolean;
 }
 
 /** Always-visible mix row — one plane's trending headlines. */

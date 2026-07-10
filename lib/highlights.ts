@@ -34,7 +34,7 @@ import type {
 } from "./types";
 import { SCORE_CHIP_ORDER } from "./types";
 import { buildVerdictTemplate } from "./verdict";
-import { buildTrendPack } from "./trend";
+import { buildSocialTrendsPack, buildTrendPack } from "./trend";
 import { getXPulseHighlights } from "./x-pulse";
 import { isTestMode } from "./test-mode";
 
@@ -537,20 +537,23 @@ export async function getHighlights(options: {
     // optional
   }
 
-  // Desk-scoped mix strip — only for a content section chip (not ALL).
+  // Lean desk mix + full social board (owner: show ALL Reddit/X, no dupes vs mix).
   let trend;
-  if (section !== "all") {
-    try {
-      let reddit = await getRedditSignals();
-      if (reddit.length === 0) {
-        reddit = await getRedditSignals({ forceRefresh: true });
-      }
-      // Prefer section-tagged X; fall back to pulse cache but trend.ts
-      // will only keep items that match this desk (tag or wire fuzzy).
-      let xSignals = await loadCachedXSignals(section as ContentSectionId);
-      if (xSignals.length === 0) {
-        xSignals = await loadXSignalsFromPulseCache();
-      }
+  let socialTrends;
+  try {
+    let reddit = await getRedditSignals();
+    if (reddit.length === 0) {
+      reddit = await getRedditSignals({ forceRefresh: true });
+    }
+    let xSignals =
+      section === "all"
+        ? await loadXSignalsFromPulseCache()
+        : await loadCachedXSignals(section as ContentSectionId);
+    if (xSignals.length === 0) {
+      xSignals = await loadXSignalsFromPulseCache();
+    }
+
+    if (section !== "all") {
       trend =
         buildTrendPack({
           section,
@@ -558,11 +561,21 @@ export async function getHighlights(options: {
           reddit,
           x: xSignals,
         }) ?? undefined;
-    } catch (err) {
-      console.warn(
-        `[pulsewire] trend pack skip: ${err instanceof Error ? err.message : String(err)}`,
-      );
     }
+
+    const mixShown = [
+      ...(trend?.reddit.items ?? []),
+      ...(trend?.x.items ?? []),
+    ];
+    socialTrends = buildSocialTrendsPack({
+      reddit,
+      x: xSignals,
+      excludeFromMix: mixShown,
+    });
+  } catch (err) {
+    console.warn(
+      `[pulsewire] trend pack skip: ${err instanceof Error ? err.message : String(err)}`,
+    );
   }
 
   return {
@@ -580,6 +593,7 @@ export async function getHighlights(options: {
     xGovernor,
     xPulseUsage,
     trend,
+    socialTrends,
   };
 }
 

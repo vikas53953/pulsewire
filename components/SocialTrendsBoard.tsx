@@ -159,7 +159,7 @@ export function SocialTrendsBoard({ pack, loading }: SocialTrendsBoardProps) {
             data-status={pack.x?.status ?? "quiet"}
             className="m-0 text-[12px] font-bold opacity-45"
           >
-            X quiet — no earned pulse right now (not shown as an empty column).
+            X quiet — no earned pulse right now.
           </p>
         )}
       </div>

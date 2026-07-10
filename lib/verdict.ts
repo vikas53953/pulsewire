@@ -2,6 +2,7 @@ import {
   canDriveRedVerdict,
 } from "./fusion";
 import { shortEvent } from "./copy";
+import { isLikelyDuplicate } from "./similarity";
 import { trafficLevel } from "./score";
 import type {
   ContentSectionId,
@@ -66,6 +67,29 @@ function eventPhrase(s: SectionScore): string {
   return shortEvent(s.topText ?? "a developing cluster", 10);
 }
 
+/** Lead computed from desk mix — never hardcode "Mostly quiet" over all-yellow. */
+function statusLead(
+  greens: SectionScore[],
+  yellows: SectionScore[],
+  reds: SectionScore[],
+): string {
+  if (reds.length >= 2) return "Busy.";
+  if (reds.length === 1) return "";
+  if (yellows.length === 0) return "All quiet.";
+  const known = greens.length + yellows.length;
+  if (known === 0) return "Mostly quiet.";
+  if (greens.length === 0) {
+    return yellows.length >= 3 ? "Broadly warming." : "Warming.";
+  }
+  if (yellows.length >= greens.length) return "Mixed.";
+  return "Mostly quiet.";
+}
+
+function sameEvent(a: SectionScore, b: SectionScore): boolean {
+  if (!a.topText || !b.topText) return false;
+  return isLikelyDuplicate(a.topText, b.topText, 0.72);
+}
+
 /** Name up to two calm desks for a status-style verdict (not a teaser). */
 function calmDesksPhrase(greens: SectionScore[]): string | null {
   if (greens.length === 0) return null;
@@ -128,7 +152,7 @@ function blindVerdict(ctx: VerdictContext): VerdictPayload {
     text: `Sources unreachable${ago} — status unknown, not quiet. Do not treat this as an all-clear.`,
     level: "yellow",
     llmPolished: false,
-    why: "Blind is not quiet. Fix connectivity or wait for feeds before trusting the board.",
+    why: "Blind is not quiet. Feeds are down on our side — last confirmed status is the only safe read until they return.",
     blind: true,
   };
 }
@@ -203,10 +227,15 @@ export function buildVerdictTemplate(ctx: VerdictContext): VerdictPayload {
     yellows.find((s) => s.socialLed || s.topSignalState === "early") ||
     null;
   if (brewing && reds.length === 0) {
+    const lead = statusLead(greens, yellows, reds);
     const calm = calmDesksPhrase(greens);
-    const lead = calm ? `Mostly quiet. ${calm}.` : "Mostly quiet.";
+    const parts = [lead];
+    if (calm) parts.push(`${calm}.`);
+    parts.push(
+      `${sectionLabel(brewing.section)} brewing on social — no wire confirmation yet.`,
+    );
     return {
-      text: `${lead} ${sectionLabel(brewing.section)} brewing on social — no wire confirmation yet.`,
+      text: parts.join(" ").replace(/\s+/g, " ").trim(),
       level: "yellow",
       llmPolished: false,
       why: verdictWhy(brewing),
@@ -215,28 +244,57 @@ export function buildVerdictTemplate(ctx: VerdictContext): VerdictPayload {
 
   if (yellows.length >= 1 && reds.length === 0) {
     const s = yellows[0];
+    const lead = statusLead(greens, yellows, reds);
     if (s.socialLed || s.topSignalState === "early") {
       const calm = calmDesksPhrase(greens);
-      const lead = calm ? `Mostly quiet. ${calm}.` : "Mostly quiet.";
+      const parts = [lead];
+      if (calm) parts.push(`${calm}.`);
+      parts.push(
+        `${sectionLabel(s.section)} brewing on social — no wire confirmation yet.`,
+      );
       return {
-        text: `${lead} ${sectionLabel(s.section)} brewing on social — no wire confirmation yet.`,
+        text: parts.join(" ").replace(/\s+/g, " ").trim(),
         level: "yellow",
         llmPolished: false,
         why: verdictWhy(s),
       };
     }
-    const calm = calmDesksPhrase(greens.filter((g) => g.section !== s.section));
-    const parts = ["Mostly quiet."];
+
+    const same = yellows.filter((y) => y !== s && sameEvent(s, y));
+    const parts = [lead];
+    const calm = calmDesksPhrase(greens);
     if (calm) parts.push(`${calm}.`);
-    parts.push(
-      `${sectionLabel(s.section)} warming: ${eventPhrase(s)}${sourcesClause(s)}.`,
-    );
-    if (yellows.length >= 2) {
-      const second = yellows[1];
+
+    if (same.length > 0) {
+      const desks = [s, ...same]
+        .slice(0, 3)
+        .map((d) => sectionLabel(d.section))
+        .join(" & ");
       parts.push(
-        `${sectionLabel(second.section)} also warming: ${eventPhrase(second)}.`,
+        `${desks} warming on the same story: ${eventPhrase(s)}${sourcesClause(s)}.`,
       );
+      const other = yellows.find(
+        (y) => y !== s && !same.some((m) => m.section === y.section),
+      );
+      if (other) {
+        parts.push(
+          `${sectionLabel(other.section)} also warming: ${eventPhrase(other)}.`,
+        );
+      }
+    } else {
+      parts.push(
+        `${sectionLabel(s.section)} warming: ${eventPhrase(s)}${sourcesClause(s)}.`,
+      );
+      if (yellows.length >= 2) {
+        const second = yellows[1];
+        if (!sameEvent(s, second)) {
+          parts.push(
+            `${sectionLabel(second.section)} also warming: ${eventPhrase(second)}.`,
+          );
+        }
+      }
     }
+
     return {
       text: parts.join(" ").replace(/\s+/g, " ").trim(),
       level: "yellow",

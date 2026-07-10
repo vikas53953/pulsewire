@@ -19,12 +19,31 @@ export const ALL_CAP = 8;
 const CAP = DESK_CAP;
 const FLOOR_COUNT = 2;
 
-const NOISE_RE =
-  /\b(minor wire|limited follow-through|fixture headline|placeholder)\b/i;
-
-/** Drop self-labeled / fixture noise before the board. */
+/**
+ * Real noise floor — heat/breadth, not a regex of review quotes.
+ * Keeps early/building social even when heat is still low.
+ * Lets boards shrink when there isn't enough signal.
+ */
 export function suppressNoise(items: HighlightItem[]): HighlightItem[] {
-  return items.filter((i) => !NOISE_RE.test(i.text));
+  if (items.length === 0) return items;
+  const heats = items
+    .map((i) => i.heat ?? 0)
+    .filter((h) => h > 0)
+    .sort((a, b) => b - a);
+  const topHeat = heats[0] ?? 0;
+  const softFloor = topHeat > 0 ? topHeat * 0.12 : 0;
+
+  return items.filter((i) => {
+    if (i.signalState === "early" || i.signalState === "building") return true;
+    if (i.tripwire) return true;
+    const heat = i.heat ?? 0;
+    const breadth = i.sources?.length ?? 0;
+    if (breadth >= 2) return true;
+    if (i.hot && heat > 0) return true;
+    if (topHeat <= 0) return breadth >= 1;
+    // Single-source thin notes below soft floor die — boards may shrink.
+    return heat >= softFloor && heat > 0;
+  });
 }
 
 /**

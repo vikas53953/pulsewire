@@ -94,7 +94,7 @@ export async function GET(request: NextRequest) {
     );
   } finally {
     clearTestOverrides();
-    // Quiet/hot/empty pools must not poison the shared cache for later tests.
-    if (poolOverride) clearCache();
+    // Quiet/hot/empty/feedsDown pools must not poison the shared cache.
+    if (poolOverride || overrides.feedsDown) clearCache();
   }
 }

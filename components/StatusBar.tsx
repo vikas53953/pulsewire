@@ -27,16 +27,6 @@ type StatusBarProps = {
   xGovernor?: XGov | null;
 };
 
-function updatedLabel(generatedAt: string | null): string {
-  if (!generatedAt) return "updated —";
-  const mins = Math.max(
-    0,
-    Math.round((Date.now() - new Date(generatedAt).getTime()) / 60_000)
-  );
-  if (mins < 1) return "updated just now";
-  return `updated ${mins}m ago`;
-}
-
 function leftLabel(lastVisit: number | null | undefined): string | null {
   if (lastVisit == null) return null;
   const mins = Math.max(0, Math.round((Date.now() - lastVisit) / 60_000));
@@ -46,7 +36,7 @@ function leftLabel(lastVisit: number | null | undefined): string | null {
 }
 
 export function StatusBar({
-  generatedAt,
+  generatedAt: _generatedAt,
   lastVisit,
   refreshing,
   onRefresh,
@@ -65,6 +55,7 @@ export function StatusBar({
       : null);
   void dailyUsed;
   void dailyCap;
+  void _generatedAt;
   const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const deepFired = useRef(false);
 
@@ -97,9 +88,8 @@ export function StatusBar({
       ) : null}
       <div className="flex flex-wrap items-center justify-center gap-2">
         <span data-testid="status-updated">
-          {updatedLabel(generatedAt)}
-          {left ? ` · ${left}` : ""}
-          {" · auto-refresh 10 min"}
+          {left ? `${left} · ` : ""}
+          auto-refresh 10 min
         </span>
         <button
           type="button"

@@ -13,6 +13,8 @@ type BentoGridProps = {
   window: TimeWindow;
   onTryWiderWindow: () => void;
   onOpenBrief?: (item: HighlightItem) => void;
+  /** Blind board — never show "quiet hour" empty state. */
+  blind?: boolean;
 };
 
 export function BentoGrid({
@@ -22,6 +24,7 @@ export function BentoGrid({
   window,
   onTryWiderWindow,
   onOpenBrief,
+  blind = false,
 }: BentoGridProps) {
   if (loading) {
     return (
@@ -39,22 +42,35 @@ export function BentoGrid({
   }
 
   if (items.length === 0) {
+    if (blind) {
+      return (
+        <div data-testid="blind-empty" className="flex justify-center py-6">
+          <div className="pw-tile relative w-full max-w-md bg-[var(--card)] p-6 text-center">
+            <p className="m-0 text-[16px] font-black uppercase leading-snug text-[var(--ink)]">
+              No board while sources are unreachable — not a quiet hour.
+            </p>
+          </div>
+        </div>
+      );
+    }
     return (
       <div data-testid="quiet-hour" className="flex justify-center py-6">
         <div className="pw-tile relative w-full max-w-md bg-[var(--card)] p-6 text-center">
           <p className="m-0 text-[16px] font-black uppercase leading-snug text-[var(--ink)]">
-            Quiet hour 😴 — nothing hot in the last {window}.
+            Quiet hour — nothing hot in the last {window}.
           </p>
-          <div className="mt-4 flex justify-center">
-            <button
-              type="button"
-              data-testid="try-4h"
-              onClick={onTryWiderWindow}
-              className="min-h-11 rounded-full border-2 border-[var(--ink)] bg-[var(--sticker)] px-4 text-[12px] font-black uppercase tracking-wide shadow-[3px_3px_0_var(--shadow)] transition-[transform,box-shadow] duration-[120ms] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[1px_1px_0_var(--shadow)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)]"
-            >
-              Try 4h
-            </button>
-          </div>
+          {window === "1h" ? (
+            <div className="mt-4 flex justify-center">
+              <button
+                type="button"
+                data-testid="try-4h"
+                onClick={onTryWiderWindow}
+                className="min-h-11 rounded-full border-2 border-[var(--ink)] bg-[var(--sticker)] px-4 text-[12px] font-black uppercase tracking-wide shadow-[3px_3px_0_var(--shadow)] transition-[transform,box-shadow] duration-[120ms] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[1px_1px_0_var(--shadow)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)]"
+              >
+                Try 4h
+              </button>
+            </div>
+          ) : null}
         </div>
       </div>
     );
@@ -72,7 +88,13 @@ export function BentoGrid({
       {assigned.map(({ item, tone, mega }, index) => (
         <div
           key={`${item.publishedAt}-${item.text.slice(0, 24)}-${index}`}
-          className={mega ? "col-span-full" : undefined}
+          className={
+            mega
+              ? "col-span-full"
+              : index === 0
+                ? "col-span-full min-[480px]:col-span-2"
+                : undefined
+          }
         >
           <HighlightTile
             item={item}

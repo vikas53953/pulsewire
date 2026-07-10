@@ -59,6 +59,8 @@ test.describe("M4 Verdict Engine", () => {
       "data-unknown",
       "1",
     );
+    await expect(page.getByTestId("quiet-hour")).toHaveCount(0);
+    await expect(page.getByTestId("blind-empty")).toBeVisible();
   });
 
   test("quiet fixture → green All quiet verdict + chips", async ({

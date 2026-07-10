@@ -168,4 +168,4 @@ Windows looked identical because (1) the cache was effectively window-shaped / s
 - ALL board **dedupes** cross-desk copies of the same story; suppresses self-labeled noise.
 - Mega/red tiles only for confirmed multi-source heat — no decorative pastels.
 - Footer no longer leaks `X: n/cap today` (governor stays on `/api/x-governor`).
-- TREND collapses empty X half-panel instead of showing a dead column.
+- Soft-ship coherence: computed verdict lead (no “Mostly quiet” over all-yellow); same-event desk merge; heat/breadth noise floor; blind empty state (no QUIET HOUR); feedsDown cache no longer sticky; single freshness under chips.

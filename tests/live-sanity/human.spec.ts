@@ -84,20 +84,30 @@ test.describe("human live-sanity @human", () => {
       expect(t1).not.toEqual(t24);
     }
 
-    // 24H should include something older than 12h when the API pool has it
+    // 24H must include something older than 12h when the board is full.
+    // A full board with zero >12h items is the A5 regression this must catch.
+    // Thin pools skip with an explicit annotation — never a fake pass.
     const res = await page.request.get(
       "/api/highlights?section=all&window=24h&refresh=1",
     );
     expect(res.ok()).toBeTruthy();
     const body = await res.json();
     const now = Date.now();
-    const older = (body.items || []).filter(
+    const items = body.items || [];
+    const older = items.filter(
       (i: { publishedAt: string }) =>
         now - new Date(i.publishedAt).getTime() > 12 * 3600_000,
     );
-    if ((body.items || []).length >= 3) {
-      // Soft: only assert when the board is populated enough to judge
-      expect(older.length).toBeGreaterThanOrEqual(0);
+    if (items.length >= 8) {
+      expect(
+        older.length,
+        "full 24h board must include ≥1 item older than 12h",
+      ).toBeGreaterThanOrEqual(1);
+    } else {
+      test.info().annotations.push({
+        type: "note",
+        description: `thin pool (${items.length} items) — old-item assertion skipped`,
+      });
     }
 
     // Desk chips render own stories quickly

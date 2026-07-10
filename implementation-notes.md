@@ -175,7 +175,7 @@ Windows looked identical because (1) the cache was effectively window-shaped / s
 - **Deploy:** single persistent Node instance only (Fly/Railway/VPS). Serverless breaks cache, warmer, SQLite, X governor — documented in README.
 - **Beta door:** `BETA_TOKEN` + middleware cookie from `/?key=…`; spend paths (`refresh=1`, X deep-refresh) check the same token. `PW_TEST=1` skips the gate.
 - **URL allowlist:** feed/trend ingestion keeps `http:`/`https:` only (`lib/safe-url.ts`). GN resolver restricted to `news.google.com`.
-- **Security headers:** CSP (theme script hashed), `X-Frame-Options`, `nosniff`, `Referrer-Policy` in `next.config.mjs`.
+- **Security headers:** CSP (script-src allows unsafe-inline/eval — required for Next flight/hydration; hash-only needs nonce plumbing), `X-Frame-Options`, `nosniff`, `Referrer-Policy` in `next.config.mjs`.
 - **Moat backup:** `npm run backup:db` (`VACUUM INTO`); cron + `PULSEWIRE_BACKUP_DIR` in README.
 - **Health:** `GET /api/health` for cache/warm/X/LLM/DB.
 - **Engines:** `engines.node` `>=20 <23` + `.nvmrc`. `better-sqlite3` needs node-gyp.

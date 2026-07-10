@@ -1,11 +1,11 @@
 /** @type {import('next').NextConfig} */
 
-// Theme boot script in app/layout.tsx — keep in sync if the snippet changes.
-const THEME_SCRIPT_HASH = "sha256-cfy4Tw1A5E0JMpX07hqNHa2UNzTD7c96OKfNwEsCas4=";
-
+// Next App Router emits inline scripts (flight/hydration). A script-src hash
+// disables 'unsafe-inline' per CSP2 — so we cannot hash the theme snippet
+// without Next nonce plumbing. Keep frame/nosniff/referrer + a practical CSP.
 const ContentSecurityPolicy = [
   "default-src 'self'",
-  `script-src 'self' '${THEME_SCRIPT_HASH}'`,
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data:",
   "font-src 'self' data:",

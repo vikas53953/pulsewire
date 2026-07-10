@@ -221,6 +221,64 @@ export function fixtureItemsForSection(
     );
   }
 
+  // Batch C2 adversarial pack — hyphenated titles, age ladder, entities, long line.
+  // Empty titles are omitted here; feed-engine already drops them on live paths.
+  base.push(
+    item(
+      section,
+      "Fixture A",
+      "Ex-RBI governor flags inflation risk after policy meet",
+      120, // 2h
+      "adv-exrbi",
+    ),
+    item(
+      section,
+      "Fixture A",
+      "Modi-Putin call covers trade and energy ties across desks",
+      360, // 6h
+      "adv-modi",
+    ),
+    item(
+      section,
+      "Fixture A",
+      `${sectionLabel(section)} mid-day briefing at thirteen hours as desks recalibrate positions`,
+      780, // 13h
+      "adv-13h",
+    ),
+    item(
+      section,
+      "Fixture B",
+      `${sectionLabel(section)} late wrap at twenty-two hours after the global close settled`,
+      1320, // 22h
+      "adv-22h",
+    ),
+    item(
+      section,
+      "Fixture A",
+      "US-China talks stall over semiconductor export rules this week",
+      150,
+      "adv-us-china",
+    ),
+    item(
+      section,
+      "Fixture A",
+      // Decoded form — fixtures skip stripHtml; live path decodes &amp; etc.
+      "Paramount-Skydance deal clears another regulatory hurdle in Delhi",
+      200,
+      "adv-paramount",
+    ),
+    item(
+      section,
+      "Fixture A",
+      `${"Long adversarial headline that keeps going so layout cannot choke on a three-hundred-character wire dump from a noisy feed that forgot to edit. ".repeat(3)}`.slice(
+        0,
+        300,
+      ),
+      210,
+      "adv-long",
+    ),
+  );
+
   return base;
 }
 

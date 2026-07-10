@@ -7,6 +7,7 @@
 # testing
 /coverage
 /playwright-report/
+/playwright-report-human/
 /test-results/
 /blob-report/
 /playwright/.cache/

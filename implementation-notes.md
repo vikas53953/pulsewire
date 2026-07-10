@@ -219,3 +219,8 @@ Windows looked identical because (1) the cache was effectively window-shaped / s
 
 - **B1** TREND items render as tiles; left accent earned by velocity (hot ≥8, warm ≥4).
 - **B2** NEW badges capped at 3 per board (hottest among newer-than-last-visit).
+
+## Batch C (issue #12)
+
+- **C1** `tests/live-sanity/` + `npm run test:human` (playwright.human.config.ts, no PW_TEST). Light + Night Zine screenshots under `test-results/live-sanity/`. Nightly live-feeds workflow runs it; failures page the `canary` issue.
+- **C2** Adversarial PW_TEST pool: hyphenated titles, 2/6/13/22h ages, long headline; `tests/gate-adversarial.spec.ts` reader-POV gate.

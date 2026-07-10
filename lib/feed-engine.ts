@@ -3,7 +3,7 @@ import Parser from "rss-parser";
 import { FEEDS, feedsForSection } from "./feeds.config";
 import { resolveArticleUrls } from "./resolve-url";
 import { sanitizeHttpUrl } from "./safe-url";
-import { stripPublisherSuffix } from "./similarity";
+import { titleForFeed } from "./similarity";
 import {
   fixtureItemsForSection,
   isFeedsDownForced,
@@ -86,11 +86,10 @@ async function fetchOneFeed(
 
     for (const entry of parsed.items ?? []) {
       const rawTitle = stripHtml(entry.title ?? "");
-      // Publisher suffix is a Google News artifact — never strip direct RSS.
-      const fromGoogleNews = feed.name.startsWith("Google News");
-      const title = fromGoogleNews
-        ? stripPublisherSuffix(rawTitle) || rawTitle
-        : rawTitle;
+      // Publisher suffix is a Google News artifact — flag-gated, never name-guessed.
+      const title = titleForFeed(rawTitle, {
+        hasPublisherSuffix: feed.hasPublisherSuffix,
+      });
       const url = sanitizeHttpUrl(entry.link || entry.guid || "");
       if (!title || !url) continue;
 
@@ -104,7 +103,7 @@ async function fetchOneFeed(
         entry.contentSnippet || entry.content || entry.summary || ""
       ).slice(0, 280);
 
-      const source = fromGoogleNews
+      const source = feed.hasPublisherSuffix
         ? sourceLabelFromTitle(rawTitle, feed.name)
         : feed.name;
 

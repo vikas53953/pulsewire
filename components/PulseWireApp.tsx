@@ -13,7 +13,7 @@ import { VerdictHero } from "@/components/VerdictHero";
 import type { BriefPayload } from "@/lib/brief";
 import type { RadarStatus } from "@/lib/radar";
 import {
-  isNewerThanLastVisit,
+  applyNewBadges,
   readLastVisit,
   writeLastVisit,
 } from "@/lib/last-visit";
@@ -68,10 +68,7 @@ function markNewItems(
   items: HighlightItem[],
   lastVisit: number | null
 ): HighlightItem[] {
-  return items.map((item) => ({
-    ...item,
-    isNew: isNewerThanLastVisit(item.publishedAt, lastVisit),
-  }));
+  return applyNewBadges(items, lastVisit);
 }
 
 function seedCache(

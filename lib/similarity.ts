@@ -19,7 +19,7 @@ function normalizeTitle(title: string): string {
 /**
  * Strip trailing " - Publisher" / " | Publisher" (Google News).
  * Requires spaced separators so "Ex-RBI", "Modi-Putin", "US-China" survive.
- * Refuses to leave a stub (<15 chars or <50% of original).
+ * Refuses stubs that are both short (<15) and a large cut (<50%).
  */
 export function stripPublisherSuffix(title: string): string {
   const original = title.trim();
@@ -34,6 +34,16 @@ export function stripPublisherSuffix(title: string): string {
     return original;
   }
   return stripped;
+}
+
+/** Apply publisher-suffix strip only when the feed declares it (Google News). */
+export function titleForFeed(
+  rawTitle: string,
+  opts: { hasPublisherSuffix?: boolean },
+): string {
+  const raw = rawTitle.trim();
+  if (!opts.hasPublisherSuffix) return raw;
+  return stripPublisherSuffix(raw) || raw;
 }
 
 function lightStem(word: string): string {

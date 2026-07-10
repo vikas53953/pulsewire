@@ -25,6 +25,58 @@ export function xCollapsedCopy(
   }
 }
 
+/** Velocity-earned accent — color = status, never decoration. */
+export function trendAccent(
+  velocity: number | undefined,
+): "hot" | "warm" | "none" {
+  const v = velocity ?? 0;
+  if (v >= 8) return "hot";
+  if (v >= 4) return "warm";
+  return "none";
+}
+
+function TrendTile({ item }: { item: TrendItem }) {
+  const accent = trendAccent(item.velocity);
+  const border =
+    accent === "hot"
+      ? "border-l-[3px] border-l-[var(--mega)]"
+      : accent === "warm"
+        ? "border-l-[3px] border-l-[var(--sticker)]"
+        : "border-l-[3px] border-l-transparent";
+
+  return (
+    <li>
+      <a
+        href={item.url || "#"}
+        target="_blank"
+        rel="noopener noreferrer"
+        data-testid="trend-tile"
+        data-accent={accent}
+        data-velocity={item.velocity ?? 0}
+        className={`pw-tile block bg-[var(--card)] p-4 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)] ${border}`}
+      >
+        <span className="block text-[15px] font-black leading-snug text-[var(--ink)]">
+          {item.title}
+        </span>
+        <span className="mt-2 block text-[10px] font-bold uppercase tracking-wide opacity-50">
+          {item.source}
+          {item.section ? ` · ${sectionLabel(item.section)}` : ""}
+          {" · "}
+          {relativeAge(item.publishedAt)}
+        </span>
+        {item.why ? (
+          <span
+            data-testid="trend-why"
+            className="mt-1 block text-[11px] font-bold normal-case tracking-normal opacity-60"
+          >
+            {item.why}
+          </span>
+        ) : null}
+      </a>
+    </li>
+  );
+}
+
 function Column({
   title,
   testId,
@@ -88,32 +140,10 @@ function Column({
       {status === "ok" && items.length > 0 ? (
         <ul className="m-0 list-none space-y-3 p-0">
           {items.map((item) => (
-            <li key={`${item.plane}-${item.url}-${item.title.slice(0, 24)}`}>
-              <a
-                href={item.url || "#"}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)]"
-              >
-                <span className="block text-[15px] font-black leading-snug text-[var(--ink)]">
-                  {item.title}
-                </span>
-                <span className="mt-1 block text-[10px] font-bold uppercase tracking-wide opacity-50">
-                  {item.source}
-                  {item.section ? ` · ${sectionLabel(item.section)}` : ""}
-                  {" · "}
-                  {relativeAge(item.publishedAt)}
-                </span>
-                {item.why ? (
-                  <span
-                    data-testid="trend-why"
-                    className="mt-1 block text-[11px] font-bold normal-case tracking-normal opacity-60"
-                  >
-                    {item.why}
-                  </span>
-                ) : null}
-              </a>
-            </li>
+            <TrendTile
+              key={`${item.plane}-${item.url}-${item.title.slice(0, 24)}`}
+              item={item}
+            />
           ))}
         </ul>
       ) : null}
@@ -142,8 +172,6 @@ export function SocialTrendsBoard({ pack, loading }: SocialTrendsBoardProps) {
     pack.reddit?.status === "ok" && (pack.reddit.items?.length ?? 0) > 0;
   const xOk = pack.x?.status === "ok" && (pack.x.items?.length ?? 0) > 0;
   const xStatus = pack.x?.status ?? "quiet";
-  // Hide the empty X column when Reddit is the only live plane — but never
-  // claim "quiet" when the plane is unconfigured or failed.
   const dual = redditOk && xOk;
   const collapseX = redditOk && !xOk;
 

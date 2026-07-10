@@ -40,6 +40,7 @@ export const FEEDS: FeedConfig[] = [
     name: "Google News India",
     url: googleTopic("NATION"),
     weight: 1,
+    hasPublisherSuffix: true,
   },
 
   // Markets — direct + Google BUSINESS
@@ -66,6 +67,7 @@ export const FEEDS: FeedConfig[] = [
     name: "Google News Business",
     url: googleTopic("BUSINESS"),
     weight: 1,
+    hasPublisherSuffix: true,
   },
 
   // Economy — direct + Google search
@@ -92,6 +94,7 @@ export const FEEDS: FeedConfig[] = [
     name: "Google News Economy",
     url: googleSearch("India economy when:1d"),
     weight: 1,
+    hasPublisherSuffix: true,
   },
 
   // Politics — direct + Google search
@@ -118,6 +121,7 @@ export const FEEDS: FeedConfig[] = [
     name: "Google News Politics",
     url: googleSearch("India politics when:1d"),
     weight: 1,
+    hasPublisherSuffix: true,
   },
 
   // Sports — direct + Google SPORTS
@@ -144,6 +148,7 @@ export const FEEDS: FeedConfig[] = [
     name: "Google News Sports",
     url: googleTopic("SPORTS"),
     weight: 1,
+    hasPublisherSuffix: true,
   },
 
   // World — direct + Google WORLD
@@ -164,6 +169,7 @@ export const FEEDS: FeedConfig[] = [
     name: "Google News World",
     url: googleTopic("WORLD"),
     weight: 1,
+    hasPublisherSuffix: true,
   },
 
   // Tech — direct + Google TECHNOLOGY
@@ -184,6 +190,7 @@ export const FEEDS: FeedConfig[] = [
     name: "Google News Tech",
     url: googleTopic("TECHNOLOGY"),
     weight: 1,
+    hasPublisherSuffix: true,
   },
 ];
 

@@ -79,6 +79,40 @@ test.describe("trend panel", () => {
     await expect(x).not.toContainText(/quiet/i);
   });
 
+  test("TREND items render as tiles with velocity accent", async ({ page }) => {
+    await page.goto("/?pwHotMarkets=1");
+    await page.getByTestId("chip-trend").click();
+    await expect(page.getByTestId("social-trends")).toBeVisible({
+      timeout: 30_000,
+    });
+    const tiles = page.getByTestId("trend-tile");
+    await expect(tiles.first()).toBeVisible();
+    const count = await tiles.count();
+    expect(count).toBeGreaterThan(0);
+    // Accents are earned — data-accent is hot|warm|none
+    for (let i = 0; i < count; i++) {
+      const accent = await tiles.nth(i).getAttribute("data-accent");
+      expect(["hot", "warm", "none"]).toContain(accent);
+    }
+  });
+
+  test("NEW stickers are capped at 3 per board", async ({ page }) => {
+    const thirtyMinAgo = Date.now() - 30 * 60_000;
+    await page.addInitScript(
+      ([key, ts]) => {
+        localStorage.setItem(key, String(ts));
+      },
+      ["pulsewire-last-visit", thirtyMinAgo] as const,
+    );
+    await page.goto("/?pwHotMarkets=1");
+    await expect(page.getByTestId("bento-grid")).toBeVisible({
+      timeout: 30_000,
+    });
+    const news = page.getByTestId("new-sticker");
+    const n = await news.count();
+    expect(n).toBeLessThanOrEqual(3);
+  });
+
   test("API: markets has no socialTrends; trend section has full board", async ({
     request,
   }) => {

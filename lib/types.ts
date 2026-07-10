@@ -40,6 +40,11 @@ export interface FeedConfig {
   name: string;
   url: string;
   weight: number;
+  /**
+   * Google News titles carry a trailing " - Publisher" / " | Publisher".
+   * Direct RSS (BBC, Al Jazeera, …) must not strip — spaced em-dashes are journalism.
+   */
+  hasPublisherSuffix?: boolean;
 }
 
 export interface SourceRef {
@@ -131,6 +136,8 @@ export interface TrendItem {
   section?: ContentSectionId;
   /** Lightweight “why this surfaced” for TREND (velocity / sub / age). */
   why?: string;
+  /** Social velocity — drives TREND tile accent (color = status). */
+  velocity?: number;
 }
 
 export interface TrendPlane {

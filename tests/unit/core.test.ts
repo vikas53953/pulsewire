@@ -5,7 +5,9 @@ import { pulseWhy } from "@/lib/copy";
 import { suppressNoise, dedupeBoard, rankAndCapForWindow } from "@/lib/rank";
 import { isSafeHttpUrl, sanitizeHttpUrl } from "@/lib/safe-url";
 import { storyHeat, trafficLevel, saturateScore } from "@/lib/score";
-import { isLikelyDuplicate, stripPublisherSuffix } from "@/lib/similarity";
+import { isLikelyDuplicate, stripPublisherSuffix, titleForFeed } from "@/lib/similarity";
+import { applyNewBadges, NEW_BADGE_CAP } from "@/lib/last-visit";
+import { trendAccent } from "@/components/SocialTrendsBoard";
 import { buildVerdictTemplate, verdictWhy } from "@/lib/verdict";
 import { median, mad } from "@/lib/baseline";
 import type { HighlightItem, SectionScore } from "@/lib/types";
@@ -66,6 +68,18 @@ describe("similarity", () => {
     expect(stripPublisherSuffix("US - CNN")).toBe("US - CNN");
     expect(stripPublisherSuffix("Paramount - Variety")).toBe(
       "Paramount - Variety",
+    );
+  });
+
+  it("titleForFeed only strips when hasPublisherSuffix (direct RSS keeps em-dashes)", () => {
+    const emDash = "Photos: floods in Chennai — in pictures";
+    expect(titleForFeed(emDash, { hasPublisherSuffix: false })).toBe(emDash);
+    expect(titleForFeed(emDash, { hasPublisherSuffix: true })).toBe(
+      "Photos: floods in Chennai",
+    );
+    const explained = "Explained — what the RBI pause means";
+    expect(titleForFeed(explained, { hasPublisherSuffix: false })).toBe(
+      explained,
     );
   });
 });
@@ -462,6 +476,31 @@ describe("X collapsed honesty", () => {
     expect(xCollapsedCopy("needs_key")).not.toMatch(/quiet/i);
     expect(xCollapsedCopy("failed")).toMatch(/not quiet/i);
     expect(xCollapsedCopy("quiet")).toMatch(/quiet/i);
+  });
+});
+
+describe("TREND tile accent", () => {
+  it("earns hot/warm from velocity only", () => {
+    expect(trendAccent(9)).toBe("hot");
+    expect(trendAccent(4)).toBe("warm");
+    expect(trendAccent(1)).toBe("none");
+    expect(trendAccent(undefined)).toBe("none");
+  });
+});
+
+describe("NEW badge cap", () => {
+  it(`keeps at most ${NEW_BADGE_CAP} NEW stickers, hottest first`, () => {
+    const lastVisit = Date.now() - 60 * 60_000;
+    const items = Array.from({ length: 6 }, (_, i) => ({
+      publishedAt: new Date(Date.now() - i * 60_000).toISOString(),
+      heat: 10 + i,
+      text: `Story ${i}`,
+    }));
+    const marked = applyNewBadges(items, lastVisit);
+    expect(marked.filter((i) => i.isNew)).toHaveLength(NEW_BADGE_CAP);
+    // Hottest among the new set
+    const news = marked.filter((i) => i.isNew);
+    expect(Math.min(...news.map((i) => i.heat!))).toBeGreaterThanOrEqual(13);
   });
 });
 

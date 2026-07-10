@@ -28,10 +28,20 @@ function toTrendItem(
   plane: TrendItem["plane"],
   section?: ContentSectionId,
   why?: string,
+  velocity?: number,
 ): TrendItem | null {
   const safe = sanitizeHttpUrl(url);
   if (!safe) return null;
-  return { title, url: safe, source, publishedAt, plane, section, why };
+  return {
+    title,
+    url: safe,
+    source,
+    publishedAt,
+    plane,
+    section,
+    why,
+    velocity,
+  };
 }
 
 function trendWhy(
@@ -130,6 +140,8 @@ function wiresFromItems(
       item.section && isContentSection(item.section)
         ? item.section
         : section,
+      undefined,
+      item.velocity,
     );
     if (!row) continue;
     out.push(row);
@@ -161,6 +173,7 @@ function redditForSection(
       "reddit",
       section,
       trendWhy(sig, "reddit"),
+      sig.velocity,
     );
     if (!row) continue;
     out.push(row);
@@ -217,6 +230,7 @@ function xForSection(
         "x",
         section,
         trendWhy(sig, "x"),
+        sig.velocity,
       ),
     )
     .filter((row): row is TrendItem => row != null);
@@ -251,6 +265,7 @@ function signalsToTrendItems(
       plane,
       sig.section,
       trendWhy(sig, plane),
+      sig.velocity,
     );
     if (!row) continue;
     out.push(row);

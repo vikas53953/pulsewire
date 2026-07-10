@@ -330,7 +330,7 @@ export function buildVerdictTemplate(ctx: VerdictContext): VerdictPayload {
   }
 
   const receipt = allQuietReceiptLine(
-    greens.length ? greens : scores,
+    greens.length ? greens : ctx.scores,
     greens[0]?.section ?? "markets",
     greens[0]?.sectionRaw ?? 0,
   );

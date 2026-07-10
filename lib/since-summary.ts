@@ -1,5 +1,12 @@
 import type { ContentSectionId, HighlightItem, SectionScore } from "./types";
-import { sectionLabel } from "./types";
+import { SCORE_CHIP_ORDER, sectionLabel } from "./types";
+
+const CONTENT_SECTIONS = new Set<string>(SCORE_CHIP_ORDER);
+
+function asContentSection(sec: string | undefined): ContentSectionId | null {
+  if (!sec || !CONTENT_SECTIONS.has(sec)) return null;
+  return sec as ContentSectionId;
+}
 
 /**
  * One synthesized line for the since-lens board.
@@ -22,7 +29,7 @@ export function buildSinceSummaryLine(input: {
   // Prefer desks that moved or have new stories
   const bySection = new Map<ContentSectionId, HighlightItem[]>();
   for (const item of items) {
-    const sec = item.section;
+    const sec = asContentSection(item.section);
     if (!sec) continue;
     const list = bySection.get(sec) || [];
     list.push(item);

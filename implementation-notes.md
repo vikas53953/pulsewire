@@ -212,3 +212,10 @@ Windows looked identical because (1) the cache was effectively window-shaped / s
 - **A4** Mega ineligible when title &lt; 15 chars.
 - **A5** Window-scaled recency + 12h/24h per-bucket floor/pick so 24H is not a 4H clone.
 - **A6** baseHeat floor (already on main @ 16bcb95).
+
+- **A1-follow-up** `hasPublisherSuffix` on `FeedConfig` — direct RSS never strips (em-dash journalism survives).
+
+## Batch B (issue #12)
+
+- **B1** TREND items render as tiles; left accent earned by velocity (hot ≥8, warm ≥4).
+- **B2** NEW badges capped at 3 per board (hottest among newer-than-last-visit).

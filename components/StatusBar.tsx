@@ -63,6 +63,8 @@ export function StatusBar({
     (paused
       ? "⚡ early-signal plane paused (daily budget) — wires & Reddit still live."
       : null);
+  void dailyUsed;
+  void dailyCap;
   const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const deepFired = useRef(false);
 
@@ -98,18 +100,6 @@ export function StatusBar({
           {updatedLabel(generatedAt)}
           {left ? ` · ${left}` : ""}
           {" · auto-refresh 10 min"}
-          {dailyUsed != null && dailyCap != null ? (
-            <span data-testid="x-daily-usage">
-              {" "}
-              · X: {dailyUsed}/{dailyCap} today
-            </span>
-          ) : null}
-          {xPulseUsage && dailyUsed == null ? (
-            <span data-testid="xpulse-usage">
-              {" "}
-              · X Pulse {xPulseUsage.used}/{xPulseUsage.cap} this month
-            </span>
-          ) : null}
         </span>
         <button
           type="button"

@@ -1,6 +1,7 @@
 import type { HighlightItem } from "./types";
 import { windowToMs, type TimeWindow } from "./types";
 import { enrichItemHeat } from "./score";
+import { isLikelyDuplicate } from "./similarity";
 
 /** Earliest source timestamp — keeps older multi-source stories window-correct. */
 export function earliestPublishedAt(isos: string[]): string {
@@ -17,6 +18,37 @@ export const DESK_CAP = 10;
 export const ALL_CAP = 8;
 const CAP = DESK_CAP;
 const FLOOR_COUNT = 2;
+
+const NOISE_RE =
+  /\b(minor wire|limited follow-through|fixture headline|placeholder)\b/i;
+
+/** Drop self-labeled / fixture noise before the board. */
+export function suppressNoise(items: HighlightItem[]): HighlightItem[] {
+  return items.filter((i) => !NOISE_RE.test(i.text));
+}
+
+/**
+ * One story = one tile on ALL. Keep the hottest copy; cross-desk dupes die here.
+ */
+export function dedupeBoard(items: HighlightItem[]): HighlightItem[] {
+  const out: HighlightItem[] = [];
+  for (const item of items) {
+    const idx = out.findIndex(
+      (o) =>
+        (o.clusterId && item.clusterId && o.clusterId === item.clusterId) ||
+        isLikelyDuplicate(o.text, item.text, 0.72),
+    );
+    if (idx < 0) {
+      out.push(item);
+      continue;
+    }
+    const prev = out[idx];
+    if ((item.heat ?? 0) > (prev.heat ?? 0)) {
+      out[idx] = item;
+    }
+  }
+  return out;
+}
 
 /**
  * SPEC v2 §5 ranking:
@@ -125,7 +157,9 @@ export function rankAndCapForWindow(
     .sort((a, b) => (b.heat ?? 0) - (a.heat ?? 0))
     .slice(0, socialBudget);
 
-  return [...pickedConfirmed, ...earlyKeep].slice(0, cap);
+  const ranked = [...pickedConfirmed, ...earlyKeep].slice(0, cap);
+  // Dedup after rank so ALL never spends its budget on photocopies.
+  return dedupeBoard(suppressNoise(ranked));
 }
 
 function itemKey(item: HighlightItem): string {

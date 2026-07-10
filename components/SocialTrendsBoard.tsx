@@ -113,6 +113,12 @@ export function SocialTrendsBoard({ pack, loading }: SocialTrendsBoardProps) {
 
   if (!pack) return null;
 
+  const redditOk =
+    pack.reddit?.status === "ok" && (pack.reddit.items?.length ?? 0) > 0;
+  const xOk = pack.x?.status === "ok" && (pack.x.items?.length ?? 0) > 0;
+  // Dead half-panel looks broken — collapse to one column when X is empty.
+  const dual = redditOk && xOk;
+
   return (
     <section
       data-testid="social-trends"
@@ -127,19 +133,35 @@ export function SocialTrendsBoard({ pack, loading }: SocialTrendsBoardProps) {
           High-signal Reddit and X only — kept off the news desks on purpose.
         </p>
       </div>
-      <div className="grid grid-cols-1 gap-8 border-t-2 border-[var(--ink)] pt-5 sm:grid-cols-2 sm:gap-12">
+      <div
+        className={
+          dual
+            ? "grid grid-cols-1 gap-8 border-t-2 border-[var(--ink)] pt-5 sm:grid-cols-2 sm:gap-12"
+            : "grid grid-cols-1 gap-6 border-t-2 border-[var(--ink)] pt-5"
+        }
+      >
         <Column
           title="On Reddit"
           testId="social-trends-reddit"
           plane={pack.reddit}
           emptyHint="Quiet on Reddit"
         />
-        <Column
-          title="On X"
-          testId="social-trends-x"
-          plane={pack.x}
-          emptyHint="Quiet on X"
-        />
+        {xOk || !redditOk ? (
+          <Column
+            title="On X"
+            testId="social-trends-x"
+            plane={pack.x}
+            emptyHint="Quiet on X"
+          />
+        ) : (
+          <p
+            data-testid="social-trends-x"
+            data-status={pack.x?.status ?? "quiet"}
+            className="m-0 text-[12px] font-bold opacity-45"
+          >
+            X quiet — no earned pulse right now (not shown as an empty column).
+          </p>
+        )}
       </div>
     </section>
   );

@@ -1,30 +1,58 @@
-import type { SectionScore } from "./types";
+import type { SectionScore, TrafficLevel } from "./types";
 import { sectionLabel } from "./types";
 
-/** Shorten a headline to ~8 words (verdict / chip copy). */
-export function eightWords(text: string): string {
-  const words = text.trim().split(/\s+/).filter(Boolean);
-  if (words.length <= 8) return words.join(" ");
-  return `${words.slice(0, 8).join(" ")}…`;
+/** Short topic for chip/why lines — complete words, no mid-sentence ellipsis. */
+export function shortEvent(text: string, maxWords = 10): string {
+  const cleaned = text
+    .replace(/\s+/g, " ")
+    .replace(/[…]+/g, "")
+    .trim();
+  const words = cleaned.split(" ").filter(Boolean);
+  if (words.length <= maxWords) return words.join(" ");
+  // Prefer a clean cut at a comma/colon boundary inside the budget.
+  const slice = words.slice(0, maxWords);
+  const joined = slice.join(" ");
+  const soft = joined.match(/^(.+[,:;])\s+\S+/);
+  if (soft && soft[1].split(" ").length >= 4) return soft[1].replace(/[,:;]$/, "");
+  return slice.join(" ");
 }
 
-/** One-line “why this desk moved” for chip hover/focus (client-safe). */
+/** @deprecated Prefer shortEvent — kept for call sites that expect ≤8 words. */
+export function eightWords(text: string): string {
+  return shortEvent(text, 8);
+}
+
+function levelGlyph(level: TrafficLevel): string {
+  if (level === "red") return "🔴";
+  if (level === "yellow") return "🟡";
+  return "🟢";
+}
+
+/** One-line “why this desk moved” — names the driver, not the score. */
 export function pulseWhy(score: SectionScore): string {
   const label = sectionLabel(score.section);
-  if (score.calibrating) {
-    return `${label}: still calibrating against a normal hour (${score.score}/100).`;
+  if (score.unknown) {
+    return `${label}: sources unreachable — status unknown (not quiet).`;
   }
-  if (score.socialLed || score.topSignalState === "early") {
-    return `${label}: social-led heat at ${score.score}/100 — waiting on wire confirmation.`;
-  }
-  const topic = eightWords(score.topText ?? "no standout cluster");
+  const topic = score.topText ? shortEvent(score.topText, 10) : null;
   const n = Math.max(1, Math.round(score.topBreadth ?? score.topVelocity ?? 1));
   const sources = n === 1 ? "1 source" : `${n} sources`;
-  if (score.level === "red") {
-    return `${label} hot (${score.score}): ${topic} · ${sources} in ${score.topSpanMinutes ?? "?"} min.`;
+  const age =
+    score.topSpanMinutes != null ? `, first cluster span ${score.topSpanMinutes}m` : "";
+
+  if (score.socialLed || score.topSignalState === "early") {
+    return topic
+      ? `${label} ${score.score}${levelGlyph(score.level)} — driven by: ${topic} (social-led, unconfirmed)`
+      : `${label}: social-led heat — waiting on wire confirmation.`;
   }
-  if (score.level === "yellow") {
-    return `${label} warming (${score.score}): ${topic} · ${sources}.`;
+
+  if (topic) {
+    return `${label} ${score.score}${levelGlyph(score.level)} — driven by: ${topic} (${sources}${age}).`;
   }
+
+  if (score.calibrating) {
+    return `${label}: calibrating baseline (${score.score}/100) — no standout cluster yet.`;
+  }
+
   return `${label} quiet (${score.score}/100) — below the warming threshold.`;
 }

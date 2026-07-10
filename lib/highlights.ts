@@ -19,7 +19,7 @@ import {
   clusterBySimilarity,
   clustersToRawHighlights,
 } from "./merge";
-import { filterSince, rankAndCapForWindow, ALL_CAP, DESK_CAP } from "./rank";
+import { filterSince, rankAndCapForWindow, ALL_CAP, DESK_CAP, dedupeBoard, suppressNoise } from "./rank";
 import { getRedditSignals } from "./reddit-plane";
 import { enrichItemHeat, scoreSection } from "./score";
 import type {
@@ -188,7 +188,7 @@ function buildAllFromSections(
   return {
     section: "all",
     generatedAt: new Date().toISOString(),
-    items: perSection.slice(0, POOL_CAP),
+    items: dedupeBoard(suppressNoise(perSection)).slice(0, POOL_CAP),
     rawMode: !anyLlm,
     sourcesUnreachable: !anyReachable,
     poolCount: perSection.length,
@@ -543,18 +543,36 @@ export async function getHighlights(options: {
     sinceRelative: since ? relativeSince(since, now) : undefined,
     sinceEmpty: lens === "since" && sinceEmpty,
     topItems: sliced,
+    sourcesUnreachable,
+    lastConfirmedAt: sourcesUnreachable ? generatedAt : undefined,
   });
 
+  // Blind ≠ quiet: force unknown chips when feeds are down.
+  if (sourcesUnreachable) {
+    finalScores = finalScores.map((s) => ({
+      ...s,
+      score: 0,
+      level: "green" as const,
+      unknown: true,
+      calibrating: false,
+      socialLed: false,
+      velocitySpark: undefined,
+    }));
+  }
+
   // Radar tripwires outrank RSS heat when tripped (SPEC v3.3 / v4 tripwire).
+  // Never let radar paint over a blind board — honesty first.
   let verdict = verdictBase;
-  try {
-    const { getRadarStatus } = await import("./radar");
-    const radar = getRadarStatus();
-    if (radar.verdictHint?.level === "red") {
-      verdict = radar.verdictHint;
+  if (!sourcesUnreachable) {
+    try {
+      const { getRadarStatus } = await import("./radar");
+      const radar = getRadarStatus();
+      if (radar.verdictHint?.level === "red") {
+        verdict = radar.verdictHint;
+      }
+    } catch {
+      // radar optional at boot
     }
-  } catch {
-    // radar optional at boot
   }
 
   let xGovernor;

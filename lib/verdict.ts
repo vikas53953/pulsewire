@@ -1,7 +1,7 @@
 import {
   canDriveRedVerdict,
 } from "./fusion";
-import { eightWords } from "./copy";
+import { shortEvent } from "./copy";
 import { trafficLevel } from "./score";
 import type {
   ContentSectionId,
@@ -21,6 +21,10 @@ export interface VerdictContext {
   sinceEmpty?: boolean;
   /** Top items per section — used for early-never-red + brewing. */
   topItems?: HighlightItem[];
+  /** Blind ≠ quiet — feeds unreachable. */
+  sourcesUnreachable?: boolean;
+  /** ISO of last successful board build, if known. */
+  lastConfirmedAt?: string;
 }
 
 const WHY_DESKS = new Set<ContentSectionId>([
@@ -31,7 +35,7 @@ const WHY_DESKS = new Set<ContentSectionId>([
 
 function byLevel(scores: SectionScore[], level: TrafficLevel): SectionScore[] {
   return scores
-    .filter((s) => s.level === level)
+    .filter((s) => !s.unknown && s.level === level)
     .sort((a, b) => b.score - a.score);
 }
 
@@ -45,17 +49,12 @@ function topItemFor(
     .sort((a, b) => (b.heat ?? 0) - (a.heat ?? 0))[0];
 }
 
-function shortTopic(text: string | undefined): string {
-  return eightWords(text ?? "developing story");
-}
-
 function sourceCount(s: SectionScore): number {
   return Math.max(1, Math.round(s.topBreadth ?? s.topVelocity ?? 1));
 }
 
-function sourcesPhrase(s: SectionScore): string {
-  const n = sourceCount(s);
-  return n === 1 ? "1 credible source" : `${n} credible sources`;
+function eventPhrase(s: SectionScore): string {
+  return shortEvent(s.topText ?? "a developing cluster", 10);
 }
 
 /** Name up to two calm desks for a status-style verdict (not a teaser). */
@@ -75,36 +74,63 @@ function calmDesksPhrase(greens: SectionScore[]): string | null {
     .sort((a, b) => a.score - b.score);
   const picked = [...preferred, ...rest].slice(0, 2);
   const names = picked.map((s) => sectionLabel(s.section));
-  if (names.length === 1) return `${names[0]} calm`;
-  return `${names[0]} & ${names[1]} calm`;
+  if (names.length === 1) return `${names[0]} normal`;
+  return `${names[0]} & ${names[1]} normal`;
 }
 
-function warmingClause(s: SectionScore): string {
-  const topic = shortTopic(s.topText);
-  return `${sectionLabel(s.section)} warming on ${topic} (${sourcesPhrase(s)})`;
-}
-
-/** Why-it-matters for desks busy India pros actually act on. */
+/**
+ * Why-it-matters: consequence / what to watch — never restate the pulse number.
+ */
 export function verdictWhy(s: SectionScore | null | undefined): string | null {
-  if (!s || s.level === "green") return null;
+  if (!s || s.unknown || s.level === "green") return null;
   if (!WHY_DESKS.has(s.section)) return null;
-  if (s.socialLed || s.topSignalState === "early") {
-    return "Why it matters: social heat ahead of wires — wait for confirmation before acting.";
-  }
+  const event = eventPhrase(s);
   const n = sourceCount(s);
-  const span = s.topSpanMinutes ?? 40;
-  if (s.level === "red") {
-    return `Why it matters: ${sectionLabel(s.section)} is hot with ${n} sources in ${span} min.`;
+  if (s.socialLed || s.topSignalState === "early") {
+    return `Watch: ${event} is loud on social with no wire confirmation yet — do not act on it alone.`;
   }
-  return `Why it matters: ${sectionLabel(s.section)} pulse ${s.score} — louder than a normal hour (${n} sources).`;
+  if (s.level === "red") {
+    return `Watch: ${event} has ${n} sources moving fast — check the ${sectionLabel(s.section)} desk before your next move.`;
+  }
+  return `Watch: ${event} is lifting ${sectionLabel(s.section)} above a normal hour (${n} sources).`;
+}
+
+function blindVerdict(ctx: VerdictContext): VerdictPayload {
+  let ago = "";
+  if (ctx.lastConfirmedAt) {
+    const mins = Math.max(
+      0,
+      Math.round((Date.now() - Date.parse(ctx.lastConfirmedAt)) / 60_000),
+    );
+    if (Number.isFinite(mins)) {
+      ago =
+        mins < 1
+          ? " (last confirmed just now)"
+          : mins < 60
+            ? ` (last confirmed ${mins}m ago)`
+            : ` (last confirmed ${Math.round(mins / 60)}h ago)`;
+    }
+  }
+  return {
+    text: `Sources unreachable${ago} — status unknown, not quiet. Do not treat this as an all-clear.`,
+    level: "yellow",
+    llmPolished: false,
+    why: "Blind is not quiet. Fix connectivity or wait for feeds before trusting the board.",
+    blind: true,
+  };
 }
 
 /**
  * Deterministic verdict templates (SPEC v2 §3 + v4 fusion rules).
- * Soft-ship+: synthesize multi-desk status, not a single-story teaser.
+ * Status judgment in our own words — never paste a truncated wire headline.
  * EARLY never drives red alone — max yellow "brewing".
+ * Blind ≠ quiet.
  */
 export function buildVerdictTemplate(ctx: VerdictContext): VerdictPayload {
+  if (ctx.sourcesUnreachable) {
+    return blindVerdict(ctx);
+  }
+
   if (ctx.lens === "since" && ctx.sinceEmpty) {
     const rel = ctx.sinceRelative ?? "a while";
     return {
@@ -118,7 +144,6 @@ export function buildVerdictTemplate(ctx: VerdictContext): VerdictPayload {
   const yellows = byLevel(ctx.scores, "yellow");
   const greens = byLevel(ctx.scores, "green");
 
-  // SPEC v4: demote reds whose top cluster is EARLY/BUILDING (unless tripwire)
   const confirmedReds: SectionScore[] = [];
   const brewingFromFakeRed: SectionScore[] = [];
   for (const s of reds) {
@@ -141,7 +166,7 @@ export function buildVerdictTemplate(ctx: VerdictContext): VerdictPayload {
     const a = reds[0];
     const b = reds[1];
     return {
-      text: `🔴 Busy: ${sectionLabel(a.section)} and ${sectionLabel(b.section)} both moving. Start with ${sectionLabel(a.section)}.`,
+      text: `Busy: ${sectionLabel(a.section)} and ${sectionLabel(b.section)} both hot. Start with ${sectionLabel(a.section)} — ${eventPhrase(a)}.`,
       level: "red",
       llmPolished: false,
       why: verdictWhy(a),
@@ -150,31 +175,25 @@ export function buildVerdictTemplate(ctx: VerdictContext): VerdictPayload {
 
   if (reds.length === 1) {
     const s = reds[0];
-    const story = shortTopic(s.topText);
-    const breadth = sourceCount(s);
-    const span = s.topSpanMinutes ?? 40;
     const calm = calmDesksPhrase(greens);
     const calmBit = calm ? ` ${calm}.` : "";
     return {
-      text: `🔴 ${sectionLabel(s.section)} is hot — ${story}, ${breadth} sources in ${span} min.${calmBit}`,
+      text: `${sectionLabel(s.section)} hot: ${eventPhrase(s)} (${sourceCount(s)} sources).${calmBit}`,
       level: "red",
       llmPolished: false,
       why: verdictWhy(s),
     };
   }
 
-  // Brewing template — yellow max (EARLY social heat)
   const brewing =
     brewingFromFakeRed[0] ||
     yellows.find((s) => s.socialLed || s.topSignalState === "early") ||
     null;
   if (brewing && reds.length === 0) {
     const calm = calmDesksPhrase(greens);
-    const lead = calm
-      ? `Mostly quiet. ${calm}.`
-      : "Mostly quiet.";
+    const lead = calm ? `Mostly quiet. ${calm}.` : "Mostly quiet.";
     return {
-      text: `${lead} Something's brewing in ${sectionLabel(brewing.section)} — loud on X, no wire confirmation yet.`,
+      text: `${lead} ${sectionLabel(brewing.section)} brewing on social — no wire confirmation yet.`,
       level: "yellow",
       llmPolished: false,
       why: verdictWhy(brewing),
@@ -187,7 +206,7 @@ export function buildVerdictTemplate(ctx: VerdictContext): VerdictPayload {
       const calm = calmDesksPhrase(greens);
       const lead = calm ? `Mostly quiet. ${calm}.` : "Mostly quiet.";
       return {
-        text: `${lead} Something's brewing in ${sectionLabel(s.section)} — loud on X, no wire confirmation yet.`,
+        text: `${lead} ${sectionLabel(s.section)} brewing on social — no wire confirmation yet.`,
         level: "yellow",
         llmPolished: false,
         why: verdictWhy(s),
@@ -195,12 +214,14 @@ export function buildVerdictTemplate(ctx: VerdictContext): VerdictPayload {
     }
     const calm = calmDesksPhrase(greens.filter((g) => g.section !== s.section));
     const parts = ["Mostly quiet."];
-    if (calm) parts.push(calm + ".");
-    parts.push(warmingClause(s) + ".");
+    if (calm) parts.push(`${calm}.`);
+    parts.push(
+      `${sectionLabel(s.section)} warming: ${eventPhrase(s)} (${sourceCount(s)} sources).`,
+    );
     if (yellows.length >= 2) {
       const second = yellows[1];
       parts.push(
-        `${sectionLabel(second.section)} also warming (${sourcesPhrase(second)}).`,
+        `${sectionLabel(second.section)} also warming: ${eventPhrase(second)}.`,
       );
     }
     return {
@@ -211,18 +232,8 @@ export function buildVerdictTemplate(ctx: VerdictContext): VerdictPayload {
     };
   }
 
-  // Quiet is a win — celebrate majority green.
-  const deskCount = ctx.scores.length || greens.length;
-  if (greens.length >= Math.max(1, deskCount - 0) && yellows.length === 0) {
-    return {
-      text: "All quiet across every desk. Nothing needs you right now.",
-      level: "green",
-      llmPolished: false,
-    };
-  }
-
   return {
-    text: "All quiet. Nothing needs you right now.",
+    text: "All quiet across every desk. Nothing needs you right now.",
     level: "green",
     llmPolished: false,
   };
@@ -233,7 +244,7 @@ export async function polishVerdict(
   template: VerdictPayload,
   polishFn?: (text: string) => Promise<string | null>
 ): Promise<VerdictPayload> {
-  if (!polishFn) return template;
+  if (!polishFn || template.blind) return template;
   try {
     const polished = await polishFn(template.text);
     if (!polished) return template;
@@ -243,6 +254,7 @@ export async function polishVerdict(
       level: template.level,
       llmPolished: true,
       why: template.why,
+      blind: template.blind,
     };
   } catch {
     return template;
@@ -253,6 +265,7 @@ export function quietTopLine(
   scores: SectionScore[],
   items: { text: string }[]
 ): string | null {
+  if (scores.some((s) => s.unknown)) return null;
   if (trafficLevel(Math.max(0, ...scores.map((s) => s.score))) !== "green") {
     // only for all-quiet hero
   }
@@ -260,7 +273,7 @@ export function quietTopLine(
   if (!allGreen) return null;
   const top = items[0]?.text;
   if (!top) return null;
-  return `Top of the quiet: ${top}`;
+  return `Top of the quiet: ${shortEvent(top, 12)}`;
 }
 
 export type { ContentSectionId };

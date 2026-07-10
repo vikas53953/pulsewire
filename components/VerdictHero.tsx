@@ -17,7 +17,8 @@ export function VerdictHero({ verdict, quietTop }: VerdictHeroProps) {
     );
   }
 
-  const isQuiet = verdict.level === "green";
+  const isBlind = Boolean(verdict.blind);
+  const isQuiet = verdict.level === "green" && !isBlind;
 
   return (
     <section
@@ -25,12 +26,20 @@ export function VerdictHero({ verdict, quietTop }: VerdictHeroProps) {
       data-level={verdict.level}
       data-llm={verdict.llmPolished ? "1" : "0"}
       data-quiet={isQuiet ? "1" : "0"}
+      data-blind={isBlind ? "1" : "0"}
       className={`pw-tile relative w-full bg-[var(--card)] px-4 py-4 sm:px-5 sm:py-5 ${
         isQuiet ? "border-[var(--ink)]/10" : ""
       }`}
       aria-live="polite"
     >
-      {isQuiet ? (
+      {isBlind ? (
+        <p
+          data-testid="blind-banner"
+          className="m-0 mb-2 font-mono text-[10px] font-black uppercase tracking-[0.14em] text-[var(--mega)]"
+        >
+          Status unknown
+        </p>
+      ) : isQuiet ? (
         <p
           data-testid="quiet-win"
           className="m-0 mb-2 font-mono text-[10px] font-black uppercase tracking-[0.14em] opacity-55"
@@ -45,7 +54,7 @@ export function VerdictHero({ verdict, quietTop }: VerdictHeroProps) {
             : "text-[20px] sm:text-[22px]"
         }`}
       >
-        ❝ {verdict.text} ❞
+        {verdict.text}
       </p>
       {verdict.why ? (
         <p

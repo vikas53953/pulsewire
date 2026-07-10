@@ -161,10 +161,11 @@ Windows looked identical because (1) the cache was effectively window-shaped / s
 - Desk chips show **pulse number + 🟢🟡🔴** in a tinted badge (`pulse-num-*`) — legend alone is not enough.
 - Board density: ALL ≤8, desk ≤10 for a 30s scan.
 - TREND board capped lean: Reddit ≤8, X ≤6.
-- Persistent **freshness line** under chips (`Updated … · board freshness`).
+- Persistent **freshness line** under chips (single line — no “board freshness” label).
 - First paint is **SSR** with real verdict + chips + tiles.
-- Verdict is a **multi-desk status judgment** (calm desks + warming clause + source count), not a single-story teaser; MKT/ECO/POL get a why line when warming/hot.
-- Quiet majority is celebrated (“Quiet is a win” + larger calm hero; hide board when ≥70% desks green).
-- Desk chips show a **why this desk moved** line on hover/focus (`pulse-why`).
-- TREND items carry a lightweight **why surfaced** line (sub/velocity/age).
-- Last-used time window remembered in `localStorage`.
+- Verdict is a **multi-desk status judgment** in our own words (no mid-sentence ellipsis teaser); MKT/ECO/POL get a Watch: why line that does not restate the pulse number.
+- **Blind ≠ quiet:** when sources are unreachable, verdict is yellow/unknown and chips show `— ⚪` (never “Nothing needs you right now”).
+- ALL board **dedupes** cross-desk copies of the same story; suppresses self-labeled noise.
+- Mega/red tiles only for confirmed multi-source heat — no decorative pastels.
+- Footer no longer leaks `X: n/cap today` (governor stays on `/api/x-governor`).
+- TREND collapses empty X half-panel instead of showing a dead column.

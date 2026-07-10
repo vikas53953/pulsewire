@@ -384,8 +384,11 @@ export function PulseWireApp({ initialData = null }: PulseWireAppProps) {
   const quietHero =
     !isTrend &&
     data?.verdict?.level === "green" &&
+    !data?.verdict?.blind &&
+    !data?.sourcesUnreachable &&
     !showSkeleton &&
     (data?.scores ?? []).length > 0 &&
+    !(data?.scores ?? []).some((s) => s.unknown) &&
     (data?.scores ?? []).filter((s) => s.level === "green").length >=
       Math.ceil((data?.scores ?? []).length * 0.7);
 

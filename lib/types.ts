@@ -107,6 +107,29 @@ export interface VerdictPayload {
   llmPolished: boolean;
 }
 
+/** Always-visible mix row — one plane's trending headlines. */
+export interface TrendItem {
+  title: string;
+  url: string;
+  source: string;
+  publishedAt: string;
+  plane: "rss" | "reddit" | "x";
+  section?: ContentSectionId;
+}
+
+export interface TrendPlane {
+  status: "ok" | "quiet" | "failed" | "pending";
+  items: TrendItem[];
+  note: string | null;
+}
+
+/** On wires · On Reddit · On X — mix without requiring title-match fusion. */
+export interface TrendPack {
+  wires: TrendPlane;
+  reddit: TrendPlane;
+  x: TrendPlane;
+}
+
 export interface HighlightsResponse {
   section: SectionId;
   window: TimeWindow;
@@ -133,6 +156,8 @@ export interface HighlightsResponse {
     paused: boolean;
     pauseNote: string | null;
   };
+  /** Visible mix strip — what each plane is fetching right now. */
+  trend?: TrendPack;
   verdict: VerdictPayload;
   scores: SectionScore[];
   items: HighlightItem[];

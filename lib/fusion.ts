@@ -127,7 +127,8 @@ export function fuseSocialIntoItems(
   signals: SocialSignal[],
   opts?: { matchThreshold?: number },
 ): HighlightItem[] {
-  const threshold = opts?.matchThreshold ?? 0.62;
+  // Slightly looser than 0.62 so Reddit/X attach more often on live desks.
+  const threshold = opts?.matchThreshold ?? 0.55;
   const used = new Set<number>();
   const out = items.map((item) => {
     const evidence: PlaneEvidence[] = [
@@ -180,7 +181,8 @@ export function fuseSocialIntoItems(
     if (used.has(idx)) return;
     if (sig.plane === "reddit") {
       if (!allowRedditOrphans) return;
-      if ((sig.velocity ?? 0) < 8) return;
+      // Lowered from 8 so loud Reddit orphans surface as EARLY more often.
+      if ((sig.velocity ?? 0) < 4) return;
     }
     const evidence: PlaneEvidence[] = [
       {
@@ -217,7 +219,7 @@ export function rankWithSignalStates(items: HighlightItem[]): HighlightItem[] {
   const early = items
     .filter((i) => i.signalState === "early")
     .sort((a, b) => (b.heat ?? 0) - (a.heat ?? 0))
-    .slice(0, 2);
+    .slice(0, 4);
 
   const byHeat = (a: HighlightItem, b: HighlightItem) =>
     (b.heat ?? 0) - (a.heat ?? 0);

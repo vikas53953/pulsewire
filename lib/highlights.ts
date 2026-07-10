@@ -34,6 +34,7 @@ import type {
 } from "./types";
 import { SCORE_CHIP_ORDER } from "./types";
 import { buildVerdictTemplate } from "./verdict";
+import { buildTrendPack } from "./trend";
 import { getXPulseHighlights } from "./x-pulse";
 import { isTestMode } from "./test-mode";
 
@@ -521,6 +522,26 @@ export async function getHighlights(options: {
     // optional
   }
 
+  // Always-visible mix strip (owner feedback) — independent of title-match fusion.
+  let trend;
+  try {
+    const reddit = await getRedditSignals();
+    const xSignals =
+      section === "all"
+        ? await loadAllCachedXSignals()
+        : await loadCachedXSignals(section as ContentSectionId);
+    trend = buildTrendPack({
+      section,
+      items: sliced,
+      reddit,
+      x: xSignals,
+    });
+  } catch (err) {
+    console.warn(
+      `[pulsewire] trend pack skip: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+
   return {
     section,
     window,
@@ -535,7 +556,36 @@ export async function getHighlights(options: {
     items: sliced,
     xGovernor,
     xPulseUsage,
+    trend,
   };
+}
+
+/** X signals across sections for the ALL trend column. */
+async function loadAllCachedXSignals(): Promise<SocialSignal[]> {
+  if (isTestMode()) {
+    const { isEarlyXForced, isFusionForced } = await import("./test-mode");
+    if (isEarlyXForced() || isFusionForced()) {
+      return loadCachedXSignals("markets");
+    }
+    return [];
+  }
+  try {
+    const cached = getCache("xpulse");
+    if (!cached.entry?.items?.length) return [];
+    return cached.entry.items.slice(0, 12).map((i) => ({
+      plane: "x" as const,
+      title: i.text.replace(/^X Pulse:\s*/i, ""),
+      url: i.sources[0]?.url || "https://x.com",
+      source: i.sources[0]?.name || "@x",
+      publishedAt: i.publishedAt,
+      section: (i.section && i.section !== "xpulse"
+        ? i.section
+        : "markets") as ContentSectionId,
+      velocity: i.velocity,
+    }));
+  } catch {
+    return [];
+  }
 }
 
 export { filterByWindow };

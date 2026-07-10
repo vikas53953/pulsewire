@@ -188,7 +188,10 @@ function buildAllFromSections(
   return {
     section: "all",
     generatedAt: new Date().toISOString(),
-    items: dedupeBoard(suppressNoise(perSection)).slice(0, POOL_CAP),
+    items: dedupeBoard(suppressNoise(perSection, { strictSingle: true })).slice(
+      0,
+      POOL_CAP,
+    ),
     rawMode: !anyLlm,
     sourcesUnreachable: !anyReachable,
     poolCount: perSection.length,
@@ -431,11 +434,15 @@ export async function getHighlights(options: {
     );
     sinceEmpty = sinceItems.length === 0;
     sliced = rankWithSignalStates(
-      rankAndCapForWindow(sinceItems, "24h", boardCap, now),
+      rankAndCapForWindow(sinceItems, "24h", boardCap, now, {
+        strictSingle: section === "all",
+      }),
     );
   } else {
     sliced = rankWithSignalStates(
-      rankAndCapForWindow(pool, window, boardCap, now),
+      rankAndCapForWindow(pool, window, boardCap, now, {
+        strictSingle: section === "all",
+      }),
     );
   }
 

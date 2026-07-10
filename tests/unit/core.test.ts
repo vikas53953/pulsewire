@@ -113,23 +113,40 @@ describe("rank noise floor", () => {
   });
 
   it("kills fixture-shaped minor wire singles under a real top story", () => {
-    // ~heat of a fresh single-source RSS note vs a 2-source Sensex lead
-    const kept = suppressNoise([
-      item("Sensex jumps as FIIs return; banks and IT lead", 22, 2),
-      item(
-        "India minor wire 1 from 12 minutes ago with limited follow-through",
-        5,
-        1,
-      ),
-      item(
-        "Sports minor wire 2 from 13 minutes ago with limited follow-through",
-        4.8,
-        1,
-      ),
-    ]);
+    // ALL board only — strictSingle. Desk boards keep softer floor.
+    const kept = suppressNoise(
+      [
+        item("Sensex jumps as FIIs return; banks and IT lead", 22, 2),
+        item(
+          "India minor wire 1 from 12 minutes ago with limited follow-through",
+          5,
+          1,
+        ),
+        item(
+          "Sports minor wire 2 from 13 minutes ago with limited follow-through",
+          4.8,
+          1,
+        ),
+      ],
+      { strictSingle: true },
+    );
     expect(kept.map((i) => i.text)).toEqual([
       "Sensex jumps as FIIs return; banks and IT lead",
     ]);
+  });
+
+  it("desk boards still keep age-diversity singles under soft floor", () => {
+    const kept = suppressNoise([
+      item("RBI shock rate hold sparks bank rally", 40, 5),
+      item("Markets afternoon briefing three hours ago", 3.5, 1),
+    ]);
+    // Soft 12% of 40 = 4.8 — 3.5 dies; bump heat just over soft floor
+    const kept2 = suppressNoise([
+      item("RBI shock rate hold sparks bank rally", 40, 5),
+      item("Markets afternoon briefing three hours ago", 6, 1),
+    ]);
+    expect(kept2.some((i) => /afternoon briefing/i.test(i.text))).toBe(true);
+    expect(kept.some((i) => /afternoon briefing/i.test(i.text))).toBe(false);
   });
 
   it("dedupeBoard keeps hottest copy of same story", () => {

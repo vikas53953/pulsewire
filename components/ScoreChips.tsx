@@ -5,8 +5,8 @@ import { SCORE_CHIP_ORDER, sectionChip } from "@/lib/types";
 
 type ScoreChipsProps = {
   scores: SectionScore[];
-  active: ContentSectionId | "all";
-  onSelect: (section: ContentSectionId | "all") => void;
+  active: ContentSectionId | "all" | "vibe" | "radar";
+  onSelect: (section: ContentSectionId | "all" | "vibe" | "radar") => void;
 };
 
 const LEVEL_DOT: Record<string, string> = {
@@ -117,6 +117,34 @@ export function ScoreChips({ scores, active, onSelect }: ScoreChipsProps) {
           </button>
         );
       })}
+      <button
+        type="button"
+        role="tab"
+        aria-selected={active === "vibe"}
+        data-testid="chip-vibe"
+        onClick={() => onSelect("vibe")}
+        className={`min-h-11 shrink-0 rounded-full border-2 border-[var(--ink)] px-3 py-2 font-mono text-[12px] font-black uppercase tracking-wide transition-[transform,box-shadow,background-color] duration-[120ms] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)] ${
+          active === "vibe"
+            ? "bg-[var(--sticker)] shadow-[3px_3px_0_var(--shadow)]"
+            : "bg-[var(--card)] shadow-none"
+        }`}
+      >
+        VIBE
+      </button>
+      <button
+        type="button"
+        role="tab"
+        aria-selected={active === "radar"}
+        data-testid="chip-radar"
+        onClick={() => onSelect("radar")}
+        className={`min-h-11 shrink-0 rounded-full border-2 border-[var(--ink)] px-3 py-2 font-mono text-[12px] font-black uppercase tracking-wide transition-[transform,box-shadow,background-color] duration-[120ms] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)] ${
+          active === "radar"
+            ? "bg-[var(--sticker)] shadow-[3px_3px_0_var(--shadow)]"
+            : "bg-[var(--card)] shadow-none"
+        }`}
+      >
+        RAD
+      </button>
     </div>
   );
 }

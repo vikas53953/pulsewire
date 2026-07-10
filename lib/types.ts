@@ -7,9 +7,14 @@ export type SectionId =
   | "sports"
   | "world"
   | "tech"
-  | "xpulse";
+  | "xpulse"
+  | "vibe"
+  | "radar";
 
-export type ContentSectionId = Exclude<SectionId, "all" | "xpulse">;
+export type ContentSectionId = Exclude<
+  SectionId,
+  "all" | "xpulse" | "vibe" | "radar"
+>;
 
 export type TimeWindow = "1h" | "4h" | "12h" | "24h";
 
@@ -52,6 +57,8 @@ export interface HighlightItem {
   velocity?: number;
   /** Earliest firstSeen across sources — when the cluster appeared. */
   firstSeen?: string;
+  /** Stable id for Brief cache (hash of member raw ids). */
+  clusterId?: string;
 }
 
 export interface SectionScore {
@@ -98,7 +105,9 @@ export const SECTIONS: { id: SectionId; label: string; chip: string }[] = [
   { id: "sports", label: "Sports", chip: "SPT" },
   { id: "world", label: "World", chip: "WLD" },
   { id: "tech", label: "Tech", chip: "TEC" },
+  { id: "vibe", label: "Vibe", chip: "VIBE" },
   { id: "xpulse", label: "X Pulse", chip: "X" },
+  { id: "radar", label: "Radar", chip: "RAD" },
 ];
 
 /** Content sections in Markets-first wedge order for chips. */

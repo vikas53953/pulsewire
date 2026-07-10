@@ -1,3 +1,4 @@
+import { clusterIdFromMemberIds } from "./cluster-id";
 import type { HighlightItem, RawFeedItem } from "./types";
 import { isLikelyDuplicate, stripPublisherSuffix } from "./similarity";
 import { flashHeadline } from "./flash";
@@ -79,6 +80,7 @@ function clusterToHighlight(cluster: MergedCluster): HighlightItem {
     publishedAt,
     hot: cluster.merged,
     firstSeen,
+    clusterId: clusterIdFromMemberIds(cluster.ids),
   };
 }
 
@@ -136,6 +138,7 @@ export function applyLlmHighlights(
       firstSeen: earliestPublishedAt(
         sources.map((s) => s.firstSeen || publishedAt)
       ),
+      clusterId: clusterIdFromMemberIds(items.map((i) => i.id)),
     });
   }
 

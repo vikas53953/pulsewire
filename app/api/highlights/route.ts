@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
   if (!isSectionId(sectionParam)) {
     return NextResponse.json(
       {
-        error: `Invalid section. Use one of: all, india, markets, economy, politics, sports, world, tech, xpulse`,
+        error: `Invalid section. Use one of: all, india, markets, economy, politics, sports, world, tech, xpulse, vibe, radar`,
       },
       { status: 400 }
     );

@@ -12,6 +12,7 @@ type BentoGridProps = {
   section: SectionId;
   window: TimeWindow;
   onTryWiderWindow: () => void;
+  onOpenBrief?: (item: HighlightItem) => void;
 };
 
 export function BentoGrid({
@@ -20,6 +21,7 @@ export function BentoGrid({
   section,
   window,
   onTryWiderWindow,
+  onOpenBrief,
 }: BentoGridProps) {
   if (loading) {
     return (
@@ -78,6 +80,7 @@ export function BentoGrid({
             mega={mega}
             showSection={showSection}
             index={index}
+            onOpenBrief={onOpenBrief}
           />
         </div>
       ))}

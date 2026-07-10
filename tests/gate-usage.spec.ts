@@ -56,10 +56,9 @@ test.describe("usage beacon", () => {
       test.info().project.name !== "chromium-desktop",
       "desktop once",
     );
-    await page.addInitScript(() => {
-      localStorage.removeItem("pw_onboard_dismissed");
-    });
     await page.goto("/?pwQuiet=1");
+    await page.evaluate(() => localStorage.removeItem("pw_onboard_dismissed"));
+    await page.reload();
     await expect(page.getByTestId("onboarding-line")).toBeVisible({
       timeout: 15_000,
     });

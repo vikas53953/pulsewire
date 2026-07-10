@@ -607,6 +607,15 @@ export async function getHighlights(options: {
   }
 
   // Social board only on TREND chip (early return) — news desks stay clean.
+  let sinceSummary: string | null = null;
+  if (lens === "since" && !sinceEmpty && sliced.length > 0) {
+    const { buildSinceSummaryLine } = await import("./since-summary");
+    sinceSummary = buildSinceSummaryLine({
+      scores: finalScores,
+      items: sliced,
+    });
+  }
+
   return {
     section,
     window,
@@ -619,6 +628,7 @@ export async function getHighlights(options: {
     verdict,
     scores: finalScores,
     items: sliced,
+    sinceSummary,
     xGovernor,
     xPulseUsage,
   };

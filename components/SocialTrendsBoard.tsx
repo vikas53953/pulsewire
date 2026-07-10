@@ -3,6 +3,7 @@
 import { relativeAge } from "@/lib/time";
 import type { SocialTrendsPack, TrendItem, TrendPlane } from "@/lib/types";
 import { sectionLabel } from "@/lib/types";
+import { trendAccentFromVelocity } from "@/lib/social-velocity-math";
 
 type SocialTrendsBoardProps = {
   pack: SocialTrendsPack | null | undefined;
@@ -28,15 +29,13 @@ export function xCollapsedCopy(
 /** Velocity-earned accent — color = status, never decoration. */
 export function trendAccent(
   velocity: number | undefined,
+  ratio?: number | null,
 ): "hot" | "warm" | "none" {
-  const v = velocity ?? 0;
-  if (v >= 8) return "hot";
-  if (v >= 4) return "warm";
-  return "none";
+  return trendAccentFromVelocity(velocity, ratio ?? null);
 }
 
 function TrendTile({ item }: { item: TrendItem }) {
-  const accent = trendAccent(item.velocity);
+  const accent = trendAccent(item.velocity, item.velocityRatio);
   const border =
     accent === "hot"
       ? "border-l-[3px] border-l-[var(--mega)]"

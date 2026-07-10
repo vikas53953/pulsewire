@@ -4,6 +4,7 @@ import {
 import { shortEvent } from "./copy";
 import { isLikelyDuplicate } from "./similarity";
 import { trafficLevel } from "./score";
+import { allQuietReceiptLine } from "./quiet-receipts";
 import type {
   ContentSectionId,
   HighlightItem,
@@ -328,10 +329,18 @@ export function buildVerdictTemplate(ctx: VerdictContext): VerdictPayload {
     );
   }
 
+  const receipt = allQuietReceiptLine(
+    greens.length ? greens : ctx.scores,
+    greens[0]?.section ?? "markets",
+    greens[0]?.sectionRaw ?? 0,
+  );
   return {
-    text: "All quiet across every desk. Nothing needs you right now.",
+    text: receipt
+      ? `All quiet across every desk. Nothing needs you right now. ${receipt}.`
+      : "All quiet across every desk. Nothing needs you right now.",
     level: "green",
     llmPolished: false,
+    why: receipt,
   };
 }
 

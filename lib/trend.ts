@@ -11,6 +11,13 @@ import type {
   TrendPlane,
 } from "./types";
 import { sectionLabel } from "./types";
+import {
+  formatVelocityWhy,
+  readSocialVelocitySamples,
+  velocityRatio,
+  writeSocialVelocitySample,
+} from "./social-velocity";
+import { istBucketParts } from "./history";
 
 /** Desk mix: lean — 1–2 social, a few wires. */
 const MIX_WIRES = 3;
@@ -29,6 +36,7 @@ function toTrendItem(
   section?: ContentSectionId,
   why?: string,
   velocity?: number,
+  velocityRatio?: number | null,
 ): TrendItem | null {
   const safe = sanitizeHttpUrl(url);
   if (!safe) return null;
@@ -41,13 +49,14 @@ function toTrendItem(
     section,
     why,
     velocity,
+    velocityRatio,
   };
 }
 
 function trendWhy(
   sig: SocialSignal,
   plane: "reddit" | "x",
-): string | undefined {
+): { why: string; ratio: number | null } {
   const ageMin = Math.max(
     1,
     Math.round((Date.now() - new Date(sig.publishedAt).getTime()) / 60_000),
@@ -55,21 +64,35 @@ function trendWhy(
   const ageLabel =
     ageMin < 60 ? `${ageMin}m` : `${Math.round(ageMin / 60)}h`;
   const vel = sig.velocity ?? 0;
-  const velBit =
-    vel > 0 ? ` · vel ${Number.isInteger(vel) ? vel : vel.toFixed(1)}` : "";
+  let ratio: number | null = null;
+  if (plane === "reddit" && sig.source) {
+    const { hourIst, weekdayIst } = istBucketParts();
+    const samples = readSocialVelocitySamples(sig.source, hourIst, weekdayIst);
+    ratio = velocityRatio(vel, samples);
+    // Persist sample for future baselines (best-effort)
+    writeSocialVelocitySample({
+      subreddit: sig.source,
+      plane: "reddit",
+      velocity: vel,
+    });
+  }
+  const velLabel = formatVelocityWhy(vel, sig.source, ratio);
   if (plane === "reddit") {
-    if (vel >= 8) {
-      return `Rising in ${sig.source}${velBit} · ${ageLabel}`;
+    if (vel >= 8 || (ratio != null && ratio >= 3)) {
+      return { why: `Rising in ${sig.source} · ${velLabel} · ${ageLabel}`, ratio };
     }
-    if (vel >= 4) {
-      return `Active in ${sig.source}${velBit} · ${ageLabel}`;
+    if (vel >= 4 || (ratio != null && ratio >= 1.5)) {
+      return { why: `Active in ${sig.source} · ${velLabel} · ${ageLabel}`, ratio };
     }
-    return `Surfaced from ${sig.source}${velBit} · ${ageLabel}`;
+    return {
+      why: `Surfaced from ${sig.source} · ${velLabel} · ${ageLabel}`,
+      ratio,
+    };
   }
   if (vel >= 5) {
-    return `Loud on X (${sig.source})${velBit} · ${ageLabel}`;
+    return { why: `Loud on X (${sig.source}) · ${velLabel} · ${ageLabel}`, ratio };
   }
-  return `On X · ${sig.source}${velBit} · ${ageLabel}`;
+  return { why: `On X · ${sig.source} · ${velLabel} · ${ageLabel}`, ratio };
 }
 
 function isContentSection(id: SectionId): id is ContentSectionId {
@@ -165,6 +188,7 @@ function redditForSection(
     const key = sig.url || sig.title;
     if (seen.has(key)) continue;
     seen.add(key);
+    const tw = trendWhy(sig, "reddit");
     const row = toTrendItem(
       sig.title,
       sig.url,
@@ -172,8 +196,9 @@ function redditForSection(
       sig.publishedAt,
       "reddit",
       section,
-      trendWhy(sig, "reddit"),
+      tw.why,
       sig.velocity,
+      tw.ratio,
     );
     if (!row) continue;
     out.push(row);
@@ -221,18 +246,20 @@ function xForSection(
   picked.sort((a, b) => (b.velocity ?? 0) - (a.velocity ?? 0));
   return picked
     .slice(0, cap)
-    .map((sig) =>
-      toTrendItem(
+    .map((sig) => {
+      const tw = trendWhy(sig, "x");
+      return toTrendItem(
         sig.title,
         sig.url,
         sig.source,
         sig.publishedAt,
         "x",
         section,
-        trendWhy(sig, "x"),
+        tw.why,
         sig.velocity,
-      ),
-    )
+        tw.ratio,
+      );
+    })
     .filter((row): row is TrendItem => row != null);
 }
 
@@ -257,6 +284,7 @@ function signalsToTrendItems(
     const key = sig.url || sig.title;
     if (seen.has(key)) continue;
     seen.add(key);
+    const tw = trendWhy(sig, plane);
     const row = toTrendItem(
       sig.title,
       sig.url,
@@ -264,8 +292,9 @@ function signalsToTrendItems(
       sig.publishedAt,
       plane,
       sig.section,
-      trendWhy(sig, plane),
+      tw.why,
       sig.velocity,
+      tw.ratio,
     );
     if (!row) continue;
     out.push(row);

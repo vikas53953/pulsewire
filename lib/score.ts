@@ -7,6 +7,8 @@ import {
   weightedBreadth,
 } from "./fusion";
 import { writeHistorySample } from "./history";
+import { istBucketParts, readBucketSamples } from "./history";
+import { quietDeskWhyLine } from "./quiet-receipts";
 import type {
   ContentSectionId,
   HighlightItem,
@@ -280,6 +282,27 @@ export function scoreSection(
           .map((i) => Math.round((i.heat ?? 0) * 10) / 10)
       : undefined;
 
+  const quietWhy =
+    trafficLevel(score) === "green" && !blended.calibrating
+      ? (() => {
+          const at = new Date(now);
+          const { hourIst, weekdayIst } = istBucketParts(at);
+          const samples = readBucketSamples(section, hourIst, weekdayIst, now);
+          return quietDeskWhyLine(
+            {
+              section,
+              score,
+              level: "green",
+              calibrating: false,
+              sectionRaw: raw,
+            },
+            raw,
+            samples,
+            at,
+          );
+        })()
+      : null;
+
   return {
     section,
     score,
@@ -294,6 +317,8 @@ export function scoreSection(
     socialLed: Boolean(top?.socialLed),
     topSignalState: top?.signalState,
     topTripwire: Boolean(top?.tripwire),
+    sectionRaw: raw,
+    quietWhy,
   };
 }
 

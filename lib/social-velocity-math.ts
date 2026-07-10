@@ -1,4 +1,16 @@
-import { CALIBRATING_MIN_SAMPLES, median } from "./baseline";
+/** Client-safe pure helpers — no DB / Node builtins. */
+
+const CALIBRATING_MIN_SAMPLES = 14;
+
+function median(values: number[]): number {
+  if (values.length === 0) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  if (sorted.length % 2 === 0) {
+    return (sorted[mid - 1] + sorted[mid]) / 2;
+  }
+  return sorted[mid];
+}
 
 /** Ratio of current velocity to bucket median — null when calibrating. */
 export function velocityRatio(

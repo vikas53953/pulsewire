@@ -163,3 +163,8 @@ Windows looked identical because (1) the cache was effectively window-shaped / s
 - TREND board capped lean: Reddit ≤8, X ≤6.
 - Persistent **freshness line** under chips (`Updated … · board freshness`).
 - First paint is **SSR** with real verdict + chips + tiles.
+- Verdict is a **multi-desk status judgment** (calm desks + warming clause + source count), not a single-story teaser; MKT/ECO/POL get a why line when warming/hot.
+- Quiet majority is celebrated (“Quiet is a win” + larger calm hero; hide board when ≥70% desks green).
+- Desk chips show a **why this desk moved** line on hover/focus (`pulse-why`).
+- TREND items carry a lightweight **why surfaced** line (sub/velocity/age).
+- Last-used time window remembered in `localStorage`.

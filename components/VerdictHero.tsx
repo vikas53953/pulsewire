@@ -17,18 +17,45 @@ export function VerdictHero({ verdict, quietTop }: VerdictHeroProps) {
     );
   }
 
+  const isQuiet = verdict.level === "green";
+
   return (
     <section
       data-testid="verdict-hero"
       data-level={verdict.level}
       data-llm={verdict.llmPolished ? "1" : "0"}
-      className="pw-tile relative w-full bg-[var(--card)] px-4 py-4 sm:px-5 sm:py-5"
+      data-quiet={isQuiet ? "1" : "0"}
+      className={`pw-tile relative w-full bg-[var(--card)] px-4 py-4 sm:px-5 sm:py-5 ${
+        isQuiet ? "border-[var(--ink)]/10" : ""
+      }`}
       aria-live="polite"
     >
-      <p className="m-0 text-[20px] font-black leading-snug tracking-tight text-[var(--ink)] sm:text-[22px]">
+      {isQuiet ? (
+        <p
+          data-testid="quiet-win"
+          className="m-0 mb-2 font-mono text-[10px] font-black uppercase tracking-[0.14em] opacity-55"
+        >
+          Quiet is a win
+        </p>
+      ) : null}
+      <p
+        className={`m-0 font-black leading-snug tracking-tight text-[var(--ink)] ${
+          isQuiet
+            ? "text-[22px] sm:text-[26px]"
+            : "text-[20px] sm:text-[22px]"
+        }`}
+      >
         ❝ {verdict.text} ❞
       </p>
-      {verdict.level === "green" && quietTop ? (
+      {verdict.why ? (
+        <p
+          data-testid="verdict-why"
+          className="mt-3 text-[13px] font-bold leading-snug text-[var(--ink)] opacity-70"
+        >
+          {verdict.why}
+        </p>
+      ) : null}
+      {isQuiet && quietTop ? (
         <p
           data-testid="quiet-top"
           className="mt-3 text-[12px] font-bold uppercase tracking-[0.06em] text-[var(--ink)] opacity-70"

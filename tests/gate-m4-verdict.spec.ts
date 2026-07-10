@@ -20,6 +20,23 @@ test.describe("M4 Verdict Engine", () => {
     test.skip(testInfo.project.name !== "chromium-desktop", "desktop once");
   });
 
+  test("quiet celebrates desks; hot Markets includes why-it-matters", async ({
+    request,
+  }) => {
+    const quiet = await api(request, { pwQuiet: "1", refresh: "1" });
+    expect(quiet.verdict.level).toBe("green");
+    expect(quiet.verdict.text).toMatch(/All quiet across every desk/i);
+    expect(quiet.verdict.text).toMatch(/Nothing needs you right now/i);
+
+    const hot = await api(request, { pwHotMarkets: "1", refresh: "1" });
+    expect(hot.verdict.level).toBe("red");
+    expect(hot.verdict.text).toMatch(/Markets is hot/i);
+    expect(hot.verdict.text).toMatch(/\d+ sources in \d+ min/i);
+    // Status judgment, not a lone teaser — calm desks named when present
+    expect(hot.verdict.why).toMatch(/Why it matters/i);
+    expect(hot.verdict.why).toMatch(/Markets/i);
+  });
+
   test("quiet fixture → green All quiet verdict + chips", async ({
     request,
     page,
@@ -52,8 +69,12 @@ test.describe("M4 Verdict Engine", () => {
     await expect(page.getByTestId("verdict-hero")).toContainText(/All quiet/i, {
       timeout: 10_000,
     });
+    await expect(page.getByTestId("quiet-win")).toBeVisible();
     await expect(page.getByTestId("score-chips")).toBeVisible();
     await expect(page.getByTestId("chip-markets")).toBeVisible();
+    await page.getByTestId("chip-markets").hover();
+    await expect(page.getByTestId("pulse-why")).toBeVisible();
+    await expect(page.getByTestId("pulse-why")).toContainText(/quiet|warming|hot|calibrating/i);
   });
 
   test("hot Markets fixture → red verdict naming Markets + counts", async ({

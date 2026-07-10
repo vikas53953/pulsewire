@@ -26,12 +26,24 @@ export function isHotMarketsForced(): boolean {
   return process.env.PW_HOT_MARKETS === "1" || Boolean(getOverrides().hotMarkets);
 }
 
+/** M7: X-only EARLY signal (no RSS match) — must label, never red alone. */
+export function isEarlyXForced(): boolean {
+  return process.env.PW_EARLY_X === "1" || Boolean(getOverrides().earlyX);
+}
+
+/** M7: cross-plane fusion fixture (X title matches RSS). */
+export function isFusionForced(): boolean {
+  return process.env.PW_FUSION === "1" || Boolean(getOverrides().fusion);
+}
+
 export interface TestOverrides {
   llmFail?: boolean;
   feedsDown?: boolean;
   empty?: boolean;
   quiet?: boolean;
   hotMarkets?: boolean;
+  earlyX?: boolean;
+  fusion?: boolean;
 }
 
 const globalForTest = globalThis as unknown as {
@@ -59,6 +71,8 @@ export function parseTestOverrides(searchParams: URLSearchParams): TestOverrides
     empty: searchParams.get("pwEmpty") === "1",
     quiet: searchParams.get("pwQuiet") === "1",
     hotMarkets: searchParams.get("pwHotMarkets") === "1",
+    earlyX: searchParams.get("pwEarlyX") === "1",
+    fusion: searchParams.get("pwFusion") === "1",
   };
 }
 

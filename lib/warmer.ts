@@ -28,20 +28,15 @@ export async function warmAllSections(reason: string): Promise<void> {
         `[pulsewire] warm-ok section=${section} items=${cached.entry?.items.length ?? 0}`
       );
     }
-    // Vibe warm: Reddit only. Never allowXFetch — boot must not burn x_search.
+    // M7: Reddit plane warm only — never x_search (M8 governor earns X).
     try {
-      const { getVibe } = await import("./vibe");
-      const vibe = await getVibe("4h", {
-        forceRefresh: false,
-        allowXFetch: false,
-      });
-      console.info(
-        `[pulsewire] warm-ok vibe reddit=${vibe.reddit.status} x=${vibe.xpulse.status}`,
-      );
-    } catch (vibeErr) {
+      const { getRedditSignals } = await import("./reddit-plane");
+      const signals = await getRedditSignals({ forceRefresh: true });
+      console.info(`[pulsewire] warm-ok reddit-plane signals=${signals.length}`);
+    } catch (redditErr) {
       const message =
-        vibeErr instanceof Error ? vibeErr.message : String(vibeErr);
-      console.warn(`[pulsewire] warm-fail vibe: ${message}`);
+        redditErr instanceof Error ? redditErr.message : String(redditErr);
+      console.warn(`[pulsewire] warm-fail reddit-plane: ${message}`);
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

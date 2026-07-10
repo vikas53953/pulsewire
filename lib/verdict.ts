@@ -1,9 +1,13 @@
 import {
+  canDriveRedVerdict,
+} from "./fusion";
+import {
   eightWords,
   trafficLevel,
 } from "./score";
 import type {
   ContentSectionId,
+  HighlightItem,
   SectionScore,
   TrafficLevel,
   VerdictPayload,
@@ -17,6 +21,8 @@ export interface VerdictContext {
   sinceRelative?: string;
   /** True when since-lens has zero items. */
   sinceEmpty?: boolean;
+  /** Top items per section — used for early-never-red + brewing. */
+  topItems?: HighlightItem[];
 }
 
 function byLevel(scores: SectionScore[], level: TrafficLevel): SectionScore[] {
@@ -25,9 +31,20 @@ function byLevel(scores: SectionScore[], level: TrafficLevel): SectionScore[] {
     .sort((a, b) => b.score - a.score);
 }
 
+function topItemFor(
+  section: ContentSectionId,
+  items: HighlightItem[] | undefined,
+): HighlightItem | undefined {
+  if (!items?.length) return undefined;
+  return items
+    .filter((i) => !i.section || i.section === section)
+    .sort((a, b) => (b.heat ?? 0) - (a.heat ?? 0))[0];
+}
+
 /**
- * Deterministic verdict templates (SPEC v2 §3).
- * LLM may polish later but must never invent the verdict.
+ * Deterministic verdict templates (SPEC v2 §3 + v4 fusion rules).
+ * EARLY never drives red alone — max yellow "brewing".
+ * Tripwire exception: official source = confirmed.
  */
 export function buildVerdictTemplate(ctx: VerdictContext): VerdictPayload {
   if (ctx.lens === "since" && ctx.sinceEmpty) {
@@ -39,9 +56,28 @@ export function buildVerdictTemplate(ctx: VerdictContext): VerdictPayload {
     };
   }
 
-  const reds = byLevel(ctx.scores, "red");
+  let reds = byLevel(ctx.scores, "red");
   const yellows = byLevel(ctx.scores, "yellow");
   const greens = byLevel(ctx.scores, "green");
+
+  // SPEC v4: demote reds whose top cluster is EARLY/BUILDING (unless tripwire)
+  const confirmedReds: SectionScore[] = [];
+  const brewingFromFakeRed: SectionScore[] = [];
+  for (const s of reds) {
+    const top = topItemFor(s.section, ctx.topItems);
+    const state = top?.signalState ?? s.topSignalState ?? "confirmed";
+    const trip = Boolean(top?.tripwire || s.topTripwire);
+    if (trip || state === "confirmed") {
+      confirmedReds.push(s);
+    } else if (state === "early" || state === "building" || s.socialLed) {
+      brewingFromFakeRed.push(s);
+    } else if (!top || canDriveRedVerdict(top)) {
+      confirmedReds.push(s);
+    } else {
+      brewingFromFakeRed.push(s);
+    }
+  }
+  reds = confirmedReds;
 
   if (reds.length >= 2) {
     const a = reds[0];
@@ -56,7 +92,7 @@ export function buildVerdictTemplate(ctx: VerdictContext): VerdictPayload {
   if (reds.length === 1) {
     const s = reds[0];
     const story = eightWords(s.topText ?? "breaking story");
-    const breadth = s.topBreadth ?? s.topVelocity ?? 2;
+    const breadth = Math.round(s.topBreadth ?? s.topVelocity ?? 2);
     const span = s.topSpanMinutes ?? 40;
     return {
       text: `🔴 ${sectionLabel(s.section)} is hot — ${story}, ${breadth} sources in ${span} min.`,
@@ -65,10 +101,29 @@ export function buildVerdictTemplate(ctx: VerdictContext): VerdictPayload {
     };
   }
 
-  if (yellows.length === 1 && reds.length === 0) {
+  // Brewing template — yellow max (EARLY social heat)
+  const brewing =
+    brewingFromFakeRed[0] ||
+    yellows.find((s) => s.socialLed || s.topSignalState === "early") ||
+    null;
+  if (brewing && reds.length === 0) {
+    return {
+      text: `Something's brewing in ${sectionLabel(brewing.section)} — loud on X, no wire confirmation yet.`,
+      level: "yellow",
+      llmPolished: false,
+    };
+  }
+
+  if (yellows.length >= 1 && reds.length === 0) {
     const s = yellows[0];
     const story = eightWords(s.topText ?? "developing story");
-    // "one 🟡, rest 🟢" — if multiple yellow, still lead with hottest yellow
+    if (s.socialLed || s.topSignalState === "early") {
+      return {
+        text: `Something's brewing in ${sectionLabel(s.section)} — loud on X, no wire confirmation yet.`,
+        level: "yellow",
+        llmPolished: false,
+      };
+    }
     if (yellows.length === 1 || greens.length + yellows.length === ctx.scores.length) {
       return {
         text: `Mostly quiet. ${sectionLabel(s.section)} is warming up — ${story}.`,
@@ -76,11 +131,6 @@ export function buildVerdictTemplate(ctx: VerdictContext): VerdictPayload {
         llmPolished: false,
       };
     }
-  }
-
-  if (yellows.length >= 1 && reds.length === 0) {
-    const s = yellows[0];
-    const story = eightWords(s.topText ?? "developing story");
     return {
       text: `Mostly quiet. ${sectionLabel(s.section)} is warming up — ${story}.`,
       level: "yellow",
@@ -105,7 +155,6 @@ export async function polishVerdict(
     const polished = await polishFn(template.text);
     if (!polished) return template;
     const clipped = polished.trim().slice(0, 140);
-    // Must still mention a traffic signal word or keep structure — soft check
     return {
       text: clipped || template.text,
       level: template.level,

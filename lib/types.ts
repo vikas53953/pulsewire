@@ -22,6 +22,18 @@ export type Lens = "window" | "since";
 
 export type TrafficLevel = "green" | "yellow" | "red";
 
+/** SPEC v4 signal state — unlabeled EARLY is a gate-failing offense. */
+export type SignalState = "early" | "building" | "confirmed";
+
+export type PlaneId = "rss" | "reddit" | "x" | "tripwire";
+
+export interface PlaneEvidence {
+  plane: PlaneId;
+  source: string;
+  url?: string;
+  firstSeen?: string;
+}
+
 export interface FeedConfig {
   section: ContentSectionId;
   name: string;
@@ -59,6 +71,15 @@ export interface HighlightItem {
   firstSeen?: string;
   /** Stable id for Brief cache (hash of member raw ids). */
   clusterId?: string;
+  /** Multi-plane evidence (SPEC v4 fusion). */
+  evidence?: PlaneEvidence[];
+  signalState?: SignalState;
+  /** Official radar tripwire → confirmed by definition. */
+  tripwire?: boolean;
+  /** Earliest social (X/Reddit) sighting — for Brief "first seen on X". */
+  firstSocialAt?: string;
+  /** Heat driven primarily by unconfirmed social. */
+  socialLed?: boolean;
 }
 
 export interface SectionScore {
@@ -73,6 +94,11 @@ export interface SectionScore {
   topSpanMinutes?: number;
   /** Tiny heat series for 🔴 chip sparkline (newest last). */
   velocitySpark?: number[];
+  /** Chip shows ⚡ when section heat is social-led (EARLY/BUILDING). */
+  socialLed?: boolean;
+  /** Top cluster signal state for verdict rules. */
+  topSignalState?: SignalState;
+  topTripwire?: boolean;
 }
 
 export interface VerdictPayload {
@@ -105,9 +131,10 @@ export const SECTIONS: { id: SectionId; label: string; chip: string }[] = [
   { id: "sports", label: "Sports", chip: "SPT" },
   { id: "world", label: "World", chip: "WLD" },
   { id: "tech", label: "Tech", chip: "TEC" },
+  // vibe/radar kept as SectionId for API compat; chips removed in M7 UI
   { id: "vibe", label: "Vibe", chip: "VIBE" },
   { id: "xpulse", label: "X Pulse", chip: "X" },
-  { id: "radar", label: "Radar", chip: "RADAR 📡" },
+  { id: "radar", label: "Radar", chip: "RADAR" },
 ];
 
 /** Content sections in Markets-first wedge order for chips. */

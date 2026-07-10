@@ -16,6 +16,8 @@ export interface BriefPayload {
   rawMode: boolean;
   cached: boolean;
   sources: { name: string; url: string }[];
+  /** SPEC v4 — social-led clusters only. */
+  socialFirst?: string;
 }
 
 function ensureBriefsTable(): void {
@@ -178,10 +180,16 @@ export async function getBrief(input: {
   title: string;
   sources: { name: string; url: string }[];
   forceRaw?: boolean;
+  socialFirst?: string;
 }): Promise<BriefPayload> {
   const cached = readCached(input.clusterId);
   if (cached) {
-    return { ...cached, sources: input.sources, title: cached.title || input.title };
+    return {
+      ...cached,
+      sources: input.sources,
+      title: cached.title || input.title,
+      socialFirst: input.socialFirst || cached.socialFirst,
+    };
   }
 
   const forceRaw =
@@ -199,6 +207,7 @@ export async function getBrief(input: {
       rawMode: true,
       cached: false,
       sources: input.sources,
+      socialFirst: input.socialFirst,
     };
     writeCache({
       clusterId: input.clusterId,
@@ -231,6 +240,7 @@ export async function getBrief(input: {
     rawMode,
     cached: false,
     sources: input.sources,
+    socialFirst: input.socialFirst,
   };
 }
 

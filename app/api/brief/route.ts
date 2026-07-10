@@ -11,6 +11,7 @@ export async function POST(request: NextRequest) {
     title?: string;
     sources?: { name: string; url: string }[];
     action?: string;
+    socialFirst?: string;
   };
 
   if (body.action === "reset" && isTestMode()) {
@@ -39,6 +40,7 @@ export async function POST(request: NextRequest) {
       title,
       sources,
       forceRaw,
+      socialFirst: body.socialFirst,
     });
     return NextResponse.json(brief, {
       headers: { "Cache-Control": "no-store, max-age=0" },

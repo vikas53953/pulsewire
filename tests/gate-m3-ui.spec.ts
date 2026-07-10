@@ -10,7 +10,7 @@ async function waitForShell(page: Page) {
 }
 
 async function ensureWindowLens(page: Page) {
-  // First visit: By time is default and only pills show (no dual lens chrome).
+  // First visit: time pills only (no dual lens chrome / “By time” label).
   await expect(page.getByTestId("pill-4h")).toBeVisible({ timeout: 5_000 });
 }
 

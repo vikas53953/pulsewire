@@ -15,9 +15,9 @@ import { sectionLabel } from "./types";
 const MIX_WIRES = 3;
 const MIX_SOCIAL = 2;
 
-/** Full board: show the whole social picture. */
-const FULL_REDDIT_CAP = 40;
-const FULL_X_CAP = 20;
+/** Full TREND board — lean high-signal only (Soft-ship: not another dense feed). */
+const FULL_REDDIT_CAP = 8;
+const FULL_X_CAP = 6;
 
 function toTrendItem(
   title: string,

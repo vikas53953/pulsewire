@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
+import { assignTileTones } from "@/components/HighlightTile";
+import { xCollapsedCopy } from "@/components/SocialTrendsBoard";
 import { pulseWhy } from "@/lib/copy";
-import { suppressNoise, dedupeBoard } from "@/lib/rank";
+import { suppressNoise, dedupeBoard, rankAndCapForWindow } from "@/lib/rank";
 import { isSafeHttpUrl, sanitizeHttpUrl } from "@/lib/safe-url";
 import { storyHeat, trafficLevel, saturateScore } from "@/lib/score";
-import { isLikelyDuplicate } from "@/lib/similarity";
+import { isLikelyDuplicate, stripPublisherSuffix } from "@/lib/similarity";
 import { buildVerdictTemplate, verdictWhy } from "@/lib/verdict";
 import { median, mad } from "@/lib/baseline";
 import type { HighlightItem, SectionScore } from "@/lib/types";
@@ -36,6 +38,35 @@ describe("similarity", () => {
         0.6,
       ),
     ).toBe(true);
+  });
+
+  it("stripPublisherSuffix keeps hyphenated headlines; strips spaced publishers", () => {
+    const mustSurvive = [
+      "Ex-RBI governor flags inflation risk after policy meet",
+      "Modi-Putin call covers trade and energy ties",
+      "India wins in the last-over thriller against Australia",
+      "Two planes in mid-air near-miss over Delhi airport",
+      "Co-founder of fintech startup steps down amid probe",
+      "Anti-corruption bureau raids offices in three states",
+      "US-China talks stall over semiconductor export rules",
+      "Paramount-Skydance deal clears another regulatory hurdle",
+      "Bank stocks under-perform as FIIs stay on sidelines",
+      "T20 World Cup: India vs Pakistan on Sunday",
+    ];
+    for (const title of mustSurvive) {
+      expect(stripPublisherSuffix(title)).toBe(title);
+    }
+    expect(stripPublisherSuffix("Some headline - The Hindu")).toBe(
+      "Some headline",
+    );
+    expect(
+      stripPublisherSuffix("Another one with pipe | Times of India"),
+    ).toBe("Another one with pipe");
+    // Refusal: would leave a stub
+    expect(stripPublisherSuffix("US - CNN")).toBe("US - CNN");
+    expect(stripPublisherSuffix("Paramount - Variety")).toBe(
+      "Paramount - Variety",
+    );
   });
 });
 
@@ -375,5 +406,95 @@ describe("verdict why de-dupe", () => {
     expect(v.why!).toMatch(/Watch:/i);
     expect(v.why!).not.toMatch(/Sensex|plunges|FII/i);
     expect(v.text).toMatch(/Sensex/i);
+  });
+
+  it("red India verdict gets a Watch line", () => {
+    const why = verdictWhy(
+      score({
+        section: "india",
+        score: 78,
+        level: "red",
+        topText: "Kerala medical student killed in Uzbekistan",
+        topBreadth: 3,
+      }),
+    );
+    expect(why).toBeTruthy();
+    expect(why!).toMatch(/Watch:/i);
+    expect(why!).toMatch(/India/i);
+  });
+});
+
+describe("mega-slot guard", () => {
+  it("titles under 15 chars are ineligible for mega", () => {
+    const short: HighlightItem = {
+      text: "US",
+      sources: [
+        { name: "A", url: "https://a.example" },
+        { name: "B", url: "https://b.example" },
+        { name: "C", url: "https://c.example" },
+      ],
+      publishedAt: new Date().toISOString(),
+      hot: true,
+      heat: 40,
+    };
+    const long: HighlightItem = {
+      text: "Sensex jumps as FIIs return to Indian banks",
+      sources: [
+        { name: "A", url: "https://a.example" },
+        { name: "B", url: "https://b.example" },
+        { name: "C", url: "https://c.example" },
+      ],
+      publishedAt: new Date().toISOString(),
+      hot: true,
+      heat: 30,
+    };
+    const assigned = assignTileTones([short, long]);
+    expect(assigned.find((a) => a.item.text === "US")?.mega).toBe(false);
+    expect(
+      assigned.find((a) => a.item.text.startsWith("Sensex"))?.mega,
+    ).toBe(true);
+  });
+});
+
+describe("X collapsed honesty", () => {
+  it("never says quiet for needs_key or failed", () => {
+    expect(xCollapsedCopy("needs_key")).toMatch(/not configured/i);
+    expect(xCollapsedCopy("needs_key")).not.toMatch(/quiet/i);
+    expect(xCollapsedCopy("failed")).toMatch(/not quiet/i);
+    expect(xCollapsedCopy("quiet")).toMatch(/quiet/i);
+  });
+});
+
+describe("24h age-bucket ranking", () => {
+  it("includes a multi-source story older than 12h when the pool has one", () => {
+    const now = Date.now();
+    const mk = (
+      text: string,
+      ageHours: number,
+      breadth: number,
+    ): HighlightItem => ({
+      text,
+      sources: Array.from({ length: breadth }, (_, i) => ({
+        name: `S${i}`,
+        url: `https://example.com/${text.slice(0, 8)}-${i}`,
+        firstSeen: new Date(now - ageHours * 3600_000).toISOString(),
+      })),
+      publishedAt: new Date(now - ageHours * 3600_000).toISOString(),
+      hot: breadth >= 2,
+    });
+    const pool = [
+      mk("Fresh FII inflow lifts Sensex in afternoon trade", 1, 3),
+      mk("Banks rally as RBI commentary lands on wires", 2, 3),
+      mk("IT stocks bounce after weak open in Mumbai", 3, 2),
+      mk("Nifty holds range into the evening session", 4, 2),
+      mk("Rupee steady against dollar in late trade", 5, 2),
+      mk("Morning RBI briefing across three major wires", 18, 3),
+    ];
+    const ranked = rankAndCapForWindow(pool, "24h", 8, now);
+    const older = ranked.filter(
+      (i) => now - new Date(i.publishedAt).getTime() > 12 * 3600_000,
+    );
+    expect(older.length).toBeGreaterThanOrEqual(1);
+    expect(older.some((i) => /Morning RBI briefing/i.test(i.text))).toBe(true);
   });
 });

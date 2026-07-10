@@ -292,11 +292,14 @@ export function buildTrendPack(input: {
 /**
  * Full social board — all Reddit + all X across every category.
  * `excludeFromMix` removes anything already shown in the lean desk mix.
+ * When X is unconfigured, status is `needs_key` — never fake quiet.
  */
 export function buildSocialTrendsPack(input: {
   reddit: SocialSignal[];
   x: SocialSignal[];
   excludeFromMix?: TrendItem[];
+  /** False when LLM_API_KEY is missing (live). Test mode always configured. */
+  xConfigured?: boolean;
 }): SocialTrendsPack {
   const exclude = input.excludeFromMix ?? [];
   const redditAll = excludeMixDupes(
@@ -308,11 +311,24 @@ export function buildSocialTrendsPack(input: {
     exclude.filter((i) => i.plane === "x"),
   );
 
+  let xPlane: TrendPlane;
+  if (xAll.length > 0) {
+    xPlane = planeStatus(xAll, "Quiet on X — no earned/cached pulse yet.");
+  } else if (input.xConfigured === false) {
+    xPlane = {
+      status: "needs_key",
+      items: [],
+      note: "X plane off — no API key configured",
+    };
+  } else {
+    xPlane = planeStatus(xAll, "Quiet on X — no earned/cached pulse yet.");
+  }
+
   return {
     reddit: planeStatus(
       redditAll,
       "Quiet on Reddit — fetched, nothing trending.",
     ),
-    x: planeStatus(xAll, "Quiet on X — no earned/cached pulse yet."),
+    x: xPlane,
   };
 }

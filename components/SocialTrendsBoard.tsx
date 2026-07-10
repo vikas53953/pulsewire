@@ -9,6 +9,22 @@ type SocialTrendsBoardProps = {
   loading?: boolean;
 };
 
+/** Collapsed X copy — never claim quiet when blind or broken. */
+export function xCollapsedCopy(
+  status: TrendPlane["status"] | undefined,
+): string {
+  switch (status) {
+    case "needs_key":
+      return "Reddit only — X not configured";
+    case "failed":
+      return "X errored — not quiet";
+    case "pending":
+      return "X pending — not quiet yet";
+    default:
+      return "X quiet — no earned pulse right now.";
+  }
+}
+
 function Column({
   title,
   testId,
@@ -42,12 +58,21 @@ function Column({
         <p className="m-0 text-[13px] font-bold opacity-45">Loading…</p>
       ) : null}
 
+      {status === "needs_key" ? (
+        <p
+          data-testid={`${testId}-needs-key`}
+          className="m-0 text-[13px] font-bold opacity-45"
+        >
+          {note || "X plane off — no API key configured"}
+        </p>
+      ) : null}
+
       {status === "failed" ? (
         <p
           data-testid={`${testId}-failed`}
           className="m-0 text-[13px] font-bold text-[var(--mega)]"
         >
-          {note || "Fetch failed"}
+          {note || "Fetch failed — not quiet"}
         </p>
       ) : null}
 
@@ -116,8 +141,11 @@ export function SocialTrendsBoard({ pack, loading }: SocialTrendsBoardProps) {
   const redditOk =
     pack.reddit?.status === "ok" && (pack.reddit.items?.length ?? 0) > 0;
   const xOk = pack.x?.status === "ok" && (pack.x.items?.length ?? 0) > 0;
-  // Dead half-panel looks broken — collapse to one column when X is empty.
+  const xStatus = pack.x?.status ?? "quiet";
+  // Hide the empty X column when Reddit is the only live plane — but never
+  // claim "quiet" when the plane is unconfigured or failed.
   const dual = redditOk && xOk;
+  const collapseX = redditOk && !xOk;
 
   return (
     <section
@@ -146,21 +174,21 @@ export function SocialTrendsBoard({ pack, loading }: SocialTrendsBoardProps) {
           plane={pack.reddit}
           emptyHint="Quiet on Reddit"
         />
-        {xOk || !redditOk ? (
+        {collapseX ? (
+          <p
+            data-testid="social-trends-x"
+            data-status={xStatus}
+            className="m-0 text-[12px] font-bold opacity-45"
+          >
+            {xCollapsedCopy(xStatus)}
+          </p>
+        ) : (
           <Column
             title="On X"
             testId="social-trends-x"
             plane={pack.x}
             emptyHint="Quiet on X"
           />
-        ) : (
-          <p
-            data-testid="social-trends-x"
-            data-status={pack.x?.status ?? "quiet"}
-            className="m-0 text-[12px] font-bold opacity-45"
-          >
-            X quiet — no earned pulse right now.
-          </p>
         )}
       </div>
     </section>

@@ -100,8 +100,12 @@ export function computeWeightedVelocity(
   return max;
 }
 
-export function recencyWeight(ageHours: number): number {
-  return Math.exp(-ageHours / 6);
+export function recencyWeight(ageHours: number, windowHours = 24): number {
+  // ≤4h keeps legacy τ=6 (scan windows). 12h/24h scale up so morning
+  // stories retain heat inside their age band — τ=window/4 alone left 24h
+  // identical to before and made 4h crush the board.
+  const tau = windowHours <= 4 ? 6 : Math.max(6, windowHours / 2);
+  return Math.exp(-ageHours / tau);
 }
 
 /** Breadth + velocity (+ plane bonus) with no recency — real signal only. */
@@ -119,9 +123,12 @@ export function storyHeat(input: {
   breadth: number;
   velocity: number;
   ageHours: number;
+  windowHours?: number;
 }): number {
-  const { breadth, velocity, ageHours } = input;
-  return storyBaseHeat({ breadth, velocity }) * recencyWeight(ageHours);
+  const { breadth, velocity, ageHours, windowHours = 24 } = input;
+  return (
+    storyBaseHeat({ breadth, velocity }) * recencyWeight(ageHours, windowHours)
+  );
 }
 
 /** Pulse Score v2 — fusion-aware (SPEC v4 §3). */
@@ -130,13 +137,14 @@ export function storyHeatV2(input: {
   velocity: number;
   ageHours: number;
   planes: Set<string>;
+  windowHours?: number;
 }): number {
   return (
     storyBaseHeat({
       breadth: input.breadth,
       velocity: input.velocity,
       planes: input.planes,
-    }) * recencyWeight(input.ageHours)
+    }) * recencyWeight(input.ageHours, input.windowHours ?? 24)
   );
 }
 
@@ -163,7 +171,8 @@ function defaultEvidence(item: HighlightItem): PlaneEvidence[] {
 
 export function enrichItemHeat(
   item: HighlightItem,
-  now = Date.now()
+  now = Date.now(),
+  windowHours = 24,
 ): HighlightItem {
   const evidence = defaultEvidence(item);
   const firstSeens = evidence
@@ -181,7 +190,7 @@ export function enrichItemHeat(
   );
   const planes = planesPresent(evidence);
   const baseHeat = storyBaseHeat({ breadth, velocity, planes });
-  const heat = baseHeat * recencyWeight(ageHours);
+  const heat = baseHeat * recencyWeight(ageHours, windowHours);
   const rssCount = evidence.filter(
     (e) => e.plane === "rss" || e.plane === "tripwire"
   ).length;

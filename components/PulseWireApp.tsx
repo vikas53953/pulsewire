@@ -493,6 +493,11 @@ export function PulseWireApp({ initialData = null }: PulseWireAppProps) {
           scores={data?.scores ?? []}
           active={chipActive}
           onSelect={onChipSelect}
+          drivingSection={
+            !isTrend && data?.verdict?.drivingSection
+              ? data.verdict.drivingSection
+              : null
+          }
         />
 
         <FreshnessLine

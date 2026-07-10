@@ -193,3 +193,8 @@ Windows looked identical because (1) the cache was effectively window-shaped / s
 - Anonymous usage: `pw_device` + `/api/usage` + SQLite `usage` (schema v2); health exposes counters.
 - Beta token compare is constant-time; health reports DB basename only.
 - Brief `→ brief` hint on tiles; first-visit onboarding line (localStorage dismiss).
+## Beta-week polish (Fable items 1 / 3 / 7)
+
+- **Verdict why** is action/invalidation only — never re-quotes the event headline already in the verdict + hero tile. Yellow: “if X cools without a second wave…”. Red/early: open desk / don’t act on social alone.
+- **`drivingSection`** on the verdict payload; chip row gives that desk sticker-yellow emphasis + a dot while ALL (or another desk) is selected.
+- **Calibrating:** drop cryptic `~`; mute the pulse badge; one-time explainer (“Pulse gets accurate after ~2 weeks of history”).

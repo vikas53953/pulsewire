@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { pulseWhy } from "@/lib/copy";
 import type {
   ContentSectionId,
@@ -17,6 +17,8 @@ type ScoreChipsProps = {
   scores: SectionScore[];
   active: ChipId;
   onSelect: (section: ChipId) => void;
+  /** Desk named in the verdict — subtle emphasis so users re-find it fast. */
+  drivingSection?: ContentSectionId | null;
 };
 
 const LEVEL_DOT: Record<string, string> = {
@@ -25,6 +27,8 @@ const LEVEL_DOT: Record<string, string> = {
   red: "🔴",
   unknown: "⚪",
 };
+
+const CALIBRATING_KEY = "pw_calibrating_explained";
 
 function Spark({ values }: { values: number[] }) {
   if (!values.length) return null;
@@ -59,18 +63,37 @@ function Spark({ values }: { values: number[] }) {
   );
 }
 
-const chipBtn = (selected: boolean) =>
+const chipBtn = (selected: boolean, driving: boolean) =>
   `min-h-11 shrink-0 rounded-full border-2 border-[var(--ink)] px-3 py-2 font-mono text-[12px] font-black uppercase tracking-wide transition-[transform,box-shadow,background-color] duration-[120ms] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)] ${
     selected
       ? "bg-[var(--sticker)] shadow-[3px_3px_0_var(--shadow)]"
-      : "bg-[var(--card)] shadow-none"
+      : driving
+        ? "bg-[var(--sticker)]/70 shadow-[2px_2px_0_var(--shadow)]"
+        : "bg-[var(--card)] shadow-none"
   }`;
 
-export function ScoreChips({ scores, active, onSelect }: ScoreChipsProps) {
+export function ScoreChips({
+  scores,
+  active,
+  onSelect,
+  drivingSection = null,
+}: ScoreChipsProps) {
   const byId = new Map(scores.map((s) => [s.section, s]));
   const [peek, setPeek] = useState<ContentSectionId | null>(null);
   const peekScore = peek ? byId.get(peek) : undefined;
   const whyLine = peekScore ? pulseWhy(peekScore) : null;
+  const anyCalibrating = scores.some((s) => s.calibrating && !s.unknown);
+  const [showCalExplainer, setShowCalExplainer] = useState(false);
+
+  useEffect(() => {
+    if (!anyCalibrating) return;
+    try {
+      if (localStorage.getItem(CALIBRATING_KEY) === "1") return;
+      setShowCalExplainer(true);
+    } catch {
+      // private mode — skip
+    }
+  }, [anyCalibrating]);
 
   return (
     <div className="flex flex-col gap-2">
@@ -91,7 +114,7 @@ export function ScoreChips({ scores, active, onSelect }: ScoreChipsProps) {
           onClick={() => onSelect("all")}
           onFocus={() => setPeek(null)}
           onMouseEnter={() => setPeek(null)}
-          className={chipBtn(active === "all")}
+          className={chipBtn(active === "all", false)}
         >
           ALL
         </button>
@@ -101,6 +124,7 @@ export function ScoreChips({ scores, active, onSelect }: ScoreChipsProps) {
           const value = unknown ? 0 : (score?.score ?? 0);
           const level = (score?.level ?? "green") as TrafficLevel;
           const selected = active === id;
+          const driving = Boolean(drivingSection === id && !selected);
           const calibrating = Boolean(score?.calibrating) && !unknown;
           const socialLed = Boolean(score?.socialLed) && !unknown;
           const why = score
@@ -118,6 +142,7 @@ export function ScoreChips({ scores, active, onSelect }: ScoreChipsProps) {
               data-score={unknown ? "" : String(value)}
               data-unknown={unknown ? "1" : "0"}
               data-calibrating={calibrating ? "1" : "0"}
+              data-driving={driving ? "1" : "0"}
               data-social-led={socialLed ? "1" : "0"}
               title={why}
               onClick={() => onSelect(id)}
@@ -125,13 +150,28 @@ export function ScoreChips({ scores, active, onSelect }: ScoreChipsProps) {
               onMouseEnter={() => setPeek(id)}
               onMouseLeave={() => setPeek((cur) => (cur === id ? null : cur))}
               onBlur={() => setPeek((cur) => (cur === id ? null : cur))}
-              className={`${chipBtn(selected)} inline-flex items-center gap-1.5`}
+              className={`${chipBtn(selected, driving)} inline-flex items-center gap-1.5`}
             >
               <span>{sectionChip(id)}</span>
+              {driving ? (
+                <span
+                  data-testid={`driving-dot-${id}`}
+                  className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--ink)]"
+                  aria-hidden
+                />
+              ) : null}
               <span
                 data-testid={`pulse-num-${id}`}
-                aria-label={unknown ? "Pulse unknown" : `Pulse ${value}`}
+                aria-label={
+                  unknown
+                    ? "Pulse unknown"
+                    : calibrating
+                      ? `Pulse ${value}, still calibrating`
+                      : `Pulse ${value}`
+                }
                 className={`inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[13px] font-black tabular-nums leading-none ${
+                  calibrating ? "opacity-45" : ""
+                } ${
                   selected
                     ? "bg-[var(--ink)]/10"
                     : unknown
@@ -158,9 +198,9 @@ export function ScoreChips({ scores, active, onSelect }: ScoreChipsProps) {
               {calibrating ? (
                 <span
                   data-testid={`calibrating-${id}`}
-                  className="ml-0.5 text-[9px] opacity-60"
+                  className="sr-only"
                 >
-                  ~
+                  calibrating
                 </span>
               ) : null}
               {!unknown && level === "red" && score?.velocitySpark?.length ? (
@@ -178,11 +218,38 @@ export function ScoreChips({ scores, active, onSelect }: ScoreChipsProps) {
           onClick={() => onSelect("trend")}
           onFocus={() => setPeek(null)}
           onMouseEnter={() => setPeek(null)}
-          className={chipBtn(active === "trend")}
+          className={chipBtn(active === "trend", false)}
         >
           TREND
         </button>
       </div>
+      {showCalExplainer ? (
+        <p
+          data-testid="calibrating-explainer"
+          className="m-0 flex items-start gap-2 text-[12px] leading-snug text-[var(--muted)]"
+          role="status"
+        >
+          <span className="min-w-0 flex-1">
+            Pulse gets accurate after ~2 weeks of history — muted scores are
+            still learning a normal hour.
+          </span>
+          <button
+            type="button"
+            data-testid="calibrating-dismiss"
+            className="shrink-0 text-[11px] font-bold uppercase tracking-wide text-[var(--ink)] underline decoration-[var(--muted)] underline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)]"
+            onClick={() => {
+              try {
+                localStorage.setItem(CALIBRATING_KEY, "1");
+              } catch {
+                // ignore
+              }
+              setShowCalExplainer(false);
+            }}
+          >
+            Got it
+          </button>
+        </p>
+      ) : null}
       {whyLine ? (
         <p
           id="pulse-why-line"
@@ -197,7 +264,7 @@ export function ScoreChips({ scores, active, onSelect }: ScoreChipsProps) {
           className="m-0 px-0.5 font-mono text-[10px] font-bold uppercase tracking-[0.06em] opacity-55"
         >
           Pulse 0–100 vs a normal hour · 🟢 quiet · 🟡 warming · 🔴 hot · ⚪
-          unknown · ~ calibrating · ⚡ social-led · hover a chip for why
+          unknown · muted = calibrating · ⚡ social-led · hover a chip for why
         </p>
       )}
     </div>

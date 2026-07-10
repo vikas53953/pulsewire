@@ -187,7 +187,9 @@ export async function getBrief(input: {
   const forceRaw =
     input.forceRaw ||
     (isTestMode() && isLlmFailForced()) ||
-    (!isTestMode() && !isLlmConfigured());
+    (!isTestMode() && !isLlmConfigured()) ||
+    // Cost guard — Brief LLM off unless LLM_SUMMARIZE=1
+    (!isTestMode() && (process.env.LLM_SUMMARIZE ?? "0").trim() !== "1");
 
   if (forceRaw) {
     const payload: BriefPayload = {

@@ -28,10 +28,13 @@ export async function warmAllSections(reason: string): Promise<void> {
         `[pulsewire] warm-ok section=${section} items=${cached.entry?.items.length ?? 0}`
       );
     }
-    // Vibe is a separate route — warm so chip click isn't the first fetch.
+    // Vibe warm: Reddit only. Never allowXFetch — boot must not burn x_search.
     try {
       const { getVibe } = await import("./vibe");
-      const vibe = await getVibe("4h", { forceRefresh: true });
+      const vibe = await getVibe("4h", {
+        forceRefresh: false,
+        allowXFetch: false,
+      });
       console.info(
         `[pulsewire] warm-ok vibe reddit=${vibe.reddit.status} x=${vibe.xpulse.status}`,
       );

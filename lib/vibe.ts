@@ -181,7 +181,10 @@ async function loadRedditColumn(): Promise<VibeColumn> {
   };
 }
 
-async function loadXColumn(window: TimeWindow): Promise<{
+async function loadXColumn(
+  window: TimeWindow,
+  opts?: { allowXFetch?: boolean },
+): Promise<{
   column: VibeColumn;
   usage?: { month: string; used: number; cap: number };
 }> {
@@ -205,8 +208,28 @@ async function loadXColumn(window: TimeWindow): Promise<{
     };
   }
 
+  const allowXFetch = opts?.allowXFetch !== false;
+
   try {
-    const xRes = await getXPulseHighlights({ window, forceRefresh: true });
+    // Cost: never force X refresh from Vibe — share X Pulse cache.
+    // Warmer passes allowXFetch=false so boot does not burn x_search.
+    if (!allowXFetch) {
+      const { getCache } = await import("./cache");
+      const { getXPulseUsage } = await import("./x-pulse");
+      const cached = getCache("xpulse");
+      if (!cached.entry || cached.entry.items.length === 0) {
+        return {
+          column: {
+            status: "pending",
+            items: [],
+            note: "Not fetched yet — open Vibe (or X Pulse) once to spend 1 x_search.",
+          },
+          usage: getXPulseUsage(),
+        };
+      }
+    }
+
+    const xRes = await getXPulseHighlights({ window, forceRefresh: false });
     const items: VibeItem[] = (xRes.items || []).slice(0, 5).map((i) => ({
       title: i.text,
       url: i.sources[0]?.url || "https://x.com",
@@ -230,7 +253,7 @@ async function loadXColumn(window: TimeWindow): Promise<{
       column: {
         status: "ok",
         items,
-        note: "Live X Pulse via x_search.",
+        note: "Live X Pulse via x_search (cached).",
       },
       usage: xRes.xPulseUsage,
     };
@@ -248,7 +271,7 @@ async function loadXColumn(window: TimeWindow): Promise<{
 
 export async function getVibe(
   window: TimeWindow = "4h",
-  opts?: { forceRefresh?: boolean }
+  opts?: { forceRefresh?: boolean; allowXFetch?: boolean },
 ): Promise<VibeResponse> {
   const hit = globalForVibe.__pulsewireVibe;
   if (
@@ -257,14 +280,16 @@ export async function getVibe(
     Date.now() - hit.at < 5 * 60_000 &&
     hit.payload.reddit.status === "ok" &&
     (hit.payload.xpulse.status === "ok" ||
-      hit.payload.xpulse.status === "needs_key")
+      hit.payload.xpulse.status === "needs_key" ||
+      hit.payload.xpulse.status === "quiet" ||
+      hit.payload.xpulse.status === "pending")
   ) {
     return hit.payload;
   }
 
   const [reddit, xPack] = await Promise.all([
     loadRedditColumn(),
-    loadXColumn(window),
+    loadXColumn(window, { allowXFetch: opts?.allowXFetch }),
   ]);
 
   const payload: VibeResponse = {

@@ -86,7 +86,11 @@ async function fetchOneFeed(
 
     for (const entry of parsed.items ?? []) {
       const rawTitle = stripHtml(entry.title ?? "");
-      const title = stripPublisherSuffix(rawTitle) || rawTitle;
+      // Publisher suffix is a Google News artifact — never strip direct RSS.
+      const fromGoogleNews = feed.name.startsWith("Google News");
+      const title = fromGoogleNews
+        ? stripPublisherSuffix(rawTitle) || rawTitle
+        : rawTitle;
       const url = sanitizeHttpUrl(entry.link || entry.guid || "");
       if (!title || !url) continue;
 
@@ -100,10 +104,9 @@ async function fetchOneFeed(
         entry.contentSnippet || entry.content || entry.summary || ""
       ).slice(0, 280);
 
-      const source =
-        feed.name.startsWith("Google News")
-          ? sourceLabelFromTitle(rawTitle, feed.name)
-          : feed.name;
+      const source = fromGoogleNews
+        ? sourceLabelFromTitle(rawTitle, feed.name)
+        : feed.name;
 
       items.push({
         id: makeId(source, url, title),

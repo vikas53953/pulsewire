@@ -203,3 +203,12 @@ Windows looked identical because (1) the cache was effectively window-shaped / s
 
 - First-visit dismissors sequenced: calibrating explainer only after onboarding Got it (or on a later visit).
 - **Leftover 2 (open → fixed):** ALL `strictSingle` floors against **baseHeat** (pre-recency), not full heat. Recency amplifies breadth/velocity; it must not create a slot. Trivial single-RSS base (~5, no velocity) dies outright — a relative floor alone collapses on lukewarm boards (live miss: top heat 7.67 → floor 2.15, minor wire heat 4.83 cleared). Board-POV unit test covers the quiet-morning case.
+
+## Batch A (issue #12)
+
+- **A1** `stripPublisherSuffix`: spaced separators only + refusal guard (<15 chars / <50%); Google News feeds only.
+- **A2** TREND collapsed X honors `needs_key` / `failed` — never fake quiet.
+- **A3** `WHY_DESKS` includes `india`.
+- **A4** Mega ineligible when title &lt; 15 chars.
+- **A5** Window-scaled recency + 12h/24h per-bucket floor/pick so 24H is not a 4H clone.
+- **A6** baseHeat floor (already on main @ 16bcb95).

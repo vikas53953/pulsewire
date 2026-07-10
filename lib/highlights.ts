@@ -342,7 +342,12 @@ export async function getHighlights(options: {
       if (xSignals.length === 0) {
         xSignals = await loadCachedXSignals("markets");
       }
-      socialTrends = buildSocialTrendsPack({ reddit, x: xSignals });
+      const { isLlmConfigured } = await import("./llm");
+      socialTrends = buildSocialTrendsPack({
+        reddit,
+        x: xSignals,
+        xConfigured: isTestMode() || isLlmConfigured(),
+      });
     } catch (err) {
       console.warn(
         `[pulsewire] trend panel skip: ${err instanceof Error ? err.message : String(err)}`,

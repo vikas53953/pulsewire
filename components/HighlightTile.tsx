@@ -210,14 +210,17 @@ export function assignTileTones(
     );
   });
 
-  return sorted.map((item, index) => {
-    // Unearned red kills the calm NOC pitch — mega only for confirmed multi-source heat.
-    const trulyHot =
-      index === 0 &&
+  // Defense behind stripPublisherSuffix — stubs never own the mega slot.
+  const megaIdx = sorted.findIndex(
+    (item) =>
       Boolean(item.hot) &&
       (item.sources?.length ?? 0) >= 3 &&
-      (item.heat ?? 0) >= 8;
-    if (trulyHot) {
+      (item.heat ?? 0) >= 8 &&
+      (item.text?.trim().length ?? 0) >= 15,
+  );
+
+  return sorted.map((item, index) => {
+    if (index === megaIdx) {
       return { item, tone: "mega" as const, mega: true };
     }
     // No decorative pastels — color must mean status; default to card.

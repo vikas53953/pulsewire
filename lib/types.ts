@@ -134,7 +134,7 @@ export interface TrendItem {
 }
 
 export interface TrendPlane {
-  status: "ok" | "quiet" | "failed" | "pending";
+  status: "ok" | "quiet" | "failed" | "pending" | "needs_key";
   items: TrendItem[];
   note: string | null;
 }
@@ -239,6 +239,11 @@ export function windowToMs(window: TimeWindow): number {
     case "24h":
       return 24 * 60 * 60 * 1000;
   }
+}
+
+/** Hours in a time window — used to scale recency decay. */
+export function windowToHours(window: TimeWindow): number {
+  return windowToMs(window) / (60 * 60 * 1000);
 }
 
 export function sectionLabel(id: ContentSectionId | string): string {

@@ -32,6 +32,7 @@ const WHY_DESKS = new Set<ContentSectionId>([
   "markets",
   "economy",
   "politics",
+  "india",
 ]);
 
 function byLevel(scores: SectionScore[], level: TrafficLevel): SectionScore[] {

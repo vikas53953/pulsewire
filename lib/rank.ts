@@ -1,5 +1,5 @@
 import type { HighlightItem } from "./types";
-import { windowToMs, type TimeWindow } from "./types";
+import { windowToHours, windowToMs, type TimeWindow } from "./types";
 import { enrichItemHeat } from "./score";
 import { isLikelyDuplicate } from "./similarity";
 
@@ -109,12 +109,13 @@ export function rankAndCapForWindow(
 ): HighlightItem[] {
   const cap = Math.min(CAP, Math.max(FLOOR_COUNT, maxItems || CAP));
   const maxAge = windowToMs(window);
+  const hours = windowToHours(window);
   const filtered = items
     .filter((item) => {
       const age = now - new Date(item.publishedAt).getTime();
       return age >= 0 && age <= maxAge;
     })
-    .map((i) => enrichItemHeat(i, now));
+    .map((i) => enrichItemHeat(i, now, hours));
 
   if (filtered.length === 0) return [];
 
@@ -148,6 +149,10 @@ export function rankAndCapForWindow(
   let pickedConfirmed: HighlightItem[];
   if (window === "1h" || strong.length <= 3) {
     pickedConfirmed = strong.slice(0, confirmedCap);
+  } else if (window === "12h" || window === "24h") {
+    // Floor within age buckets so morning/afternoon/evening each surface —
+    // a global floor after fixed decay made 24H look like 4H.
+    pickedConfirmed = pickFromAgeBuckets(rest, window, now, confirmedCap);
   } else {
     const head = strong.slice(0, 3);
     const picked: HighlightItem[] = [...head];
@@ -205,6 +210,57 @@ export function rankAndCapForWindow(
   const ranked = [...pickedConfirmed, ...earlyKeep].slice(0, cap);
   // Dedup after rank so ALL never spends its budget on photocopies.
   return dedupeBoard(suppressNoise(ranked, opts));
+}
+
+/**
+ * 12h/24h: per-bucket relative floor, then guarantee each non-empty age
+ * band gets a slot before filling by heat.
+ */
+function pickFromAgeBuckets(
+  items: HighlightItem[],
+  window: TimeWindow,
+  now: number,
+  cap: number,
+): HighlightItem[] {
+  const buckets = ageBuckets(items, window, now).map((bucket) => {
+    if (bucket.length === 0) return [] as HighlightItem[];
+    const top = bucket[0].heat ?? 0;
+    const floor = top > 0 ? top * HEAT_FLOOR_RATIO : 0;
+    let strong = bucket.filter((i) => (i.heat ?? 0) >= floor);
+    if (strong.length === 0) strong = bucket.slice(0, 1);
+    return strong;
+  });
+
+  const picked: HighlightItem[] = [];
+  const pickedKeys = new Set<string>();
+
+  // Oldest band first so a morning multi-source cannot be crowded out.
+  for (const bi of [2, 1, 0]) {
+    if (picked.length >= cap) break;
+    const candidate = buckets[bi].find((i) => !pickedKeys.has(itemKey(i)));
+    if (candidate) {
+      picked.push(candidate);
+      pickedKeys.add(itemKey(candidate));
+    }
+  }
+
+  let progressed = true;
+  while (picked.length < cap && progressed) {
+    progressed = false;
+    for (const bi of [0, 1, 2]) {
+      if (picked.length >= cap) break;
+      const candidate = buckets[bi].find((i) => !pickedKeys.has(itemKey(i)));
+      if (candidate) {
+        picked.push(candidate);
+        pickedKeys.add(itemKey(candidate));
+        progressed = true;
+      }
+    }
+  }
+
+  return picked
+    .sort((a, b) => (b.heat ?? 0) - (a.heat ?? 0))
+    .slice(0, cap);
 }
 
 function itemKey(item: HighlightItem): string {

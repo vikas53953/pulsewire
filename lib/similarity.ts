@@ -16,11 +16,24 @@ function normalizeTitle(title: string): string {
     .trim();
 }
 
-/** Strip trailing " - Publisher" / " | Publisher" often present in Google News titles. */
+/**
+ * Strip trailing " - Publisher" / " | Publisher" (Google News).
+ * Requires spaced separators so "Ex-RBI", "Modi-Putin", "US-China" survive.
+ * Refuses to leave a stub (<15 chars or <50% of original).
+ */
 export function stripPublisherSuffix(title: string): string {
-  return title
-    .replace(/\s*[-–|]\s*[^-–|]{2,60}$/, "")
+  const original = title.trim();
+  if (!original) return original;
+  const stripped = original
+    .replace(/\s+[-–—|]\s+[^-–—|]{2,60}$/, "")
     .trim();
+  if (!stripped) return original;
+  // Stub guard: refuse only when the remnant is both short AND a large cut
+  // (OR would block legitimate "Some headline - The Hindu" → 13 chars).
+  if (stripped.length < 15 && stripped.length < original.length * 0.5) {
+    return original;
+  }
+  return stripped;
 }
 
 function lightStem(word: string): string {

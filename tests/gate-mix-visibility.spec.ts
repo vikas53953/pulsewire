@@ -35,6 +35,50 @@ test.describe("trend panel", () => {
     await expect(page.getByTestId("verdict-hero")).toHaveCount(0);
   });
 
+  test("collapsed X never says quiet when needs_key", async ({ page }) => {
+    await page.route("**/api/highlights**", async (route) => {
+      const url = new URL(route.request().url());
+      if (url.searchParams.get("section") !== "trend") {
+        await route.continue();
+        return;
+      }
+      const res = await route.fetch();
+      const json = await res.json();
+      json.socialTrends = {
+        reddit: {
+          status: "ok",
+          items: [
+            {
+              title: "Fixture Reddit thread about markets",
+              url: "https://reddit.com/r/india/1",
+              source: "r/india",
+              publishedAt: new Date().toISOString(),
+              plane: "reddit",
+            },
+          ],
+          note: null,
+        },
+        x: {
+          status: "needs_key",
+          items: [],
+          note: "X plane off — no API key configured",
+        },
+      };
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(json),
+      });
+    });
+    await page.goto("/?pwHotMarkets=1");
+    await page.getByTestId("chip-trend").click();
+    const x = page.getByTestId("social-trends-x");
+    await expect(x).toBeVisible({ timeout: 30_000 });
+    await expect(x).toHaveAttribute("data-status", "needs_key");
+    await expect(x).toContainText(/not configured|Reddit only/i);
+    await expect(x).not.toContainText(/quiet/i);
+  });
+
   test("API: markets has no socialTrends; trend section has full board", async ({
     request,
   }) => {

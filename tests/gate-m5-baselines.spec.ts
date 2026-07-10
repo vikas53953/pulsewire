@@ -87,6 +87,10 @@ test.describe("M5 baselines & history", () => {
 
   test("cold start shows calibrating mark on chips", async ({ page }) => {
     await requestReset(page);
+    await page.addInitScript(() => {
+      localStorage.setItem("pw_onboard_dismissed", "1");
+      localStorage.removeItem("pw_calibrating_explained");
+    });
     await page.goto("/?pwQuiet=1");
     await expect(page.getByTestId("score-chips")).toBeVisible();
     // After reset, buckets are empty → muted calibrating (no cryptic ~)

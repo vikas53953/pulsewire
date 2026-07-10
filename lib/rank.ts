@@ -23,6 +23,7 @@ const FLOOR_COUNT = 2;
  * Real noise floor — heat/breadth, not a regex of review quotes.
  * Keeps early/building social even when heat is still low.
  * Lets boards shrink when there isn't enough signal.
+ * Single-source items need a higher bar so recency alone can't buy a slot.
  */
 export function suppressNoise(items: HighlightItem[]): HighlightItem[] {
   if (items.length === 0) return items;
@@ -32,6 +33,8 @@ export function suppressNoise(items: HighlightItem[]): HighlightItem[] {
     .sort((a, b) => b - a);
   const topHeat = heats[0] ?? 0;
   const softFloor = topHeat > 0 ? topHeat * 0.12 : 0;
+  /** Stricter than softFloor — kills "minor wire / limited follow-through" singles. */
+  const singleFloor = topHeat > 0 ? topHeat * 0.28 : 0;
 
   return items.filter((i) => {
     if (i.signalState === "early" || i.signalState === "building") return true;
@@ -40,9 +43,9 @@ export function suppressNoise(items: HighlightItem[]): HighlightItem[] {
     const breadth = i.sources?.length ?? 0;
     if (breadth >= 2) return true;
     if (i.hot && heat > 0) return true;
-    if (topHeat <= 0) return breadth >= 1;
-    // Single-source thin notes below soft floor die — boards may shrink.
-    return heat >= softFloor && heat > 0;
+    if (topHeat <= 0) return false;
+    // Single-source: must clear the raised floor — recency boost alone is not enough.
+    return heat >= singleFloor && heat > 0 && heat >= softFloor;
   });
 }
 

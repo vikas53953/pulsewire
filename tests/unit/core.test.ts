@@ -112,6 +112,26 @@ describe("rank noise floor", () => {
     expect(kept[0].text).toContain("Confirmed");
   });
 
+  it("kills fixture-shaped minor wire singles under a real top story", () => {
+    // ~heat of a fresh single-source RSS note vs a 2-source Sensex lead
+    const kept = suppressNoise([
+      item("Sensex jumps as FIIs return; banks and IT lead", 22, 2),
+      item(
+        "India minor wire 1 from 12 minutes ago with limited follow-through",
+        5,
+        1,
+      ),
+      item(
+        "Sports minor wire 2 from 13 minutes ago with limited follow-through",
+        4.8,
+        1,
+      ),
+    ]);
+    expect(kept.map((i) => i.text)).toEqual([
+      "Sensex jumps as FIIs return; banks and IT lead",
+    ]);
+  });
+
   it("dedupeBoard keeps hottest copy of same story", () => {
     const out = dedupeBoard([
       item("Sensex plunges 800 points on FII selloff", 40, 2),

@@ -2,6 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { pulseWhy } from "@/lib/copy";
+import {
+  CALIBRATING_KEY,
+  ONBOARD_DISMISSED_EVENT,
+  ONBOARD_KEY,
+} from "@/lib/first-visit";
 import type {
   ContentSectionId,
   SectionId,
@@ -27,9 +32,6 @@ const LEVEL_DOT: Record<string, string> = {
   red: "🔴",
   unknown: "⚪",
 };
-
-const CALIBRATING_KEY = "pw_calibrating_explained";
-
 function Spark({ values }: { values: number[] }) {
   if (!values.length) return null;
   const max = Math.max(...values, 0.1);
@@ -86,13 +88,30 @@ export function ScoreChips({
   const [showCalExplainer, setShowCalExplainer] = useState(false);
 
   useEffect(() => {
-    if (!anyCalibrating) return;
-    try {
-      if (localStorage.getItem(CALIBRATING_KEY) === "1") return;
-      setShowCalExplainer(true);
-    } catch {
-      // private mode — skip
-    }
+    const refresh = () => {
+      if (!anyCalibrating) {
+        setShowCalExplainer(false);
+        return;
+      }
+      try {
+        // Sequence: calibrating explainer only after onboarding is done
+        // (or on a later visit when onboard was already dismissed).
+        if (localStorage.getItem(ONBOARD_KEY) !== "1") {
+          setShowCalExplainer(false);
+          return;
+        }
+        if (localStorage.getItem(CALIBRATING_KEY) === "1") {
+          setShowCalExplainer(false);
+          return;
+        }
+        setShowCalExplainer(true);
+      } catch {
+        // private mode — skip
+      }
+    };
+    refresh();
+    window.addEventListener(ONBOARD_DISMISSED_EVENT, refresh);
+    return () => window.removeEventListener(ONBOARD_DISMISSED_EVENT, refresh);
   }, [anyCalibrating]);
 
   return (

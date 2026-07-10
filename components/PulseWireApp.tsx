@@ -7,6 +7,7 @@ import { Header } from "@/components/Header";
 import { RadarStrip } from "@/components/RadarStrip";
 import { ScoreChips } from "@/components/ScoreChips";
 import { StatusBar } from "@/components/StatusBar";
+import { TrendStrip } from "@/components/TrendStrip";
 import { VerdictHero } from "@/components/VerdictHero";
 import type { BriefPayload } from "@/lib/brief";
 import type { RadarStatus } from "@/lib/radar";
@@ -363,6 +364,13 @@ export function PulseWireApp() {
           scores={data?.scores ?? []}
           active={chipActive}
           onSelect={onChipSelect}
+        />
+
+        <TrendStrip
+          trend={
+            data && data.section === section ? data.trend : undefined
+          }
+          loading={showSkeleton}
         />
 
         <StaleBanner show={showStale && !showSkeleton} />

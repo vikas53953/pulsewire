@@ -11,14 +11,15 @@ export function earliestPublishedAt(isos: string[]): string {
 }
 
 const HEAT_FLOOR_RATIO = 0.15;
-const CAP = 9;
+/** Raised from 9 → 16 so the board can show denser mix (owner feedback). */
+const CAP = 16;
 const FLOOR_COUNT = 2;
 
 /**
- * SPEC v2 §5 ranking:
+ * SPEC v2 §5 ranking (cap raised for mix visibility):
  * 1) storyHeat desc
  * 2) age-diversity for 4h+ after top 3 (may pull one below-floor item per empty bucket)
- * 3) fewer-but-stronger: heat ≥ 15% of top, floor 2, cap 9
+ * 3) fewer-but-stronger: heat ≥ 15% of top, floor 2, cap 16
  */
 export function rankAndCapForWindow(
   items: HighlightItem[],

@@ -148,3 +148,11 @@ Windows looked identical because (1) the cache was effectively window-shaped / s
 - Long-press refresh → `/api/x-governor` deep-refresh (4/day).
 - `getXPulseHighlights` is cache-only; live calls via `fetchXAfterGrant` after grant.
 - Gate: `tests/gate-m8-x-governor.spec.ts` + live smoke one earned call.
+
+## Mix visibility (owner feedback post-M8)
+
+- Always-visible **Trend** strip: On wires · On Reddit · On X (`lib/trend.ts`, `TrendStrip`) — mix without requiring title-match fusion.
+- Pulse chips: legend “0–100 = how loud vs a normal hour” + clearer tooltips.
+- Per-tile plane badges (●/○ wires · reddit · x).
+- Board cap 9 → 16; fusion match 0.62 → 0.55; EARLY orphans max 4; Reddit orphan velocity floor 8 → 4.
+- Quiet choice: keep VIBE tab dissolved; trend strip is the mix surface.

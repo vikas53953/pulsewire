@@ -177,17 +177,36 @@ export function readBucketSamples(
   now = Date.now(),
   trailDays = 60
 ): number[] {
+  return readBucketSampleRows(section, hourIst, weekdayIst, now, trailDays).map(
+    (r) => r.sectionRaw,
+  );
+}
+
+/** Same bucket as readBucketSamples, with timestamps for streak math. */
+export function readBucketSampleRows(
+  section: ContentSectionId,
+  hourIst: number,
+  weekdayIst: number,
+  now = Date.now(),
+  trailDays = 60,
+): Array<{ sectionRaw: number; timestamp: string }> {
   const db = getHistoryDb();
   const since = new Date(now - trailDays * 24 * 60 * 60 * 1000).toISOString();
   const rows = db
     .prepare(
-      `SELECT section_raw FROM section_history
+      `SELECT section_raw, timestamp FROM section_history
        WHERE section = ? AND hour_ist = ? AND weekday_ist = ?
          AND timestamp >= ?
-       ORDER BY timestamp ASC`
+       ORDER BY timestamp ASC`,
     )
-    .all(section, hourIst, weekdayIst, since) as { section_raw: number }[];
-  return rows.map((r) => r.section_raw);
+    .all(section, hourIst, weekdayIst, since) as {
+    section_raw: number;
+    timestamp: string;
+  }[];
+  return rows.map((r) => ({
+    sectionRaw: r.section_raw,
+    timestamp: r.timestamp,
+  }));
 }
 
 /** Test helper: wipe + optional seed. */

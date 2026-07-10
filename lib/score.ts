@@ -294,6 +294,7 @@ export function scoreSection(
     socialLed: Boolean(top?.socialLed),
     topSignalState: top?.signalState,
     topTripwire: Boolean(top?.tripwire),
+    sectionRaw: raw,
   };
 }
 

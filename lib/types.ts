@@ -112,6 +112,8 @@ export interface SectionScore {
   /** Top cluster signal state for verdict rules. */
   topSignalState?: SignalState;
   topTripwire?: boolean;
+  /** Pre-saturation desk heat — for quiet % receipts (D1). */
+  sectionRaw?: number;
 }
 
 export interface VerdictPayload {
@@ -138,6 +140,8 @@ export interface TrendItem {
   why?: string;
   /** Social velocity — drives TREND tile accent (color = status). */
   velocity?: number;
+  /** Current / bucket-median velocity — when ≥14 samples (D2). */
+  velocityRatio?: number | null;
 }
 
 export interface TrendPlane {
@@ -189,6 +193,8 @@ export interface HighlightsResponse {
   trend?: TrendPack;
   /** Full Reddit + X — only populated for section=trend. */
   socialTrends?: SocialTrendsPack;
+  /** Since-lens one-liner above the board (D3). */
+  sinceSummary?: string | null;
   verdict: VerdictPayload;
   scores: SectionScore[];
   items: HighlightItem[];

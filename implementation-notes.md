@@ -228,3 +228,9 @@ Windows looked identical because (1) the cache was effectively window-shaped / s
 ## C1 placebo fix
 
 - `tests/live-sanity/human.spec.ts`: full 24h board (`items.length >= 8`) requires ≥1 item older than 12h; thin pools annotate skip — never `>= 0` fake pass.
+
+## Batch D (issue #12)
+
+- **D1** Quiet receipts: desk why `% below a normal {weekday} hour`; all-quiet streak line when ≥14 samples. Never when calibrating.
+- **D2** `social_velocity_history` (schema v3); TREND why `vel N — R× normal for r/…`; accent keys off ratio when baselined.
+- **D3** `sinceSummary` line above the board on since-lens when items changed.

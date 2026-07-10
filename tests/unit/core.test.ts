@@ -486,6 +486,95 @@ describe("TREND tile accent", () => {
     expect(trendAccent(1)).toBe("none");
     expect(trendAccent(undefined)).toBe("none");
   });
+
+  it("prefers velocity ratio when baselined", () => {
+    expect(trendAccent(2, 3.2)).toBe("hot");
+    expect(trendAccent(2, 1.6)).toBe("warm");
+    expect(trendAccent(9, 1.0)).toBe("none");
+  });
+});
+
+describe("quiet receipts D1", () => {
+  it("computes percent below median and omits when calibrating", async () => {
+    const { quietPercentBelow, consecutiveQuietDays } = await import(
+      "@/lib/quiet-receipts"
+    );
+    const samples = Array.from({ length: 14 }, () => 10);
+    expect(quietPercentBelow(4.2, samples)).toBe(58);
+    expect(quietPercentBelow(4.2, samples.slice(0, 5))).toBeNull();
+    expect(quietPercentBelow(12, samples)).toBeNull();
+
+    const streak = consecutiveQuietDays({
+      currentRaw: 3,
+      samples: Array.from({ length: 14 }, (_, i) => {
+        const day = 20 - i;
+        const quiet = i < 7; // newest 7 quiet, older 7 loud → median ~6.5
+        return {
+          sectionRaw: quiet ? 3 : 10,
+          timestamp: `2026-07-${String(day).padStart(2, "0")}T04:00:00.000Z`,
+        };
+      }),
+    });
+    expect(streak).toBeTruthy();
+    expect(streak!.streak).toBe(7);
+  });
+});
+
+describe("velocity baseline D2", () => {
+  it("ratio + format + fallback", async () => {
+    const {
+      velocityRatio,
+      formatVelocityWhy,
+      trendAccentFromVelocity,
+    } = await import("@/lib/social-velocity");
+    const samples = Array.from({ length: 14 }, () => 4);
+    expect(velocityRatio(12, samples)).toBe(3);
+    expect(velocityRatio(12, samples.slice(0, 3))).toBeNull();
+    expect(formatVelocityWhy(12, "r/IndiaInvestments", 3)).toMatch(
+      /3× normal for r\/IndiaInvestments/,
+    );
+    expect(formatVelocityWhy(12, "r/IndiaInvestments", null)).toBe("vel 12");
+    expect(trendAccentFromVelocity(2, 3)).toBe("hot");
+    expect(trendAccentFromVelocity(9, null)).toBe("hot");
+  });
+});
+
+describe("since summary D3", () => {
+  it("builds a line when items changed; null when empty", async () => {
+    const { buildSinceSummaryLine } = await import("@/lib/since-summary");
+    expect(
+      buildSinceSummaryLine({ scores: [], items: [] }),
+    ).toBeNull();
+    const line = buildSinceSummaryLine({
+      scores: [
+        score({ section: "markets", score: 56, level: "yellow" }),
+        score({ section: "politics", score: 12, level: "green" }),
+      ],
+      previousScores: [
+        { section: "markets", score: 41, level: "yellow" },
+        { section: "politics", score: 40, level: "yellow" },
+      ],
+      items: [
+        {
+          text: "Sensex jumps",
+          sources: [{ name: "A", url: "https://a.example" }],
+          publishedAt: new Date().toISOString(),
+          hot: false,
+          section: "markets",
+        },
+        {
+          text: "Second markets wire",
+          sources: [{ name: "B", url: "https://b.example" }],
+          publishedAt: new Date().toISOString(),
+          hot: false,
+          section: "markets",
+        },
+      ],
+    });
+    expect(line).toMatch(/Since you left:/);
+    expect(line).toMatch(/Markets 41→56/);
+    expect(line).toMatch(/Politics cooled/);
+  });
 });
 
 describe("NEW badge cap", () => {

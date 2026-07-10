@@ -1,5 +1,7 @@
 import type { SectionScore, TrafficLevel } from "./types";
 import { sectionLabel } from "./types";
+import { istBucketParts, readBucketSamples } from "./history";
+import { quietDeskWhyLine } from "./quiet-receipts";
 
 /** Short topic for chip/why lines — complete words, no mid-sentence ellipsis. */
 export function shortEvent(text: string, maxWords = 10): string {
@@ -9,7 +11,6 @@ export function shortEvent(text: string, maxWords = 10): string {
     .trim();
   const words = cleaned.split(" ").filter(Boolean);
   if (words.length <= maxWords) return words.join(" ");
-  // Prefer a clean cut at a comma/colon boundary inside the budget.
   const slice = words.slice(0, maxWords);
   const joined = slice.join(" ");
   const soft = joined.match(/^(.+[,:;])\s+\S+/);
@@ -53,12 +54,25 @@ export function pulseWhy(score: SectionScore): string {
   }
 
   if (topic) {
-    const receipt = sources ? ` (${sources}${age})` : age ? ` (${age.replace(/^ · /, "")})` : "";
+    const receipt = sources
+      ? ` (${sources}${age})`
+      : age
+        ? ` (${age.replace(/^ · /, "")})`
+        : "";
     return `${label} ${score.score}${levelGlyph(score.level)} — driven by: ${topic}${receipt}.`;
   }
 
   if (score.calibrating) {
     return `${label}: calibrating baseline (${score.score}/100) — no standout cluster yet.`;
+  }
+
+  // D1: earned quiet receipt when history supports it
+  if (score.level === "green" && score.sectionRaw != null) {
+    const at = new Date();
+    const { hourIst, weekdayIst } = istBucketParts(at);
+    const samples = readBucketSamples(score.section, hourIst, weekdayIst);
+    const earned = quietDeskWhyLine(score, score.sectionRaw, samples, at);
+    if (earned) return earned;
   }
 
   return `${label} quiet (${score.score}/100) — below the warming threshold.`;

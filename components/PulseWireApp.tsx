@@ -505,6 +505,18 @@ export function PulseWireApp({ initialData = null }: PulseWireAppProps) {
 
         <StaleBanner show={showStale && !showSkeleton && !isTrend} />
 
+        {!isTrend &&
+        lens === "since" &&
+        data?.sinceSummary &&
+        !showSkeleton ? (
+          <p
+            data-testid="since-summary"
+            className="m-0 mb-3 text-[13px] font-bold leading-snug text-[var(--ink)] opacity-80"
+          >
+            {data.sinceSummary}
+          </p>
+        ) : null}
+
         {error ? (
           <div className="pw-tile bg-[var(--card)] p-4 text-[13px] font-bold uppercase tracking-wide text-[var(--ink)]">
             Could not load — {error}

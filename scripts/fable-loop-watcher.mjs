@@ -86,11 +86,17 @@ function isFableComment(body) {
 }
 
 function classify(body) {
-  if (/\bSHIP\b.*loop complete|awaiting Vikas/i.test(body)) return "watch";
-  if (/\bCONTINUE\b|Work order|directive|fix before|pending/i.test(body)) {
+  // SHIP for prior batches may still direct the next batch — prefer act.
+  if (/proceed to Batch|Work order — Batch|directive|fix before|pending/i.test(body)) {
     return "act";
   }
-  if (/\bSHIP\b/i.test(body)) return "watch";
+  if (/awaiting Vikas/i.test(body) && !/proceed to Batch/i.test(body)) {
+    return "watch";
+  }
+  if (/\bSHIP\b.*loop complete/i.test(body) && !/proceed to Batch/i.test(body)) {
+    return "watch";
+  }
+  if (/\bCONTINUE\b/i.test(body)) return "act";
   return "act";
 }
 

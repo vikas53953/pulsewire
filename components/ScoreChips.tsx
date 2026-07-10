@@ -130,10 +130,25 @@ export function ScoreChips({ scores, active, onSelect }: ScoreChipsProps) {
               data-social-led={socialLed ? "1" : "0"}
               title={pulseTitle(id, value, level, calibrating, socialLed)}
               onClick={() => onSelect(id)}
-              className={chipBtn(selected)}
+              className={`${chipBtn(selected)} inline-flex items-center gap-1.5`}
             >
-              {sectionChip(id)} {value}
-              {LEVEL_DOT[level]}
+              <span>{sectionChip(id)}</span>
+              <span
+                data-testid={`pulse-num-${id}`}
+                aria-label={`Pulse ${value}`}
+                className={`inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[13px] font-black tabular-nums leading-none ${
+                  selected
+                    ? "bg-[var(--ink)]/10"
+                    : level === "red"
+                      ? "bg-[var(--mega)]/15 text-[var(--mega)]"
+                      : level === "yellow"
+                        ? "bg-amber-100 text-amber-900"
+                        : "bg-emerald-100 text-emerald-900"
+                }`}
+              >
+                <span data-testid={`pulse-score-${id}`}>{value}</span>
+                <span aria-hidden="true">{LEVEL_DOT[level]}</span>
+              </span>
               {socialLed ? (
                 <span data-testid={`social-led-${id}`} className="ml-0.5">
                   ⚡
@@ -142,7 +157,7 @@ export function ScoreChips({ scores, active, onSelect }: ScoreChipsProps) {
               {calibrating ? (
                 <span
                   data-testid={`calibrating-${id}`}
-                  className="ml-1 text-[9px] opacity-60"
+                  className="ml-0.5 text-[9px] opacity-60"
                 >
                   ~
                 </span>

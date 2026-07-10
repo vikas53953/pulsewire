@@ -54,7 +54,22 @@ test.describe("trend panel", () => {
     ).json();
     expect(trend.section).toBe("trend");
     expect(trend.items).toEqual([]);
-    expect(trend.socialTrends?.reddit?.items?.length).toBeGreaterThanOrEqual(5);
+    expect(trend.socialTrends?.reddit?.items?.length).toBeGreaterThan(0);
+    expect(trend.socialTrends?.reddit?.items?.length).toBeLessThanOrEqual(8);
+  });
+
+  test("desk chips show pulse number + color and wrap", async ({ page }) => {
+    await page.goto("/?pwHotMarkets=1");
+    await expect(page.getByTestId("score-chips")).toBeVisible({
+      timeout: 30_000,
+    });
+    const mkt = page.getByTestId("pulse-num-markets");
+    await expect(mkt).toBeVisible();
+    await expect(mkt).toContainText(/\d+/);
+    await expect(page.getByTestId("freshness-line")).toBeVisible();
+    // Wrap: chip row is flex-wrap, not a single-line scroller
+    const chips = page.getByTestId("score-chips");
+    await expect(chips).toHaveCSS("flex-wrap", "wrap");
   });
 
   test("SSR first paint includes desks, verdict, no junk chrome", async ({
@@ -66,10 +81,13 @@ test.describe("trend panel", () => {
     expect(html).toMatch(/data-testid="verdict-hero"/);
     expect(html).toMatch(/data-testid="score-chips"/);
     expect(html).toMatch(/chip-markets/);
+    expect(html).toMatch(/pulse-num-markets|data-score=/);
     expect(html).toMatch(/chip-trend/);
+    expect(html).toMatch(/freshness-line/);
     expect(html).toMatch(/PulseWire/);
     expect(html).not.toMatch(/Since you left By time/);
     expect(html).not.toMatch(/Since you left Windows/);
+    expect(html).not.toMatch(/>By time</);
     expect(html).not.toMatch(/data-testid="raw-sticker"/);
   });
 });

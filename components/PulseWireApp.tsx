@@ -8,6 +8,7 @@ import { RadarStrip } from "@/components/RadarStrip";
 import { ScoreChips, type ChipId } from "@/components/ScoreChips";
 import { StatusBar } from "@/components/StatusBar";
 import { SocialTrendsBoard } from "@/components/SocialTrendsBoard";
+import { FreshnessLine } from "@/components/FreshnessLine";
 import { VerdictHero } from "@/components/VerdictHero";
 import type { BriefPayload } from "@/lib/brief";
 import type { RadarStatus } from "@/lib/radar";
@@ -414,6 +415,12 @@ export function PulseWireApp({ initialData = null }: PulseWireAppProps) {
           scores={data?.scores ?? []}
           active={chipActive}
           onSelect={onChipSelect}
+        />
+
+        <FreshnessLine
+          generatedAt={
+            data && data.section === section ? data.generatedAt : null
+          }
         />
 
         <StaleBanner show={showStale && !showSkeleton && !isTrend} />

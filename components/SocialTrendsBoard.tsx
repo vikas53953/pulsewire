@@ -111,10 +111,15 @@ export function SocialTrendsBoard({ pack, loading }: SocialTrendsBoardProps) {
       aria-label="Trending on Reddit and X"
       className="py-1"
     >
-      <p className="m-0 mb-5 max-w-md text-[13px] font-bold leading-snug opacity-65">
-        What’s loud on Reddit and X — not a feed to scroll forever.
-      </p>
-      <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 sm:gap-10">
+      <div className="mb-5 max-w-lg">
+        <h2 className="m-0 font-mono text-[11px] font-black uppercase tracking-[0.14em] opacity-55">
+          TREND
+        </h2>
+        <p className="m-0 mt-1 text-[13px] font-bold leading-snug opacity-65">
+          High-signal Reddit and X only — kept off the news desks on purpose.
+        </p>
+      </div>
+      <div className="grid grid-cols-1 gap-8 border-t-2 border-[var(--ink)] pt-5 sm:grid-cols-2 sm:gap-12">
         <Column
           title="On Reddit"
           testId="social-trends-reddit"

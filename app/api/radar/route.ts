@@ -1,3 +1,4 @@
+import { flushDbNow } from "@/lib/sqldb";
 import { NextRequest, NextResponse } from "next/server";
 import {
   evaluateListingDiffForTests,
@@ -57,5 +58,6 @@ export async function POST(request: NextRequest) {
       evaluateListingDiffForTests(sourceName, previous, current),
     );
   }
+  await flushDbNow();
   return NextResponse.json({ error: "unknown action" }, { status: 400 });
 }

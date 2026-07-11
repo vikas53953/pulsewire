@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { canSpend, spendForbiddenResponse } from "@/lib/beta-auth";
 import { clearCache } from "@/lib/cache";
+import { flushDbNow } from "@/lib/sqldb";
 import { getHighlights } from "@/lib/highlights";
 import {
   clearTestOverrides,
@@ -83,6 +84,10 @@ export async function GET(request: NextRequest) {
       since: sinceParam,
       forceRefresh: forceRefresh || overrideBust,
     });
+
+    // Serverless: instance freezes after the response — the debounce timer
+    // never fires. Flush inside the request (no-op when nothing is dirty).
+    await flushDbNow();
 
     return NextResponse.json(payload, {
       headers: {

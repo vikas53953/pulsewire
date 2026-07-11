@@ -1,3 +1,4 @@
+import { flushDbNow } from "@/lib/sqldb";
 import { NextRequest, NextResponse } from "next/server";
 import { clearVibeCacheForTests, getVibe } from "@/lib/vibe";
 import {
@@ -26,7 +27,8 @@ export async function GET(request: NextRequest) {
     setTestOverrides(overrides);
     if (forceRefresh) clearVibeCacheForTests();
     const payload = await getVibe(windowParam, { forceRefresh });
-    return NextResponse.json(payload, {
+    await flushDbNow();
+  return NextResponse.json(payload, {
       headers: { "Cache-Control": "no-store, max-age=0" },
     });
   } finally {

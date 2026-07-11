@@ -15,7 +15,6 @@ const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, "..");
 
-const Database = require("better-sqlite3");
 const fs = require("fs");
 
 const KEEP = Math.max(1, Number(process.env.PULSEWIRE_BACKUP_KEEP ?? "14") || 14);
@@ -61,16 +60,13 @@ fs.mkdirSync(backupDir, { recursive: true });
 const stamp = new Date().toISOString().replace(/[:.]/g, "-");
 const dest = path.join(backupDir, `pulsewire-${stamp}.db`);
 
-const db = new Database(src);
+// The live DB persists itself as a standard SQLite image — backup = copy.
 try {
-  db.pragma("wal_checkpoint(TRUNCATE)");
-  db.exec(`VACUUM INTO '${dest.replace(/'/g, "''")}'`);
+  fs.copyFileSync(src, dest);
   console.info(`[pulsewire] backup-ok path=${dest}`);
 } catch (e) {
   console.error(`[pulsewire] backup-fail: ${e.message || e}`);
   process.exit(1);
-} finally {
-  db.close();
 }
 
 const pruned = pruneBackups(backupDir, KEEP);

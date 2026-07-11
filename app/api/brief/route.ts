@@ -3,6 +3,8 @@ import { getBrief, resetBriefsForTests } from "@/lib/brief";
 import { isTestMode, parseTestOverrides, setTestOverrides, clearTestOverrides } from "@/lib/test-mode";
 
 export const dynamic = "force-dynamic";
+// Vercel: cold warm cycle (parallel feeds, 8s timeout) needs headroom.
+export const maxDuration = 60;
 export const revalidate = 0;
 
 export async function POST(request: NextRequest) {

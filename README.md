@@ -8,7 +8,7 @@ Local hot-news highlights dashboard. Open it, scan in 30 seconds, close it.
 
 ```bash
 cp .env.example .env.local
-# Node 20–22 (see .nvmrc). better-sqlite3 needs node-gyp + Node headers.
+# Node 20–22 (see .nvmrc). No native builds — SQLite runs as WASM (sql.js).
 npm install
 npm run dev
 ```
@@ -45,7 +45,31 @@ PulseWire assumes **one long-lived Node process**:
 - Background warmer (`instrumentation` → 10-min loop)
 - SQLite history + X governor on local disk
 
-**Deploy to a persistent single instance** (Fly.io, Railway, a VPS with pm2/systemd). **Do not deploy to serverless** (Vercel/Netlify lambdas): cold starts empty the cache, the warmer never stays up, SQLite is ephemeral, and multiple instances split the X budget and double-fetch every feed. Horizontal scale requires moving cache + governor to Redis / shared SQLite first — until then, one instance is a feature.
+Two supported targets:
+
+**Vercel (recommended for the beta).** The DB is in-memory SQLite (sql.js)
+whose snapshot persists to **Vercel Blob**: loaded on cold start, flushed on
+a debounce, force-flushed after critical writes (X spends, usage). The
+interval warmer is skipped on Vercel (`VERCEL=1`); request-driven
+stale-while-revalidate carries warming — the first morning visitor pays one
+warm, everyone after hits hot cache. Setup (dashboard only):
+
+1. Import the GitHub repo into Vercel (framework auto-detected).
+2. Storage → create a **Blob** store → connect to the project
+   (`BLOB_READ_WRITE_TOKEN` is injected automatically).
+3. Project → Settings → Environment Variables: set `BETA_TOKEN`
+   (plus any of `.env.example` you use). Deploy.
+
+Tradeoffs (fine at beta scale, revisit later): snapshot persistence can lose
+the last few seconds of non-critical writes on instance freeze; concurrent
+instances are last-write-wins (single region + 10-min cache ≈ one live
+instance). Blob URLs are public — the snapshot path embeds a token-derived
+secret, so treat the Blob token like a password.
+
+**Persistent single instance** (Fly.io, Railway, a VPS with pm2/systemd):
+works unchanged — the snapshot persists to `data/pulsewire.db` on disk, and
+the 10-min background warmer runs. Do not run multiple instances: they split
+the X budget and double-fetch every feed.
 
 ### Baseline backup (the moat)
 

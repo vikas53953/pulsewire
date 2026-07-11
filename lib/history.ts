@@ -1,6 +1,12 @@
-import Database from "better-sqlite3";
 import fs from "fs";
-import path from "path";
+import {
+  flushDbNow,
+  getSqlDb,
+  initSqlJsModuleForTests,
+  reopenSqlDb,
+  resolveSnapshotPath,
+  type SqlDatabase,
+} from "./sqldb";
 import type { ContentSectionId } from "./types";
 
 export interface HistorySample {
@@ -15,58 +21,15 @@ export interface HistorySample {
   weekdayIst: number;
 }
 
-const globalForDb = globalThis as unknown as {
-  __pulsewireDb?: Database.Database;
-  __pulsewireDbPath?: string;
-};
+const schemaReady = new WeakSet<SqlDatabase>();
 
 export function resolveHistoryDbPath(): string {
-  // Bracket access — Next webpack can inline process.env.FOO as undefined at compile time.
-  const override = process.env["PULSEWIRE_DB_PATH"];
-  if (override && override.trim()) return override.trim();
-  // Prefer project-local data/ so restarts keep history
-  const dir = path.join(process.cwd(), "data");
-  if (!fs.existsSync(dir)) {
-    try {
-      fs.mkdirSync(dir, { recursive: true });
-    } catch {
-      // fall through
-    }
-  }
-  return path.join(dir, "pulsewire.db");
+  return resolveSnapshotPath();
 }
 
-function dbPath(): string {
-  return resolveHistoryDbPath();
-}
-
-function ensureParentDir(filePath: string): void {
-  const dir = path.dirname(filePath);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-}
-
-export function getHistoryDb(): Database.Database {
-  const resolved = dbPath();
-  if (globalForDb.__pulsewireDb && globalForDb.__pulsewireDbPath === resolved) {
-    return globalForDb.__pulsewireDb;
-  }
-
-  if (globalForDb.__pulsewireDb) {
-    try {
-      globalForDb.__pulsewireDb.close();
-    } catch {
-      // ignore
-    }
-    globalForDb.__pulsewireDb = undefined;
-    globalForDb.__pulsewireDbPath = undefined;
-  }
-
-  ensureParentDir(resolved);
-  const db = new Database(resolved);
-  db.pragma("journal_mode = WAL");
-  db.pragma("busy_timeout = 5000");
+export function getHistoryDb(): SqlDatabase {
+  const db = getSqlDb();
+  if (schemaReady.has(db)) return db;
   db.exec(`
     CREATE TABLE IF NOT EXISTS section_history (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -86,10 +49,7 @@ export function getHistoryDb(): Database.Database {
     );
     INSERT OR IGNORE INTO schema_version (id, version) VALUES (1, 1);
   `);
-
-  globalForDb.__pulsewireDb = db;
-  globalForDb.__pulsewireDbPath = resolved;
-  console.info(`[pulsewire] history-db open path=${resolved}`);
+  schemaReady.add(db);
   return db;
 }
 
@@ -238,21 +198,13 @@ export function seedHistoryForTests(samples: HistorySample[]): void {
   tx(samples);
 }
 
-export function closeHistoryDbForTests(): void {
-  if (globalForDb.__pulsewireDb) {
-    try {
-      globalForDb.__pulsewireDb.close();
-    } catch {
-      // ignore
-    }
-    globalForDb.__pulsewireDb = undefined;
-    globalForDb.__pulsewireDbPath = undefined;
-  }
+export async function closeHistoryDbForTests(): Promise<void> {
+  await reopenSqlDb();
 }
 
 /**
- * Persistence proof for M5 gate: backup live DB → open copy → count rows.
- * Avoids closing the singleton (flaky under Next/WAL multi-graph).
+ * Persistence proof for M5 gate: flush snapshot → open the on-disk image in a
+ * fresh sql.js instance → count rows. Never touches the live singleton.
  */
 export async function assertHistoryPersistsForTests(): Promise<{
   path: string;
@@ -262,31 +214,20 @@ export async function assertHistoryPersistsForTests(): Promise<{
 }> {
   const before = countHistorySamples();
   const resolved = resolveHistoryDbPath();
-  const db = getHistoryDb();
-  const backupPath = `${resolved}.bak`;
+  await flushDbNow();
+  const SQL = await initSqlJsModuleForTests();
+  const image = fs.readFileSync(resolved);
+  const fresh = new SQL.Database(new Uint8Array(image));
   try {
-    fs.unlinkSync(backupPath);
-  } catch {
-    // ignore
-  }
-  await db.backup(backupPath);
-  const fresh = new Database(backupPath, { fileMustExist: true });
-  try {
-    const row = fresh
-      .prepare(`SELECT COUNT(*) AS n FROM section_history`)
-      .get() as { n: number };
+    const res = fresh.exec(`SELECT COUNT(*) AS n FROM section_history`);
+    const countAfter = Number(res[0]?.values?.[0]?.[0] ?? 0);
     return {
       path: resolved,
       countBefore: before,
-      countAfter: row.n,
-      exists: fs.existsSync(resolved) || fs.existsSync(`${resolved}-wal`),
+      countAfter,
+      exists: fs.existsSync(resolved),
     };
   } finally {
     fresh.close();
-    try {
-      fs.unlinkSync(backupPath);
-    } catch {
-      // ignore
-    }
   }
 }

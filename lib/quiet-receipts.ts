@@ -97,7 +97,13 @@ export function allQuietReceiptLine(
   if (!scores.every((s) => s.level === "green")) return null;
 
   const { hourIst, weekdayIst } = istBucketParts(at);
-  const rows = readBucketSampleRows(section, hourIst, weekdayIst, at.getTime());
+  let rows: ReturnType<typeof readBucketSampleRows>;
+  try {
+    rows = readBucketSampleRows(section, hourIst, weekdayIst, at.getTime());
+  } catch {
+    // History unavailable — omit the receipt, never break the verdict.
+    return null;
+  }
   const streak = consecutiveQuietDays({
     samples: rows.map((r) => ({
       sectionRaw: r.sectionRaw,

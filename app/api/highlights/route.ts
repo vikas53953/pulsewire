@@ -11,6 +11,8 @@ import { startBackgroundWarmer } from "@/lib/warmer";
 import { isLens, isSectionId, isTimeWindow } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
+// Vercel: cold warm cycle (parallel feeds, 8s timeout) needs headroom.
+export const maxDuration = 60;
 export const revalidate = 0;
 
 startBackgroundWarmer();

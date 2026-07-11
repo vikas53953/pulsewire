@@ -79,88 +79,79 @@ export function resolveSnapshotPath(): string {
 }
 
 /* ------------------------------ Blob driver ------------------------------ */
+// Uses @vercel/blob, which authenticates via BLOB_READ_WRITE_TOKEN (classic
+// stores) or BLOB_STORE_ID + Vercel OIDC (new private stores) automatically.
 
-const BLOB_API = "https://blob.vercel-storage.com";
+type BlobAccess = "private" | "public";
 
-function blobToken(): string {
-  return (process.env["BLOB_READ_WRITE_TOKEN"] ?? "").trim();
+function blobConfigured(): boolean {
+  return Boolean(
+    (process.env["BLOB_READ_WRITE_TOKEN"] ?? "").trim() ||
+      (process.env["BLOB_STORE_ID"] ?? "").trim(),
+  );
 }
 
-/** Unguessable prefix derived from the token — Blob URLs are public. */
-function blobPrefix(): string {
-  const secret = createHash("sha256").update(blobToken()).digest("hex").slice(0, 20);
+/** Unguessable pathname — public-store fallback exposes blob URLs. */
+function blobPathname(): string {
+  const seed = (
+    (process.env["BLOB_READ_WRITE_TOKEN"] ?? "") +
+    (process.env["BLOB_STORE_ID"] ?? "")
+  ).trim();
+  const secret = createHash("sha256").update(seed).digest("hex").slice(0, 20);
   return `pw/${secret}/pulsewire.db`;
 }
 
+const globalForBlobAccess = globalThis as unknown as {
+  __pwBlobAccess?: BlobAccess;
+};
+
+function accessOrder(): BlobAccess[] {
+  const known = globalForBlobAccess.__pwBlobAccess;
+  if (known) return [known];
+  return ["private", "public"];
+}
+
 async function blobLoad(): Promise<Uint8Array | null> {
-  const token = blobToken();
-  if (!token) return null;
-  try {
-    const list = await fetch(
-      `${BLOB_API}?prefix=${encodeURIComponent(blobPrefix())}&limit=10`,
-      { headers: { authorization: `Bearer ${token}` } },
+  if (!blobConfigured()) {
+    console.warn(
+      "[pulsewire] blob store not configured — snapshot persistence disabled",
     );
-    if (!list.ok) {
-      console.error(`[pulsewire] blob-list failed status=${list.status}`);
-      return null;
-    }
-    const data = (await list.json()) as {
-      blobs?: { url: string; uploadedAt: string }[];
-    };
-    const newest = (data.blobs ?? [])
-      .slice()
-      .sort((a, b) => (a.uploadedAt < b.uploadedAt ? 1 : -1))[0];
-    if (!newest) return null;
-    const res = await fetch(newest.url, { cache: "no-store" });
-    if (!res.ok) return null;
-    return new Uint8Array(await res.arrayBuffer());
-  } catch (e) {
-    console.error(`[pulsewire] blob-load failed: ${(e as Error).message}`);
     return null;
   }
+  const { get } = await import("@vercel/blob");
+  for (const access of accessOrder()) {
+    try {
+      const res = await get(blobPathname(), { access, useCache: false });
+      if (!res || res.statusCode !== 200 || !res.stream) continue;
+      const buf = await new Response(res.stream).arrayBuffer();
+      globalForBlobAccess.__pwBlobAccess = access;
+      return new Uint8Array(buf);
+    } catch {
+      // wrong access mode for this store — try the other
+    }
+  }
+  return null;
 }
 
 async function blobSave(bytes: Uint8Array): Promise<void> {
-  const token = blobToken();
-  if (!token) return;
-  const res = await fetch(`${BLOB_API}/${blobPrefix()}`, {
-    method: "PUT",
-    headers: {
-      authorization: `Bearer ${token}`,
-      "x-content-type": "application/octet-stream",
-      "cache-control": "no-store",
-    },
-    body: new Blob([Buffer.from(bytes)]),
-  });
-  if (!res.ok) {
-    throw new Error(`blob-put status=${res.status}`);
-  }
-  const put = (await res.json()) as { url?: string };
-  // Best-effort cleanup of older suffixed snapshots so the store stays tidy.
-  try {
-    const list = await fetch(
-      `${BLOB_API}?prefix=${encodeURIComponent(blobPrefix())}&limit=50`,
-      { headers: { authorization: `Bearer ${token}` } },
-    );
-    if (list.ok) {
-      const data = (await list.json()) as { blobs?: { url: string }[] };
-      const stale = (data.blobs ?? [])
-        .map((b) => b.url)
-        .filter((u) => u && u !== put.url);
-      if (stale.length > 0) {
-        await fetch(`${BLOB_API}/delete`, {
-          method: "POST",
-          headers: {
-            authorization: `Bearer ${token}`,
-            "content-type": "application/json",
-          },
-          body: JSON.stringify({ urls: stale }),
-        });
-      }
+  if (!blobConfigured()) return;
+  const { put } = await import("@vercel/blob");
+  let lastError: unknown = null;
+  for (const access of accessOrder()) {
+    try {
+      await put(blobPathname(), Buffer.from(bytes), {
+        access: access as "public",
+        addRandomSuffix: false,
+        allowOverwrite: true,
+        cacheControlMaxAge: 60,
+      });
+      globalForBlobAccess.__pwBlobAccess = access;
+      return;
+    } catch (e) {
+      lastError = e;
     }
-  } catch {
-    // cleanup is best-effort
   }
+  throw lastError instanceof Error ? lastError : new Error(String(lastError));
 }
 
 /* ------------------------------ File driver ------------------------------ */

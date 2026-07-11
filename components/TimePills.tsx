@@ -13,7 +13,7 @@ export function TimePills({ value, onChange }: TimePillsProps) {
     <div
       role="group"
       aria-label="Time window"
-      className="inline-flex overflow-hidden rounded-full border-2 border-[var(--ink)] bg-[var(--card)]"
+      className="inline-flex overflow-hidden rounded-[10px] border border-[var(--line)] bg-[var(--card)]"
     >
       {TIME_WINDOWS.map((w) => {
         const active = w === value;
@@ -24,7 +24,7 @@ export function TimePills({ value, onChange }: TimePillsProps) {
             onClick={() => onChange(w)}
             aria-pressed={active}
             data-testid={`pill-${w}`}
-            className={`min-h-11 min-w-[44px] px-3 text-[12px] font-black uppercase tracking-wide transition-colors duration-[120ms] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)] ${
+            className={`min-h-11 min-w-[44px] px-3 text-[12px] font-bold uppercase tracking-wide transition-colors duration-[120ms] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)] ${
               active
                 ? "bg-[var(--ink)] text-[var(--paper)]"
                 : "bg-transparent text-[var(--ink)]"

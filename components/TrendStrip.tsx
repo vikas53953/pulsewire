@@ -26,7 +26,7 @@ function PlaneColumn({
 
   return (
     <div data-testid={testId} data-status={status} className="min-w-0 flex-1">
-      <h3 className="m-0 font-mono text-[10px] font-black uppercase tracking-[0.1em] opacity-70">
+      <h3 className="m-0 font-mono text-[10px] font-bold uppercase tracking-[0.1em] opacity-70">
         {title}
       </h3>
 
@@ -63,7 +63,7 @@ function PlaneColumn({
                   rel="noopener noreferrer"
                   className="block text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)]"
                 >
-                  <span className="block text-[12px] font-black leading-snug text-[var(--ink)]">
+                  <span className="block text-[12px] font-bold leading-snug text-[var(--ink)]">
                     {item.title}
                   </span>
                   <span className="mt-0.5 block text-[9px] font-bold uppercase tracking-wide opacity-50">
@@ -72,7 +72,7 @@ function PlaneColumn({
                 </a>
               ) : (
                 <div>
-                  <span className="block text-[12px] font-black leading-snug">
+                  <span className="block text-[12px] font-bold leading-snug">
                     {item.title}
                   </span>
                   <span className="mt-0.5 block text-[9px] font-bold uppercase opacity-50">
@@ -110,7 +110,7 @@ export function TrendStrip({ trend, section, loading }: TrendStripProps) {
         className="border-y-2 border-[var(--ink)] py-3"
         aria-busy
       >
-        <p className="m-0 font-mono text-[10px] font-black uppercase tracking-wide opacity-45">
+        <p className="m-0 font-mono text-[10px] font-bold uppercase tracking-wide opacity-45">
           Loading {sectionLabel(section)} mix…
         </p>
       </div>
@@ -128,7 +128,7 @@ export function TrendStrip({ trend, section, loading }: TrendStripProps) {
       aria-label={`${label} mix from wires, Reddit, and X`}
       className="border-y-2 border-[var(--ink)] py-3"
     >
-      <p className="m-0 mb-2 font-mono text-[10px] font-black uppercase tracking-[0.12em] opacity-55">
+      <p className="m-0 mb-2 font-mono text-[10px] font-bold uppercase tracking-[0.12em] opacity-55">
         {label} · wires · reddit · x
       </p>
       <div className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-3 min-[480px]:gap-4">

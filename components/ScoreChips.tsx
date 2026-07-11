@@ -26,12 +26,19 @@ type ScoreChipsProps = {
   drivingSection?: ContentSectionId | null;
 };
 
-const LEVEL_DOT: Record<string, string> = {
-  green: "🟢",
-  yellow: "🟡",
-  red: "🔴",
-  unknown: "⚪",
+/** Gauge fill color per level (Signal: color only where status earned it). */
+const LEVEL_FILL: Record<string, string> = {
+  green: "bg-[var(--calm)]",
+  yellow: "bg-[var(--warm)]",
+  red: "bg-[var(--hot)]",
 };
+
+const LEVEL_NUM: Record<string, string> = {
+  green: "text-[var(--ink)]",
+  yellow: "text-[var(--ink)]",
+  red: "text-[var(--hot)]",
+};
+
 function Spark({ values }: { values: number[] }) {
   if (!values.length) return null;
   const max = Math.max(...values, 0.1);
@@ -50,7 +57,7 @@ function Spark({ values }: { values: number[] }) {
       width={w}
       height={h}
       viewBox={`0 0 ${w} ${h}`}
-      className="ml-1 inline-block align-middle"
+      className="inline-block align-middle text-[var(--hot)]"
       aria-hidden
     >
       <polyline
@@ -65,13 +72,22 @@ function Spark({ values }: { values: number[] }) {
   );
 }
 
-const chipBtn = (selected: boolean, driving: boolean) =>
-  `min-h-11 shrink-0 rounded-full border-2 border-[var(--ink)] px-3 py-2 font-mono text-[12px] font-black uppercase tracking-wide transition-[transform,box-shadow,background-color] duration-[120ms] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)] ${
+/** Instrument-card chip: label, number, gauge bar (how warm, not just that). */
+const gaugeChip = (selected: boolean, driving: boolean) =>
+  `min-h-11 min-w-[72px] shrink-0 rounded-[10px] border bg-[var(--card)] px-2.5 pb-2 pt-1.5 text-left transition-[border-color,background-color] duration-[120ms] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)] ${
     selected
-      ? "bg-[var(--sticker)] shadow-[3px_3px_0_var(--shadow)]"
+      ? "border-[var(--ink)]"
       : driving
-        ? "bg-[var(--sticker)]/70 shadow-[2px_2px_0_var(--shadow)]"
-        : "bg-[var(--card)] shadow-none"
+        ? "border-[var(--warm)]"
+        : "border-[var(--line)] hover:border-[var(--faint)]"
+  }`;
+
+/** Plain text chip (ALL / TREND) — same height, quieter body. */
+const textChip = (selected: boolean) =>
+  `min-h-11 shrink-0 self-stretch rounded-[10px] border px-4 pw-mono text-[12px] font-bold uppercase tracking-[0.08em] transition-[border-color,background-color] duration-[120ms] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)] ${
+    selected
+      ? "border-[var(--ink)] bg-[var(--ink)] text-[var(--paper)]"
+      : "border-[var(--line)] bg-[var(--card)] text-[var(--ink)] hover:border-[var(--faint)]"
   }`;
 
 export function ScoreChips({
@@ -116,14 +132,14 @@ export function ScoreChips({
 
   return (
     <div className="flex flex-col gap-2">
-      <p className="m-0 font-mono text-[10px] font-black uppercase tracking-[0.12em] opacity-55">
+      <p className="pw-mono m-0 text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--faint)]">
         Desks
       </p>
       <div
         role="tablist"
         aria-label="Section pulse scores"
         data-testid="score-chips"
-        className="flex flex-wrap gap-2"
+        className="flex flex-wrap items-stretch gap-2"
       >
         <button
           type="button"
@@ -133,7 +149,7 @@ export function ScoreChips({
           onClick={() => onSelect("all")}
           onFocus={() => setPeek(null)}
           onMouseEnter={() => setPeek(null)}
-          className={chipBtn(active === "all", false)}
+          className={textChip(active === "all")}
         >
           ALL
         </button>
@@ -149,6 +165,7 @@ export function ScoreChips({
           const why = score
             ? pulseWhy(score)
             : `${sectionChip(id)} pulse ${value}`;
+          const fillPct = unknown ? 0 : Math.max(0, Math.min(100, value));
           return (
             <button
               key={id}
@@ -169,16 +186,31 @@ export function ScoreChips({
               onMouseEnter={() => setPeek(id)}
               onMouseLeave={() => setPeek((cur) => (cur === id ? null : cur))}
               onBlur={() => setPeek((cur) => (cur === id ? null : cur))}
-              className={`${chipBtn(selected, driving)} inline-flex items-center gap-1.5`}
+              className={gaugeChip(selected, driving)}
             >
-              <span>{sectionChip(id)}</span>
-              {driving ? (
-                <span
-                  data-testid={`driving-dot-${id}`}
-                  className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--ink)]"
-                  aria-hidden
-                />
-              ) : null}
+              <span className="flex items-center gap-1">
+                <span className="pw-mono text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--faint)]">
+                  {sectionChip(id)}
+                </span>
+                {driving ? (
+                  <span
+                    data-testid={`driving-dot-${id}`}
+                    className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--warm)]"
+                    aria-hidden
+                  />
+                ) : null}
+                {socialLed ? (
+                  <span
+                    data-testid={`social-led-${id}`}
+                    className="text-[10px]"
+                  >
+                    ⚡
+                  </span>
+                ) : null}
+                {!unknown && level === "red" && score?.velocitySpark?.length ? (
+                  <Spark values={score.velocitySpark} />
+                ) : null}
+              </span>
               <span
                 data-testid={`pulse-num-${id}`}
                 aria-label={
@@ -188,43 +220,30 @@ export function ScoreChips({
                       ? `Pulse ${value}, still calibrating`
                       : `Pulse ${value}`
                 }
-                className={`inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[13px] font-black tabular-nums leading-none ${
+                className={`mt-0.5 block text-[17px] font-bold leading-none tabular-nums ${
                   calibrating ? "opacity-45" : ""
-                } ${
-                  selected
-                    ? "bg-[var(--ink)]/10"
-                    : unknown
-                      ? "bg-zinc-100 text-zinc-500"
-                      : level === "red"
-                        ? "bg-[var(--mega)]/15 text-[var(--mega)]"
-                        : level === "yellow"
-                          ? "bg-amber-100 text-amber-900"
-                          : "bg-emerald-100 text-emerald-900"
-                }`}
+                } ${unknown ? "text-[var(--faint)]" : LEVEL_NUM[level]}`}
               >
                 <span data-testid={`pulse-score-${id}`}>
                   {unknown ? "—" : value}
                 </span>
-                <span aria-hidden="true">
-                  {unknown ? LEVEL_DOT.unknown : LEVEL_DOT[level]}
-                </span>
               </span>
-              {socialLed ? (
-                <span data-testid={`social-led-${id}`} className="ml-0.5">
-                  ⚡
-                </span>
-              ) : null}
               {calibrating ? (
-                <span
-                  data-testid={`calibrating-${id}`}
-                  className="sr-only"
-                >
+                <span data-testid={`calibrating-${id}`} className="sr-only">
                   calibrating
                 </span>
               ) : null}
-              {!unknown && level === "red" && score?.velocitySpark?.length ? (
-                <Spark values={score.velocitySpark} />
-              ) : null}
+              <span
+                className="mt-1.5 block h-[3px] w-full overflow-hidden rounded-[2px] bg-[var(--track)]"
+                aria-hidden
+              >
+                <span
+                  className={`block h-full rounded-[2px] ${
+                    unknown ? "bg-transparent" : LEVEL_FILL[level]
+                  } ${calibrating ? "opacity-45" : ""}`}
+                  style={{ width: `${fillPct}%` }}
+                />
+              </span>
             </button>
           );
         })}
@@ -237,7 +256,7 @@ export function ScoreChips({
           onClick={() => onSelect("trend")}
           onFocus={() => setPeek(null)}
           onMouseEnter={() => setPeek(null)}
-          className={chipBtn(active === "trend", false)}
+          className={textChip(active === "trend")}
         >
           TREND
         </button>
@@ -255,7 +274,7 @@ export function ScoreChips({
           <button
             type="button"
             data-testid="calibrating-dismiss"
-            className="shrink-0 text-[11px] font-bold uppercase tracking-wide text-[var(--ink)] underline decoration-[var(--muted)] underline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)]"
+            className="shrink-0 text-[11px] font-bold uppercase tracking-wide text-[var(--ink)] underline decoration-[var(--muted)] underline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)]"
             onClick={() => {
               try {
                 localStorage.setItem(CALIBRATING_KEY, "1");
@@ -273,17 +292,18 @@ export function ScoreChips({
         <p
           id="pulse-why-line"
           data-testid="pulse-why"
-          className="m-0 max-w-2xl text-[12px] font-bold leading-snug text-[var(--ink)] opacity-70"
+          className="m-0 max-w-2xl text-[12px] font-semibold leading-snug text-[var(--ink)] opacity-80"
         >
           {whyLine}
         </p>
       ) : (
         <p
           data-testid="pulse-legend"
-          className="m-0 px-0.5 font-mono text-[10px] font-bold uppercase tracking-[0.06em] opacity-55"
+          className="pw-mono m-0 px-0.5 text-[10px] font-bold uppercase tracking-[0.06em] text-[var(--faint)]"
         >
-          Pulse 0–100 vs a normal hour · 🟢 quiet · 🟡 warming · 🔴 hot · ⚪
-          unknown · muted = calibrating · ⚡ social-led · hover a chip for why
+          Pulse 0–100 vs a normal hour · bar = how loud · green quiet · amber
+          warming · red hot · — unknown · muted = calibrating · ⚡ social-led ·
+          hover a chip for why
         </p>
       )}
     </div>

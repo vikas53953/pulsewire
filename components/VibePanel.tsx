@@ -27,7 +27,7 @@ function Column({
 
   return (
     <div data-testid={testId} data-status={status} className="min-w-0 flex-1">
-      <h2 className="m-0 font-mono text-[11px] font-black uppercase tracking-wide">
+      <h2 className="m-0 font-mono text-[11px] font-bold uppercase tracking-wide">
         {title}
       </h2>
 
@@ -77,7 +77,7 @@ function Column({
                 rel="noopener noreferrer"
                 className="pw-tile block bg-[var(--card)] p-3 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)]"
               >
-                <span className="block text-[13px] font-black leading-snug">
+                <span className="block text-[13px] font-bold leading-snug">
                   {item.title}
                 </span>
                 <span className="mt-2 block text-[10px] font-bold uppercase opacity-60">

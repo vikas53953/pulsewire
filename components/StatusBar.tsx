@@ -108,7 +108,7 @@ export function StatusBar({
           aria-label="Refresh now. Long-press for deep refresh (X)."
           title="Tap: refresh · Long-press: deep refresh (1 X call)"
           data-testid="refresh-btn"
-          className="flex h-11 w-11 items-center justify-center rounded-full border-2 border-[var(--ink)] bg-[var(--card)] text-base shadow-[3px_3px_0_var(--shadow)] transition-[transform,box-shadow] duration-[120ms] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)] enabled:active:translate-x-[2px] enabled:active:translate-y-[2px] enabled:active:shadow-[1px_1px_0_var(--shadow)] disabled:opacity-50"
+          className="flex h-11 w-11 items-center justify-center rounded-[10px] border border-[var(--line)] bg-[var(--card)] text-base transition-[border-color] duration-[120ms] hover:border-[var(--faint)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)] disabled:opacity-50"
         >
           {refreshing ? "…" : "↻"}
         </button>

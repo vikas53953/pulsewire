@@ -13,7 +13,7 @@ export function ThemeToggle({ night, onToggle }: ThemeToggleProps) {
       aria-label={night ? "Switch to light zine" : "Switch to night zine"}
       title={night ? "Light" : "Night Zine"}
       data-testid="theme-toggle"
-      className="flex h-11 w-11 items-center justify-center rounded-full border-2 border-[var(--ink)] bg-[var(--card)] text-lg shadow-[3px_3px_0_var(--shadow)] transition-[transform,box-shadow] duration-[120ms] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[1px_1px_0_var(--shadow)]"
+      className="flex h-11 w-11 items-center justify-center rounded-[10px] border border-[var(--line)] bg-[var(--card)] text-lg transition-[border-color] duration-[120ms] hover:border-[var(--faint)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)]"
     >
       ◐
     </button>

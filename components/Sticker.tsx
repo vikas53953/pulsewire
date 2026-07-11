@@ -5,12 +5,14 @@ type StickerProps = {
   className?: string;
 };
 
-/** Yellow rotated sticker badge — used for 🔥 N SOURCES, RAW, etc. */
+/**
+ * Quiet badge (Signal design): hairline border, mono caps, no rotation.
+ * Callers may still pass bg/text overrides via className.
+ */
 export function Sticker({ children, className = "" }: StickerProps) {
   return (
     <span
-      className={`inline-block border-2 border-[var(--ink)] bg-[var(--sticker)] px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-[var(--ink)] ${className}`}
-      style={{ transform: "rotate(4deg)" }}
+      className={`pw-mono inline-block rounded-[6px] border border-[var(--line)] bg-[var(--card)] px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-[0.08em] text-[var(--muted)] ${className}`}
     >
       {children}
     </span>

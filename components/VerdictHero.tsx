@@ -7,6 +7,11 @@ type VerdictHeroProps = {
   quietTop?: string | null;
 };
 
+/**
+ * Signal design: the verdict is the one dramatic element on the page —
+ * large serif type set directly on the ground, no card chrome.
+ * Blind state keeps a hot rule so "status unknown" can't read as calm.
+ */
 export function VerdictHero({ verdict, quietTop }: VerdictHeroProps) {
   if (!verdict) {
     return (
@@ -27,31 +32,31 @@ export function VerdictHero({ verdict, quietTop }: VerdictHeroProps) {
       data-llm={verdict.llmPolished ? "1" : "0"}
       data-quiet={isQuiet ? "1" : "0"}
       data-blind={isBlind ? "1" : "0"}
-      className={`pw-tile relative w-full bg-[var(--card)] px-4 py-4 sm:px-5 sm:py-5 ${
-        isQuiet ? "border-[var(--ink)]/10" : ""
+      className={`relative w-full py-1 ${
+        isBlind ? "border-l-[3px] border-[var(--hot)] pl-4" : ""
       }`}
       aria-live="polite"
     >
       {isBlind ? (
         <p
           data-testid="blind-banner"
-          className="m-0 mb-2 font-mono text-[10px] font-black uppercase tracking-[0.14em] text-[var(--mega)]"
+          className="pw-mono m-0 mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--hot)]"
         >
           Status unknown
         </p>
       ) : isQuiet ? (
         <p
           data-testid="quiet-win"
-          className="m-0 mb-2 font-mono text-[10px] font-black uppercase tracking-[0.14em] opacity-55"
+          className="pw-mono m-0 mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--muted)]"
         >
           Quiet is a win
         </p>
       ) : null}
       <p
-        className={`m-0 font-black leading-snug tracking-tight text-[var(--ink)] ${
+        className={`pw-verdict-type m-0 max-w-[42ch] font-bold text-[var(--ink)] [text-wrap:balance] ${
           isQuiet
-            ? "text-[22px] sm:text-[26px]"
-            : "text-[20px] sm:text-[22px]"
+            ? "text-[26px] leading-[1.3] sm:text-[30px]"
+            : "text-[24px] leading-[1.32] sm:text-[28px]"
         }`}
       >
         {verdict.text}
@@ -59,7 +64,7 @@ export function VerdictHero({ verdict, quietTop }: VerdictHeroProps) {
       {verdict.why ? (
         <p
           data-testid="verdict-why"
-          className="mt-3 text-[13px] font-bold leading-snug text-[var(--ink)] opacity-70"
+          className="mt-2.5 max-w-[68ch] text-[13px] leading-snug text-[var(--muted)]"
         >
           {verdict.why}
         </p>
@@ -67,7 +72,7 @@ export function VerdictHero({ verdict, quietTop }: VerdictHeroProps) {
       {isQuiet && quietTop ? (
         <p
           data-testid="quiet-top"
-          className="mt-3 text-[12px] font-bold uppercase tracking-[0.06em] text-[var(--ink)] opacity-70"
+          className="mt-2.5 text-[12px] text-[var(--muted)]"
         >
           {quietTop}
         </p>

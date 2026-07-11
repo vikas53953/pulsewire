@@ -40,7 +40,7 @@ function TrendTile({ item }: { item: TrendItem }) {
     accent === "hot"
       ? "border-l-[3px] border-l-[var(--mega)]"
       : accent === "warm"
-        ? "border-l-[3px] border-l-[var(--sticker)]"
+        ? "border-l-[3px] border-l-[var(--warm)]"
         : "border-l-[3px] border-l-transparent";
 
   return (
@@ -54,7 +54,7 @@ function TrendTile({ item }: { item: TrendItem }) {
         data-velocity={item.velocity ?? 0}
         className={`pw-tile block bg-[var(--card)] p-4 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)] ${border}`}
       >
-        <span className="block text-[15px] font-black leading-snug text-[var(--ink)]">
+        <span className="block text-[15px] font-bold leading-snug text-[var(--ink)]">
           {item.title}
         </span>
         <span className="mt-2 block text-[10px] font-bold uppercase tracking-wide opacity-50">
@@ -93,7 +93,7 @@ function Column({
 
   return (
     <div data-testid={testId} data-status={status} className="min-w-0">
-      <h2 className="m-0 mb-3 font-mono text-[12px] font-black uppercase tracking-[0.12em]">
+      <h2 className="m-0 mb-3 font-mono text-[12px] font-bold uppercase tracking-[0.12em]">
         {title}
         {status === "ok" && items.length > 0 ? (
           <span
@@ -158,7 +158,7 @@ export function SocialTrendsBoard({ pack, loading }: SocialTrendsBoardProps) {
   if (loading && !pack) {
     return (
       <section data-testid="social-trends" className="py-2" aria-busy>
-        <p className="m-0 font-mono text-[11px] font-black uppercase tracking-wide opacity-45">
+        <p className="m-0 font-mono text-[11px] font-bold uppercase tracking-wide opacity-45">
           Loading trends…
         </p>
       </section>
@@ -181,7 +181,7 @@ export function SocialTrendsBoard({ pack, loading }: SocialTrendsBoardProps) {
       className="py-1"
     >
       <div className="mb-5 max-w-lg">
-        <h2 className="m-0 font-mono text-[11px] font-black uppercase tracking-[0.14em] opacity-55">
+        <h2 className="m-0 font-mono text-[11px] font-bold uppercase tracking-[0.14em] opacity-55">
           TREND
         </h2>
         <p className="m-0 mt-1 text-[13px] font-bold leading-snug opacity-65">

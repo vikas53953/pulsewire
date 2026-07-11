@@ -63,9 +63,10 @@ export function backupHistoryDb(opts?: {
   const dest = path.join(dir, `pulsewire${label}-${stamp}.db`);
 
   try {
+    // sql.js snapshot model: export the live image directly (already vacuumed
+    // in spirit — it is the canonical file bytes).
     const db = getHistoryDb();
-    db.pragma("wal_checkpoint(TRUNCATE)");
-    db.exec(`VACUUM INTO '${dest.replace(/'/g, "''")}'`);
+    fs.writeFileSync(dest, Buffer.from(db.export()));
     const pruned = pruneBackups(dir);
     console.info(
       `[pulsewire] backup-ok path=${dest} prune kept=${pruned.kept} deleted=${pruned.deleted}`

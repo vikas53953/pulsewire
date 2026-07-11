@@ -66,15 +66,19 @@ function trendWhy(
   const vel = sig.velocity ?? 0;
   let ratio: number | null = null;
   if (plane === "reddit" && sig.source) {
-    const { hourIst, weekdayIst } = istBucketParts();
-    const samples = readSocialVelocitySamples(sig.source, hourIst, weekdayIst);
-    ratio = velocityRatio(vel, samples);
-    // Persist sample for future baselines (best-effort)
-    writeSocialVelocitySample({
-      subreddit: sig.source,
-      plane: "reddit",
-      velocity: vel,
-    });
+    try {
+      const { hourIst, weekdayIst } = istBucketParts();
+      const samples = readSocialVelocitySamples(sig.source, hourIst, weekdayIst);
+      ratio = velocityRatio(vel, samples);
+      // Persist sample for future baselines (best-effort)
+      writeSocialVelocitySample({
+        subreddit: sig.source,
+        plane: "reddit",
+        velocity: vel,
+      });
+    } catch {
+      // History unavailable — plain velocity label, never break TREND.
+    }
   }
   const velLabel = formatVelocityWhy(vel, sig.source, ratio);
   if (plane === "reddit") {

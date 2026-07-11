@@ -27,6 +27,9 @@ const nextConfig = {
     // Load-bearing: starts the background warmer. Pin Next consciously —
     // an upgrade that changes instrumentation semantics silently kills warming.
     instrumentationHook: true,
+    outputFileTracingIncludes: {
+      "/**": ["./node_modules/sql.js/dist/sql-wasm.wasm"],
+    },
   },
   // Surface runtime overrides (Playwright sets PULSEWIRE_DB_PATH on webServer).
   env: {
@@ -49,12 +52,13 @@ const nextConfig = {
       },
     ];
   },
-  // better-sqlite3 is a native Node addon — keep it external (Next 14 webpack)
+  // sql.js loads its WASM via require.resolve at runtime — keep it external so
+  // webpack doesn't rewrite that path; the wasm is traced into deploys above.
   webpack: (config, { isServer }) => {
     if (isServer) {
       config.externals = config.externals || [];
       if (Array.isArray(config.externals)) {
-        config.externals.push("better-sqlite3");
+        config.externals.push("sql.js");
       }
     }
     return config;

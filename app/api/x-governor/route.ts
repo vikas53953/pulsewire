@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { canSpend, spendForbiddenResponse } from "@/lib/beta-auth";
+import { flushDbNow } from "@/lib/sqldb";
 import {
   getXGovernorStatus,
   requestManualDeep,
@@ -12,6 +13,8 @@ import { isTestMode } from "@/lib/test-mode";
 import { isSectionId, type ContentSectionId } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
+// Vercel: cold warm cycle (parallel feeds, 8s timeout) needs headroom.
+export const maxDuration = 60;
 export const revalidate = 0;
 
 export async function GET() {
@@ -43,6 +46,8 @@ export async function POST(request: NextRequest) {
       );
     }
     const entry = await fetchXAfterGrant(decision, "4h");
+    // Serverless durability: spend counters must survive instance freeze.
+    await flushDbNow();
     return NextResponse.json({
       ok: true,
       decision,

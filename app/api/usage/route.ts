@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { recordOpen, recordSession } from "@/lib/usage";
+import { flushDbNow } from "@/lib/sqldb";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -26,10 +27,12 @@ export async function POST(request: NextRequest) {
   const deviceId = body.deviceId ?? "";
   if (body.event === "open") {
     const ok = recordOpen(deviceId);
+    if (ok) await flushDbNow(); // serverless durability
     return NextResponse.json({ ok }, { status: ok ? 200 : 400 });
   }
   if (body.event === "session") {
     const ok = recordSession(deviceId, Number(body.sessionMs ?? 0));
+    if (ok) await flushDbNow(); // serverless durability
     return NextResponse.json({ ok }, { status: ok ? 200 : 400 });
   }
   return NextResponse.json({ error: "unknown event" }, { status: 400 });

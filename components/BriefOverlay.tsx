@@ -41,13 +41,13 @@ export function BriefOverlay({
       onClick={onClose}
     >
       <div
-        className="pw-tile relative w-full max-w-lg bg-[var(--card)] p-4 shadow-[6px_6px_0_var(--shadow)]"
+        className="pw-tile relative w-full max-w-lg bg-[var(--card)] p-4 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <button
           type="button"
           data-testid="brief-close"
-          className="absolute right-3 top-3 min-h-11 min-w-11 font-mono text-[12px] font-black uppercase"
+          className="absolute right-3 top-3 min-h-11 min-w-11 font-mono text-[12px] font-bold uppercase"
           onClick={onClose}
         >
           Close
@@ -56,7 +56,7 @@ export function BriefOverlay({
         <p
           id={titleId}
           data-testid="brief-title"
-          className="m-0 pr-16 text-[18px] font-black leading-tight text-[var(--ink)]"
+          className="m-0 pr-16 text-[18px] font-bold leading-tight text-[var(--ink)]"
         >
           {brief?.title ?? (loading ? "Loading brief…" : "Brief")}
         </p>
@@ -102,7 +102,7 @@ export function BriefOverlay({
               ] as const
             ).map(([label, value, testId]) => (
               <div key={label}>
-                <dt className="font-mono text-[10px] font-black uppercase tracking-wide opacity-60">
+                <dt className="font-mono text-[10px] font-bold uppercase tracking-wide opacity-60">
                   {label}
                 </dt>
                 <dd
@@ -122,7 +122,7 @@ export function BriefOverlay({
             href={primary.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-5 inline-flex min-h-11 items-center border-2 border-[var(--ink)] bg-[var(--sticker)] px-3 font-mono text-[12px] font-black uppercase shadow-[3px_3px_0_var(--shadow)]"
+            className="pw-mono mt-5 inline-flex min-h-11 items-center rounded-[10px] border border-[var(--line)] bg-[var(--card)] px-3 text-[12px] font-bold uppercase tracking-[0.06em] hover:border-[var(--faint)]"
           >
             Open source →
           </a>

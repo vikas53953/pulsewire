@@ -2,24 +2,58 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Design: "Signal" (light) / "Night Desk" (dark).
+ * One dramatic element — the serif verdict; everything else is quiet
+ * instrumentation. Color only where status earned it.
+ * Previous "Bento Zine" look is preserved on branch design/bento-zine.
+ */
 :root {
-  --paper: #eceadf;
-  --ink: #141414;
+  --paper: #f7f6f2;
+  --ink: #14161a;
   --card: #ffffff;
-  --mega: #ff4d4d;
-  --teal: #bdf3e6;
-  --lav: #e4dcff;
-  --sticker: #ffd23f;
-  --shadow: #141414;
+  --line: #e7e5de;
+  --line-soft: #eceae2;
+  --muted: #6b7280;
+  --faint: #9aa0a8;
+  --brand: #0f766e;
+  --calm: #4f9d6b;
+  --warm: #d9a326;
+  --hot: #c94f3d;
+  --track: #ecebe5;
+
+  /* Legacy token names still referenced by components */
+  --mega: #c94f3d;
   --mega-fg: #ffffff;
+  --sticker: #d9a326;
+  --teal: #ffffff;
+  --lav: #ffffff;
+  --shadow: transparent;
+
+  --serif: Georgia, "Iowan Old Style", "Times New Roman", serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }
 
 html.night {
-  --paper: #141414;
-  --ink: #eceadf;
-  --card: #1e1e1e;
-  --shadow: #000000;
-  --mega-fg: #ffffff;
+  --paper: #17181c;
+  --ink: #e9e6df;
+  --card: #1e2025;
+  --line: #2e3036;
+  --line-soft: #26282d;
+  --muted: #9b9da4;
+  --faint: #797b82;
+  --brand: #e0a94e;
+  --calm: #63a877;
+  --warm: #e0a94e;
+  --hot: #d96a55;
+  --track: #26282d;
+
+  --mega: #d96a55;
+  --mega-fg: #17181c;
+  --sticker: #e0a94e;
+  --teal: #1e2025;
+  --lav: #1e2025;
+  --shadow: transparent;
 }
 
 html,
@@ -36,27 +70,36 @@ body {
   box-sizing: border-box;
 }
 
-/* Hard zine focus ring */
 :focus-visible {
-  outline: 3px solid var(--sticker);
+  outline: 2px solid var(--brand);
   outline-offset: 2px;
 }
 
+/* Quiet card: hairline border, no offset shadow, no press gimmick */
 .pw-tile {
-  border: 2px solid var(--ink);
-  border-radius: 16px;
-  box-shadow: 4px 4px 0 var(--shadow);
-  transition: transform 120ms ease, box-shadow 120ms ease, opacity 200ms ease;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: none;
+  transition: border-color 120ms ease, opacity 200ms ease;
 }
 
-.pw-tile:active:not(.pw-tile--dead) {
-  transform: translate(2px, 2px);
-  box-shadow: 1px 1px 0 var(--shadow);
+.pw-tile:hover:not(.pw-tile--dead) {
+  border-color: var(--faint);
 }
 
 .pw-tile--dead {
   opacity: 0.6;
   cursor: default;
+}
+
+/* The one dramatic element on the page */
+.pw-verdict-type {
+  font-family: var(--serif);
+  letter-spacing: -0.005em;
+}
+
+.pw-mono {
+  font-family: var(--mono);
 }
 
 .pw-fade-in {
@@ -84,9 +127,9 @@ body {
 .pw-skeleton {
   background: linear-gradient(
     90deg,
-    color-mix(in srgb, var(--paper) 70%, var(--ink)) 0%,
+    color-mix(in srgb, var(--paper) 80%, var(--ink)) 0%,
     var(--card) 50%,
-    color-mix(in srgb, var(--paper) 70%, var(--ink)) 100%
+    color-mix(in srgb, var(--paper) 80%, var(--ink)) 100%
   );
   background-size: 200% 100%;
   animation: pwShimmer 1.2s linear infinite;

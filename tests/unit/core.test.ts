@@ -580,11 +580,14 @@ describe("since summary D3", () => {
 describe("NEW badge cap", () => {
   it(`keeps at most ${NEW_BADGE_CAP} NEW stickers, hottest first`, () => {
     const lastVisit = Date.now() - 60 * 60_000;
-    const items = Array.from({ length: 6 }, (_, i) => ({
-      publishedAt: new Date(Date.now() - i * 60_000).toISOString(),
-      heat: 10 + i,
-      text: `Story ${i}`,
-    }));
+    const items = Array.from(
+      { length: 6 },
+      (_, i): { publishedAt: string; heat: number; text: string; isNew?: boolean } => ({
+        publishedAt: new Date(Date.now() - i * 60_000).toISOString(),
+        heat: 10 + i,
+        text: `Story ${i}`,
+      }),
+    );
     const marked = applyNewBadges(items, lastVisit);
     expect(marked.filter((i) => i.isNew)).toHaveLength(NEW_BADGE_CAP);
     // Hottest among the new set

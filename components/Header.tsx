@@ -30,10 +30,10 @@ export function Header({
     <header className="flex flex-wrap items-center justify-between gap-3">
       <div className="flex items-center gap-2">
         <h1
-          className="m-0 text-[22px] font-black uppercase tracking-[-0.05em] text-[var(--ink)] sm:text-[28px]"
+          className="pw-mono m-0 text-[14px] font-bold uppercase tracking-[0.18em] text-[var(--ink)] sm:text-[15px]"
           data-testid="brand"
         >
-          PulseWire
+          Pulse<span className="text-[var(--brand)]">Wire</span>
         </h1>
         {/* RAW sticker hidden — default mode is raw; showing it reads as unfinished. */}
       </div>

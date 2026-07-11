@@ -17,6 +17,7 @@ type BentoGridProps = {
   blind?: boolean;
 };
 
+/** Signal design: stories are a quiet hairline list, not a card grid. */
 export function BentoGrid({
   items,
   loading,
@@ -30,13 +31,12 @@ export function BentoGrid({
     return (
       <div
         data-testid="bento-skeleton"
-        className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-2 md:grid-cols-3"
+        className="flex flex-col gap-2 border-t border-[var(--line)] pt-3"
       >
-        <div className="pw-tile pw-skeleton col-span-full min-h-[140px]" />
-        <div className="pw-tile pw-skeleton min-h-[120px]" />
-        <div className="pw-tile pw-skeleton min-h-[120px]" />
-        <div className="pw-tile pw-skeleton min-h-[120px]" />
-        <div className="pw-tile pw-skeleton min-h-[120px]" />
+        <div className="pw-skeleton h-[52px] rounded-[8px]" />
+        <div className="pw-skeleton h-[44px] rounded-[8px]" />
+        <div className="pw-skeleton h-[44px] rounded-[8px]" />
+        <div className="pw-skeleton h-[44px] rounded-[8px]" />
       </div>
     );
   }
@@ -44,9 +44,9 @@ export function BentoGrid({
   if (items.length === 0) {
     if (blind) {
       return (
-        <div data-testid="blind-empty" className="flex justify-center py-6">
-          <div className="pw-tile relative w-full max-w-md bg-[var(--card)] p-6 text-center">
-            <p className="m-0 text-[16px] font-black uppercase leading-snug text-[var(--ink)]">
+        <div data-testid="blind-empty" className="flex justify-center py-8">
+          <div className="w-full max-w-md border-l-[3px] border-[var(--hot)] py-1 pl-4">
+            <p className="m-0 text-[15px] font-semibold leading-snug text-[var(--ink)]">
               No board while sources are unreachable — not a quiet hour.
             </p>
           </div>
@@ -54,9 +54,9 @@ export function BentoGrid({
       );
     }
     return (
-      <div data-testid="quiet-hour" className="flex justify-center py-6">
-        <div className="pw-tile relative w-full max-w-md bg-[var(--card)] p-6 text-center">
-          <p className="m-0 text-[16px] font-black uppercase leading-snug text-[var(--ink)]">
+      <div data-testid="quiet-hour" className="flex justify-center py-10">
+        <div className="w-full max-w-md text-center">
+          <p className="pw-verdict-type m-0 text-[19px] font-bold leading-snug text-[var(--ink)]">
             Quiet hour — nothing hot in the last {window}.
           </p>
           {window === "1h" ? (
@@ -65,7 +65,7 @@ export function BentoGrid({
                 type="button"
                 data-testid="try-4h"
                 onClick={onTryWiderWindow}
-                className="min-h-11 rounded-full border-2 border-[var(--ink)] bg-[var(--sticker)] px-4 text-[12px] font-black uppercase tracking-wide shadow-[3px_3px_0_var(--shadow)] transition-[transform,box-shadow] duration-[120ms] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[1px_1px_0_var(--shadow)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)]"
+                className="pw-mono min-h-11 rounded-[10px] border border-[var(--line)] bg-[var(--card)] px-4 text-[12px] font-bold uppercase tracking-[0.08em] text-[var(--ink)] transition-[border-color] duration-[120ms] hover:border-[var(--faint)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)]"
               >
                 Try 4h
               </button>
@@ -83,28 +83,18 @@ export function BentoGrid({
     <div
       data-testid="bento-grid"
       data-section={section}
-      className="grid grid-cols-1 gap-4 min-[480px]:grid-cols-2 md:grid-cols-3"
+      className="flex flex-col divide-y divide-[var(--line-soft)] border-t border-[var(--line)]"
     >
       {assigned.map(({ item, tone, mega }, index) => (
-        <div
+        <HighlightTile
           key={`${item.publishedAt}-${item.text.slice(0, 24)}-${index}`}
-          className={
-            mega
-              ? "col-span-full"
-              : index === 0
-                ? "col-span-full min-[480px]:col-span-2"
-                : undefined
-          }
-        >
-          <HighlightTile
-            item={item}
-            tone={tone}
-            mega={mega}
-            showSection={showSection}
-            index={index}
-            onOpenBrief={onOpenBrief}
-          />
-        </div>
+          item={item}
+          tone={tone}
+          mega={mega}
+          showSection={showSection}
+          index={index}
+          onOpenBrief={onOpenBrief}
+        />
       ))}
     </div>
   );
@@ -115,7 +105,7 @@ export function StaleBanner({ show }: { show: boolean }) {
   return (
     <div
       data-testid="stale-banner"
-      className="w-full border-2 border-[var(--ink)] bg-[var(--sticker)] px-3 py-2 text-center text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--ink)] shadow-[3px_3px_0_var(--shadow)]"
+      className="pw-mono w-full rounded-[8px] border border-[var(--warm)] bg-transparent px-3 py-2 text-center text-[11px] font-bold uppercase tracking-[0.06em] text-[var(--ink)]"
     >
       ⚠ Showing last-known news — sources unreachable
     </div>

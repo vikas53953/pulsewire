@@ -50,6 +50,8 @@ const globalForSql = globalThis as unknown as {
   __pwSqlDirty?: boolean;
   __pwSqlFlushTimer?: ReturnType<typeof setTimeout> | null;
   __pwSqlFlushing?: Promise<void> | null;
+  /** Exporting mid-transaction aborts sql.js COMMIT — defer flushes. */
+  __pwSqlInTxn?: boolean;
 };
 
 function isVercel(): boolean {
@@ -183,12 +185,25 @@ function fileSave(bytes: Uint8Array): void {
 
 /* ------------------------------- Adapter -------------------------------- */
 
+const DATABASE_LIST_RE = /^\s*pragma\s+database_list\s*;?\s*$/i;
+
 class AdapterStatement implements SqlStatement {
   constructor(
     private readonly db: SqlJsDatabase,
     private readonly sql: string,
     private readonly onWrite: () => void,
   ) {}
+
+  /** Snapshot model: the honest answer to "what file is this DB?" */
+  private databaseListRows(): Row[] {
+    return [
+      {
+        seq: 0,
+        name: "main",
+        file: isVercel() ? "" : resolveSnapshotPath(),
+      },
+    ];
+  }
 
   private withStmt<T>(params: BindValue[], fn: (s: ReturnType<SqlJsDatabase["prepare"]>) => T): T {
     const stmt = this.db.prepare(this.sql);
@@ -201,12 +216,14 @@ class AdapterStatement implements SqlStatement {
   }
 
   get(...params: BindValue[]): Row | undefined {
+    if (DATABASE_LIST_RE.test(this.sql)) return this.databaseListRows()[0];
     return this.withStmt(params, (s) =>
       s.step() ? (s.getAsObject() as Row) : undefined,
     );
   }
 
   all(...params: BindValue[]): Row[] {
+    if (DATABASE_LIST_RE.test(this.sql)) return this.databaseListRows();
     return this.withStmt(params, (s) => {
       const rows: Row[] = [];
       while (s.step()) rows.push(s.getAsObject() as Row);
@@ -248,6 +265,7 @@ class AdapterDb implements SqlDatabase {
 
   transaction<A extends unknown[]>(fn: (...args: A) => void): (...args: A) => void {
     return (...args: A) => {
+      globalForSql.__pwSqlInTxn = true;
       this.db.exec("BEGIN");
       try {
         fn(...args);
@@ -259,6 +277,8 @@ class AdapterDb implements SqlDatabase {
           // ignore
         }
         throw e;
+      } finally {
+        globalForSql.__pwSqlInTxn = false;
       }
       markDirty();
     };
@@ -361,6 +381,10 @@ export async function reopenSqlDb(): Promise<void> {
 
 function markDirty(): void {
   globalForSql.__pwSqlDirty = true;
+  if (globalForSql.__pwSqlInTxn) {
+    // Flush after COMMIT — exporting mid-transaction aborts it.
+    return;
+  }
   if (isVercel()) {
     scheduleAsyncFlush(3000);
     return;
@@ -394,6 +418,7 @@ function scheduleAsyncFlush(ms: number): void {
 function flushSync(): void {
   const db = globalForSql.__pwSqlDb;
   if (!db || !globalForSql.__pwSqlDirty) return;
+  if (globalForSql.__pwSqlInTxn) return;
   if (isVercel()) return; // blob flushes are async-only
   try {
     fileSave(db.export());

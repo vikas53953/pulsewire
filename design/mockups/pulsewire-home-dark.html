@@ -1,129 +1,90 @@
-<!DOCTYPE html><html lang="en-IN" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#131610"><title>PulseWire — Home (dark)</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Spline+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet"><style>
-/* PulseWire — "MORNING FEED" (Timeline) design tokens
-   Direction locked from canvas frame 7a (dark-first) · light theme co-equal.
-   Color carries STATUS MEANING ONLY (quiet / warming / hot / unknown / success). */
-
-:root {
-  /* LIGHT */
-  --pw-bg: #F7F8F6;          /* page */
-  --pw-panel: #FFFFFF;       /* cards, ring interiors, sidebars */
-  --pw-line: #E3E6DE;        /* card borders, dividers */
-  --pw-dash: #C7CBC0;        /* dashed border of TREND (lower-trust) */
-  --pw-ink: #191B1D;         /* primary text */
-  --pw-dim: #7A7E75;         /* meta, secondary */
-  --pw-av: #EDEFE8;          /* source avatar bg */
-
-  /* Status */
-  --pw-quiet: #C2C7BC;       /* ring color 0–39: deliberately muted */
-  --pw-warm: #B98A2E;        /* 40–69 */
-  --pw-hot: #C0361C;         /* 70–100 */
-  --pw-unknown: #7A7E75;     /* dashed ring + '?' */
-  --pw-success: #3E7A55;     /* caught-up line, quiet-win plate */
-
-  /* Verdict plate (pinned post) — inverted vs page */
-  --pw-verdict-bg: #191B1D;
-  --pw-verdict-ink: #FFFFFF;
-  --pw-verdict-dim: #9BA096;
-  --pw-verdict-tag: #D9A83E;
-  /* Quiet-win plate */
-  --pw-win-bg: #EDF3EC; --pw-win-ink: #1E3A2A; --pw-win-dim: #5C7A66;
-  /* Unknown plate — achromatic inverted + dashed, louder than hot */
-  --pw-unk-bg: #191B1D; --pw-unk-ink: #FFFFFF; --pw-unk-alert: #FF6A45;
-
-  --pw-font: 'Archivo', 'Helvetica Neue', Arial, sans-serif;
-  --pw-mono: 'Spline Sans Mono', 'SF Mono', Consolas, monospace;
-
-  --pw-r-card: 16px;         /* posts, verdict plate */
-  --pw-r-chip: 12px;         /* trend items */
-  --pw-ring: 64px;           /* desk ring diameter (44px at <400px) */
-  --pw-ring-b: 4px;          /* ring border width */
-  --pw-tap: 44px;
-
-  --pw-s1: 4px; --pw-s2: 8px; --pw-s3: 12px; --pw-s4: 16px;
-  --pw-s5: 20px; --pw-s6: 24px; --pw-s8: 36px;
+<!DOCTYPE html><html lang="en-IN" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#000000"><title>PulseWire — Home (dark)</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Spline+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet"><style>
+/* PulseWire — 8d "SIGNAL BLACK" tokens (X-black + blue) · dark primary */
+:root{
+  --pw-bg:#FFFFFF; --pw-panel:#F7F9F9; --pw-line:#EFF3F4; --pw-dash:#CFD9DE;
+  --pw-ink:#0F1419; --pw-dim:#536471; --pw-av:#E7ECEE;
+  --pw-accent:#1D9BF0; /* actions/brand only, never status */
+  --pw-quiet:#CFD9DE; --pw-warm:#B98A2E; --pw-hot:#C0361C; --pw-unknown:#536471; --pw-success:#00825C;
+  --pw-verdict-bg:#0F1419; --pw-verdict-ink:#FFFFFF; --pw-verdict-dim:#8B98A5; --pw-verdict-tag:#1D9BF0;
+  --pw-win-bg:#EDF7F1; --pw-win-ink:#0E3D2A; --pw-win-dim:#4E7A64;
+  --pw-unk-bg:#0F1419; --pw-unk-ink:#FFFFFF; --pw-unk-alert:#F0764A;
+  --pw-font:'Archivo','Helvetica Neue',Arial,sans-serif; --pw-mono:'Spline Sans Mono','SF Mono',Consolas,monospace;
+  --pw-r-card:16px; --pw-r-chip:12px; --pw-ring:64px; --pw-ring-b:4px; --pw-tap:44px;
 }
-
-/* DARK — primary theme (7a) */
-[data-theme='dark'], html.dark {
-  --pw-bg: #131610;
-  --pw-panel: #1A1D16;
-  --pw-line: #262A21;
-  --pw-dash: #3A4033;
-  --pw-ink: #E8EAE0;
-  --pw-dim: #8D927F;
-  --pw-av: #262A21;
-
-  --pw-quiet: #4A5142;
-  --pw-warm: #D9A83E;
-  --pw-hot: #F0764A;
-  --pw-unknown: #8D927F;
-  --pw-success: #7FBF8E;
-
-  --pw-verdict-bg: #E8EAE0;  /* inverted: light plate on dark ground */
-  --pw-verdict-ink: #131610;
-  --pw-verdict-dim: #5C6152;
-  --pw-verdict-tag: #9A6F1F;
-  --pw-win-bg: #16241B; --pw-win-ink: #DCEBDD; --pw-win-dim: #7FA089;
-  --pw-unk-bg: #E8EAE0; --pw-unk-ink: #131610; --pw-unk-alert: #B3261E;
+[data-theme='dark'],html.dark{
+  --pw-bg:#000000; --pw-panel:#16181C; --pw-line:#2F3336; --pw-dash:#3E4144;
+  --pw-ink:#E7E9EA; --pw-dim:#71767B; --pw-av:#202327;
+  --pw-accent:#1D9BF0;
+  --pw-quiet:#3E4144; --pw-warm:#D9A83E; --pw-hot:#F0764A; --pw-unknown:#71767B; --pw-success:#00BA7C;
+  --pw-verdict-bg:#E7E9EA; --pw-verdict-ink:#0A0A0A; --pw-verdict-dim:#536471; --pw-verdict-tag:#1D9BF0;
+  --pw-win-bg:#06251A; --pw-win-ink:#D2F5E4; --pw-win-dim:#6FA98D;
+  --pw-unk-bg:#E7E9EA; --pw-unk-ink:#0A0A0A; --pw-unk-alert:#C0361C;
 }
-
 *{box-sizing:border-box}
 body{margin:0;background:var(--pw-bg);color:var(--pw-ink);font-family:var(--pw-font);-webkit-font-smoothing:antialiased}
-a{color:var(--pw-ink)} a:hover{color:var(--pw-warm)}
-.app{display:grid;grid-template-columns:250px minmax(0,1fr) 380px;min-height:100vh;max-width:1440px;margin:0 auto}
-.nav{border-right:1px solid var(--pw-line);padding:34px 30px;display:flex;flex-direction:column;gap:24px}
-.wm{font:800 22px var(--pw-font);letter-spacing:.04em}
-.nav a{font:500 17px var(--pw-font);color:var(--pw-dim);text-decoration:none;min-height:28px}
-.nav a.on{font-weight:600;color:var(--pw-ink)}
-.nav .foot{margin-top:auto;font:500 14px var(--pw-mono);color:var(--pw-dim)}
-.feed{display:flex;flex-direction:column}
-.rings{display:flex;gap:24px;padding:24px 36px 20px;border-bottom:1px solid var(--pw-line)}
-.ring{display:flex;flex-direction:column;align-items:center;gap:8px;background:none;border:none;padding:0;cursor:pointer;font-family:var(--pw-font)}
-.ring .c{width:var(--pw-ring);height:var(--pw-ring);border-radius:50%;border:var(--pw-ring-b) solid var(--pw-quiet);display:flex;align-items:center;justify-content:center;background:var(--pw-panel);font:700 18px var(--pw-font);color:var(--pw-dim)}
-.ring.warm .c{border-color:var(--pw-warm);color:var(--pw-ink)}
-.ring.hot .c{border-color:var(--pw-hot);color:var(--pw-ink)}
-.ring.unk .c{border-style:dashed;border-color:var(--pw-unknown)}
-.ring.cal .c{border-style:dotted}
-.ring .n{font:500 13px var(--pw-font);color:var(--pw-dim)}
-.verdict{margin:20px 36px 0;background:var(--pw-verdict-bg);border-radius:var(--pw-r-card);padding:24px 30px}
-.verdict .h{display:flex;gap:10px;align-items:center}
-.verdict .who{font:700 15px var(--pw-font);color:var(--pw-verdict-ink)}
+a{color:var(--pw-ink);text-decoration:none} a:hover{color:var(--pw-accent)}
+.app{display:grid;grid-template-columns:290px minmax(0,740px) 1fr;max-width:1560px;margin:0 auto;min-height:100vh}
+.nav{border-right:1px solid var(--pw-line);padding:24px 26px;display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+.brand{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+.brand svg{width:44px;height:44px}
+.brand b{font:800 22px var(--pw-font);letter-spacing:.03em}
+.ni{display:flex;align-items:center;gap:14px;min-height:48px;font:500 18px var(--pw-font);color:var(--pw-dim);border-radius:999px;padding:0 12px;margin:0 -12px}
+.ni:hover{background:var(--pw-panel);color:var(--pw-ink)}
+.ni.on{font-weight:700;color:var(--pw-ink)}
+.ni .ic{font-size:20px;width:24px;text-align:center}
+.refresh{margin-top:18px;min-height:50px;border:none;border-radius:999px;background:var(--pw-accent);color:#fff;font:700 17px var(--pw-font);cursor:pointer}
+.acct{margin-top:auto;display:flex;align-items:center;gap:12px;min-height:56px}
+.acct .av{width:42px;height:42px;border-radius:50%;background:var(--pw-av);display:flex;align-items:center;justify-content:center;font:700 15px var(--pw-font)}
+.acct .n{font:600 15px var(--pw-font)} .acct .m{font:400 13px var(--pw-mono);color:var(--pw-dim)}
+.feed{border-right:1px solid var(--pw-line);display:flex;flex-direction:column}
+.tabs{display:flex;border-bottom:1px solid var(--pw-line);position:sticky;top:0;background:var(--pw-bg)}
+.tab{flex:1;min-height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font:500 15px var(--pw-font);color:var(--pw-dim);cursor:pointer}
+.tab.on{font-weight:700;color:var(--pw-ink);box-shadow:inset 0 -4px 0 var(--pw-accent)}
+.tab .sc{font:600 11px var(--pw-mono)}
+.tab .sc.warm{color:var(--pw-warm)} .tab .sc.hot{color:var(--pw-hot)} .tab .sc.q{color:var(--pw-dim)}
+.verdict{margin:20px 30px 0;background:var(--pw-verdict-bg);border-radius:var(--pw-r-card);padding:24px 28px}
 .verdict .tag{font:600 12px var(--pw-mono);letter-spacing:.08em;color:var(--pw-verdict-tag)}
-.verdict .t{font:600 26px/1.32 var(--pw-font);color:var(--pw-verdict-ink);margin-top:10px;text-wrap:pretty}
+.verdict .t{font:600 25px/1.32 var(--pw-font);color:var(--pw-verdict-ink);margin-top:8px;text-wrap:pretty}
 .verdict .w{font:400 15px var(--pw-mono);color:var(--pw-verdict-dim);margin-top:12px}
-.verdict.hotv{background:var(--pw-hot)}
-.verdict.hotv .who,.verdict.hotv .t{color:var(--pw-bg)}
-.verdict.hotv .tag,.verdict.hotv .w{color:var(--pw-bg);opacity:.75}
-.verdict.win{background:var(--pw-win-bg);border:2px solid var(--pw-success)}
-.verdict.win .who,.verdict.win .t{color:var(--pw-win-ink)}
-.verdict.win .tag{color:var(--pw-success)} .verdict.win .w{color:var(--pw-win-dim)}
-.verdict.unk{background:var(--pw-unk-bg);border:4px dashed var(--pw-unk-ink)}
-.verdict.unk .who,.verdict.unk .t{color:var(--pw-unk-ink)}
-.verdict.unk .tag{color:var(--pw-unk-alert)} .verdict.unk .w{color:var(--pw-unk-ink);opacity:.7}
-.post{margin:14px 36px 0;background:var(--pw-panel);border:1px solid var(--pw-line);border-radius:var(--pw-r-card);padding:20px 26px;cursor:pointer}
+.verdict.hotv{background:var(--pw-hot)} .verdict.hotv .t{color:#000} .verdict.hotv .tag,.verdict.hotv .w{color:#000;opacity:.7}
+.verdict.win{background:var(--pw-win-bg);border:2px solid var(--pw-success)} .verdict.win .t{color:var(--pw-win-ink)} .verdict.win .tag{color:var(--pw-success)} .verdict.win .w{color:var(--pw-win-dim)}
+.verdict.unk{background:var(--pw-unk-bg);border:4px dashed var(--pw-unk-alert)} .verdict.unk .t{color:var(--pw-unk-ink)} .verdict.unk .tag{color:var(--pw-unk-alert)} .verdict.unk .w{color:var(--pw-unk-ink);opacity:.7}
+.post{margin:14px 30px 0;background:var(--pw-panel);border:1px solid var(--pw-line);border-radius:var(--pw-r-card);padding:18px 24px;cursor:pointer}
 .post.stale{opacity:.55}
 .post .h{display:flex;align-items:center;gap:12px}
 .post .av{width:36px;height:36px;border-radius:50%;background:var(--pw-av);display:flex;align-items:center;justify-content:center;font:700 14px var(--pw-font)}
-.post .src{font:600 15px var(--pw-font)}
-.post .when{font:500 13px var(--pw-mono);color:var(--pw-dim)}
-.post .hl{font:500 20px/1.4 var(--pw-font);margin-top:10px;text-wrap:pretty}
-.post .ev{display:flex;gap:22px;margin-top:12px;font:500 13px var(--pw-mono);color:var(--pw-dim)}
-.caught{text-align:center;padding:24px 40px;font:600 16px var(--pw-font);color:var(--pw-success)}
+.post .src{font:600 15px var(--pw-font)} .post .when{font:500 13px var(--pw-mono);color:var(--pw-dim)}
+.post .hl{font:500 19px/1.4 var(--pw-font);margin-top:8px;text-wrap:pretty}
+.post .ev{display:flex;gap:20px;margin-top:10px;font:500 13px var(--pw-mono);color:var(--pw-dim)}
+.caught{text-align:center;padding:26px 40px 34px;font:600 16px var(--pw-font);color:var(--pw-success)}
 .caught.warn{color:var(--pw-hot)} .caught.dim{color:var(--pw-dim)}
-.side{border-left:1px solid var(--pw-line);padding:30px}
-.side .t{font:700 16px var(--pw-font)}
-.side .s{font:500 12px var(--pw-mono);color:var(--pw-dim);margin-top:4px}
-.titem{margin-top:14px;padding:16px;border:1.5px dashed var(--pw-dash);border-radius:var(--pw-r-chip)}
-.titem .slug{font:500 13px var(--pw-mono);color:var(--pw-dim)}
-.titem .txt{font:600 16px/1.35 var(--pw-font);margin-top:6px}
-.legend{margin:0 36px;font:400 12px/1.5 var(--pw-mono);color:var(--pw-dim);padding:10px 0 0}
-@media(max-width:1199px){.app{grid-template-columns:250px minmax(0,1fr)}.side{display:none}}
-@media(max-width:767px){.app{display:block}.nav{flex-direction:row;align-items:center;padding:14px 16px;border-right:none;border-bottom:1px solid var(--pw-line)}.nav a,.nav .foot{display:none}.rings{gap:4px;padding:14px 12px 10px;justify-content:space-between}.ring .c{width:44px;height:44px;border-width:3px;font-size:13px}.ring .n{font-size:9px}.verdict,.post{margin-left:16px;margin-right:16px}.verdict{padding:16px 18px}.verdict .t{font-size:17px}.post{padding:14px 16px}.post .hl{font-size:15px}}
-</style></head><body><div class="app"><nav class="nav"><span class="wm">PULSEWIRE</span><a class="on" href="#">● Today</a><a href="#">Desks</a><a href="#">Trend</a><a href="#">History</a><span class="foot">07:41 IST · auto 10 min</span></nav><main class="feed">
-<div class="rings"><button class="ring "><span class="c">38</span><span class="n">Markets</span></button><button class="ring "><span class="c">34</span><span class="n">India</span></button><button class="ring warm"><span class="c">61</span><span class="n">Economy</span></button><button class="ring "><span class="c">22</span><span class="n">Tech</span></button><button class="ring "><span class="c">33</span><span class="n">Politics</span></button><button class="ring warm"><span class="c">59</span><span class="n">Sports</span></button><button class="ring "><span class="c">28</span><span class="n">World</span></button></div>
-<article class="verdict "><div class="h"><span class="who">PulseWire</span><span class="tag">VERDICT · PINNED · 07:41</span></div><div class="t">Nothing needs you this morning. One desk warming: Economy — PMFME crosses 2 lakh units, 2 sources.</div><div class="w">watch — if Economy cools without a second wave by 9, ignore it</div></article>
+.side{padding:20px 26px;position:sticky;top:0;height:100vh;overflow:auto}
+.scard{background:var(--pw-panel);border:1px solid var(--pw-line);border-radius:var(--pw-r-card);padding:18px 20px;margin-bottom:16px}
+.scard .t{font:700 17px var(--pw-font)} .scard .s{font:500 11px var(--pw-mono);color:var(--pw-dim);margin-top:2px}
+.titem{margin-top:12px;padding:12px;border:1.5px dashed var(--pw-dash);border-radius:var(--pw-r-chip)}
+.titem .slug{font:500 12px var(--pw-mono);color:var(--pw-dim)} .titem .txt{font:600 15px/1.35 var(--pw-font);margin-top:4px}
+.lrow{display:flex;align-items:center;gap:12px;min-height:34px}
+.lrow .ln{font:500 14px var(--pw-font);width:72px} .lrow .ls{font:600 13px var(--pw-mono);color:var(--pw-dim);width:26px;text-align:right}
+.lbar{flex:1;height:5px;border-radius:3px;background:var(--pw-line);overflow:hidden}.lbar i{display:block;height:100%}
+.legend{margin:12px 30px 0;font:400 12px/1.5 var(--pw-mono);color:var(--pw-dim)}
+@media(max-width:1250px){.app{grid-template-columns:88px minmax(0,1fr)}.side{display:none}.brand b,.ni span.tx,.acct div{display:none}.refresh{border-radius:50%;width:48px}.refresh .tx{display:none}.refresh::after{content:"\21BB";font:700 20px var(--pw-font)}}
+@media(max-width:767px){.app{display:block}.nav{flex-direction:row;height:auto;position:static;align-items:center;padding:12px 16px;border-bottom:1px solid var(--pw-line)}.ni,.refresh,.acct{display:none}.brand{margin:0}.brand b{display:inline}.tabs{overflow:hidden}.tab{min-width:0;font-size:12px}.verdict,.post{margin-left:16px;margin-right:16px}.verdict .t{font-size:17px}.post .hl{font-size:15px}.legend{margin:12px 16px 0}}
+</style></head><body><div class="app"><nav class="nav"><div class="brand"><svg viewBox="0 0 40 40"><rect x="1" y="1" width="38" height="38" rx="10" fill="#E7E9EA"/><path d="M6 20h8l3-8 6 16 3-8h8" fill="none" stroke="#000" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg><b>PulseWire</b></div>
+<a class="ni on" href="#"><span class="ic">⌂</span><span class="tx">Today</span></a>
+<a class="ni" href="#"><span class="ic">▦</span><span class="tx">Desks</span></a>
+<a class="ni" href="#"><span class="ic">↗</span><span class="tx">Trend</span></a>
+<a class="ni" href="#"><span class="ic">◷</span><span class="tx">History</span></a>
+<a class="ni" href="#"><span class="ic">⚙</span><span class="tx">Settings</span></a>
+<button class="refresh"><span class="tx">Refresh now</span></button>
+<div class="acct"><span class="av">VM</span><div><div class="n">vikas mittal</div><div class="m">new delhi · 07:41 IST</div></div></div></nav><main class="feed"><div class="tabs"><div class="tab on"><span>Today</span><span class="sc q">&nbsp;</span></div><div class="tab"><span>Markets</span><span class="sc q">38</span></div><div class="tab"><span>India</span><span class="sc q">34</span></div><div class="tab"><span>Economy</span><span class="sc warm">61</span></div><div class="tab"><span>Tech</span><span class="sc q">22</span></div><div class="tab"><span>Politics</span><span class="sc q">33</span></div><div class="tab"><span>Sports</span><span class="sc warm">59</span></div><div class="tab"><span>World</span><span class="sc q">28</span></div></div>
+<article class="verdict "><div class="tag">VERDICT · PINNED · 07:41</div><div class="t">Nothing needs you this morning. One desk warming: Economy — PMFME crosses 2 lakh units, 2 sources.</div><div class="w">watch — if Economy cools without a second wave by 9, ignore it</div></article>
 <article class="post"><div class="h"><span class="av">HB</span><span class="src">Hindu Business Line</span><span class="when">+1 source · 29m</span></div><div class="hl">PMFME now covers over 2 lakh micro food processing enterprises, minister says</div><div class="ev"><span style="color:#D9A83E">◉ pulse 61</span><span>Economy</span><span>2 sources agree</span></div></article>
 <article class="post"><div class="h"><span class="av">ND</span><span class="src">NDTV</span><span class="when">+1 source · 1h</span></div><div class="hl">Fifth India—England T20I toss delayed by wet outfield at Trent Bridge</div><div class="ev"><span style="color:#D9A83E">◉ pulse 59</span><span>Sports</span><span>2 sources agree</span></div></article>
-<article class="post"><div class="h"><span class="av">ND</span><span class="src">NDTV</span><span class="when">+2 sources · 2h</span></div><div class="hl">PM condoles deaths of Indian tourists in Vietnam boat tragedy</div><div class="ev"><span style="color:#8D927F">◉ pulse 34</span><span>India</span><span>3 sources agree</span></div></article>
-<div class="caught">✓ You’re all caught up — 3 posts was the whole morning</div>
-</main><aside class="side"><div class="t">Trending off-platform</div><div class="s">UNVERIFIED · REDDIT + X</div><div class="titem"><div class="slug">r/IndiaInvestments · rising</div><div class="txt">PMFME megathread +340 pts/hr vs ~40 normal</div></div><div class="titem"><div class="slug">X #T20I · steady</div><div class="txt">Toss-delay chatter within normal match-day range</div></div></aside></div></body></html>
+<article class="post"><div class="h"><span class="av">ND</span><span class="src">NDTV</span><span class="when">+2 sources · 2h</span></div><div class="hl">PM condoles deaths of Indian tourists in Vietnam boat tragedy</div><div class="ev"><span style="color:var(--pw-dim)">◉ pulse 34</span><span>India</span><span>3 sources agree</span></div></article>
+<article class="post"><div class="h"><span class="av">TI</span><span class="src">Times of India</span><span class="when">+1 source · 3h</span></div><div class="hl">SIA secures Interpol red-corner notice against Hizbul operative in 2013 case</div><div class="ev"><span style="color:var(--pw-dim)">◉ pulse 34</span><span>India</span><span>2 sources agree</span></div></article>
+<div class="caught">✓ You’re all caught up — 4 posts was the whole morning</div>
+</main><aside class="side">
+<div class="scard"><div class="t">Trending off-platform</div><div class="s">UNVERIFIED · REDDIT + X</div><div class="titem"><div class="slug">r/IndiaInvestments · rising</div><div class="txt">PMFME megathread +340 pts/hr vs ~40 normal</div></div><div class="titem"><div class="slug">X #T20I · steady</div><div class="txt">Toss-delay chatter within normal match-day range</div></div></div>
+<div class="scard"><div class="t">Desk leaderboard</div><div class="s">PULSE 0—100 VS NORMAL HOUR</div>
+<div class="lrow"><span class="ln">Economy</span><span class="lbar"><i style="width:61%;background:var(--pw-warm)"></i></span><span class="ls">61</span></div><div class="lrow"><span class="ln">Sports</span><span class="lbar"><i style="width:59%;background:var(--pw-warm)"></i></span><span class="ls">59</span></div><div class="lrow"><span class="ln">Markets</span><span class="lbar"><i style="width:38%;background:var(--pw-quiet)"></i></span><span class="ls">38</span></div><div class="lrow"><span class="ln">India</span><span class="lbar"><i style="width:34%;background:var(--pw-quiet)"></i></span><span class="ls">34</span></div><div class="lrow"><span class="ln">Politics</span><span class="lbar"><i style="width:33%;background:var(--pw-quiet)"></i></span><span class="ls">33</span></div><div class="lrow"><span class="ln">World</span><span class="lbar"><i style="width:28%;background:var(--pw-quiet)"></i></span><span class="ls">28</span></div><div class="lrow"><span class="ln">Tech</span><span class="lbar"><i style="width:22%;background:var(--pw-quiet)"></i></span><span class="ls">22</span></div></div>
+</aside></div></body></html>

@@ -1,67 +1,21 @@
-/* PulseWire — "MORNING FEED" (Timeline) design tokens
-   Direction locked from canvas frame 7a (dark-first) · light theme co-equal.
-   Color carries STATUS MEANING ONLY (quiet / warming / hot / unknown / success). */
-
-:root {
-  /* LIGHT */
-  --pw-bg: #F7F8F6;          /* page */
-  --pw-panel: #FFFFFF;       /* cards, ring interiors, sidebars */
-  --pw-line: #E3E6DE;        /* card borders, dividers */
-  --pw-dash: #C7CBC0;        /* dashed border of TREND (lower-trust) */
-  --pw-ink: #191B1D;         /* primary text */
-  --pw-dim: #7A7E75;         /* meta, secondary */
-  --pw-av: #EDEFE8;          /* source avatar bg */
-
-  /* Status */
-  --pw-quiet: #C2C7BC;       /* ring color 0–39: deliberately muted */
-  --pw-warm: #B98A2E;        /* 40–69 */
-  --pw-hot: #C0361C;         /* 70–100 */
-  --pw-unknown: #7A7E75;     /* dashed ring + '?' */
-  --pw-success: #3E7A55;     /* caught-up line, quiet-win plate */
-
-  /* Verdict plate (pinned post) — inverted vs page */
-  --pw-verdict-bg: #191B1D;
-  --pw-verdict-ink: #FFFFFF;
-  --pw-verdict-dim: #9BA096;
-  --pw-verdict-tag: #D9A83E;
-  /* Quiet-win plate */
-  --pw-win-bg: #EDF3EC; --pw-win-ink: #1E3A2A; --pw-win-dim: #5C7A66;
-  /* Unknown plate — achromatic inverted + dashed, louder than hot */
-  --pw-unk-bg: #191B1D; --pw-unk-ink: #FFFFFF; --pw-unk-alert: #FF6A45;
-
-  --pw-font: 'Archivo', 'Helvetica Neue', Arial, sans-serif;
-  --pw-mono: 'Spline Sans Mono', 'SF Mono', Consolas, monospace;
-
-  --pw-r-card: 16px;         /* posts, verdict plate */
-  --pw-r-chip: 12px;         /* trend items */
-  --pw-ring: 64px;           /* desk ring diameter (44px at <400px) */
-  --pw-ring-b: 4px;          /* ring border width */
-  --pw-tap: 44px;
-
-  --pw-s1: 4px; --pw-s2: 8px; --pw-s3: 12px; --pw-s4: 16px;
-  --pw-s5: 20px; --pw-s6: 24px; --pw-s8: 36px;
+/* PulseWire — 8d "SIGNAL BLACK" tokens (X-black + blue) · dark primary */
+:root{
+  --pw-bg:#FFFFFF; --pw-panel:#F7F9F9; --pw-line:#EFF3F4; --pw-dash:#CFD9DE;
+  --pw-ink:#0F1419; --pw-dim:#536471; --pw-av:#E7ECEE;
+  --pw-accent:#1D9BF0; /* actions/brand only, never status */
+  --pw-quiet:#CFD9DE; --pw-warm:#B98A2E; --pw-hot:#C0361C; --pw-unknown:#536471; --pw-success:#00825C;
+  --pw-verdict-bg:#0F1419; --pw-verdict-ink:#FFFFFF; --pw-verdict-dim:#8B98A5; --pw-verdict-tag:#1D9BF0;
+  --pw-win-bg:#EDF7F1; --pw-win-ink:#0E3D2A; --pw-win-dim:#4E7A64;
+  --pw-unk-bg:#0F1419; --pw-unk-ink:#FFFFFF; --pw-unk-alert:#F0764A;
+  --pw-font:'Archivo','Helvetica Neue',Arial,sans-serif; --pw-mono:'Spline Sans Mono','SF Mono',Consolas,monospace;
+  --pw-r-card:16px; --pw-r-chip:12px; --pw-ring:64px; --pw-ring-b:4px; --pw-tap:44px;
 }
-
-/* DARK — primary theme (7a) */
-[data-theme='dark'], html.dark {
-  --pw-bg: #131610;
-  --pw-panel: #1A1D16;
-  --pw-line: #262A21;
-  --pw-dash: #3A4033;
-  --pw-ink: #E8EAE0;
-  --pw-dim: #8D927F;
-  --pw-av: #262A21;
-
-  --pw-quiet: #4A5142;
-  --pw-warm: #D9A83E;
-  --pw-hot: #F0764A;
-  --pw-unknown: #8D927F;
-  --pw-success: #7FBF8E;
-
-  --pw-verdict-bg: #E8EAE0;  /* inverted: light plate on dark ground */
-  --pw-verdict-ink: #131610;
-  --pw-verdict-dim: #5C6152;
-  --pw-verdict-tag: #9A6F1F;
-  --pw-win-bg: #16241B; --pw-win-ink: #DCEBDD; --pw-win-dim: #7FA089;
-  --pw-unk-bg: #E8EAE0; --pw-unk-ink: #131610; --pw-unk-alert: #B3261E;
+[data-theme='dark'],html.dark{
+  --pw-bg:#000000; --pw-panel:#16181C; --pw-line:#2F3336; --pw-dash:#3E4144;
+  --pw-ink:#E7E9EA; --pw-dim:#71767B; --pw-av:#202327;
+  --pw-accent:#1D9BF0;
+  --pw-quiet:#3E4144; --pw-warm:#D9A83E; --pw-hot:#F0764A; --pw-unknown:#71767B; --pw-success:#00BA7C;
+  --pw-verdict-bg:#E7E9EA; --pw-verdict-ink:#0A0A0A; --pw-verdict-dim:#536471; --pw-verdict-tag:#1D9BF0;
+  --pw-win-bg:#06251A; --pw-win-ink:#D2F5E4; --pw-win-dim:#6FA98D;
+  --pw-unk-bg:#E7E9EA; --pw-unk-ink:#0A0A0A; --pw-unk-alert:#C0361C;
 }

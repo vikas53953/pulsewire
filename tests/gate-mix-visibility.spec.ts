@@ -14,9 +14,17 @@ test.describe("trend panel", () => {
     });
     await expect(page.getByTestId("chip-trend")).toBeVisible();
     await expect(page.getByTestId("chip-world")).toBeVisible();
-    // Clean news desk — no under-section mix / trends wall
+    // Clean news desk — social never mixes INTO the feed. The Morning Feed
+    // desktop layout adds a separate TREND aside column; that is allowed,
+    // but the feed itself must stay social-free and the aside stays outside.
     await expect(page.getByTestId("trend-strip")).toHaveCount(0);
-    await expect(page.getByTestId("social-trends")).toHaveCount(0);
+    await expect(
+      page.locator('[data-testid="bento-grid"] [data-testid="social-trends"]'),
+    ).toHaveCount(0);
+    const asideTrends = page.locator(
+      'aside [data-testid="social-trends"], [data-testid="social-trends"]',
+    );
+    expect(await asideTrends.count()).toBeLessThanOrEqual(1);
     await expect(page.getByTestId("bento-grid")).toBeVisible();
   });
 

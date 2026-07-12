@@ -51,9 +51,9 @@ export function Header({
   }, []);
 
   return (
-    <header className="border-b border-[var(--pw-line)] pb-3 pt-4">
+    <header className="border-b border-[var(--pw-line)] pb-3 pt-4 xl:flex xl:justify-end xl:border-0 xl:pb-0">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-baseline gap-3">
+        <div className="flex items-baseline gap-3 xl:hidden">
           <h1
             className="pw-display m-0 text-[20px] font-extrabold leading-none tracking-[0.04em] text-[var(--pw-ink)]"
             data-testid="brand"

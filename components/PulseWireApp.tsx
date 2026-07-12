@@ -8,6 +8,7 @@ import { RadarStrip } from "@/components/RadarStrip";
 import { ScoreChips, type ChipId } from "@/components/ScoreChips";
 import { StatusBar } from "@/components/StatusBar";
 import { SocialTrendsBoard } from "@/components/SocialTrendsBoard";
+import { SideNav } from "@/components/SideNav";
 import { FreshnessLine } from "@/components/FreshnessLine";
 import { VerdictHero } from "@/components/VerdictHero";
 import type { BriefPayload } from "@/lib/brief";
@@ -177,6 +178,17 @@ export function PulseWireApp({ initialData = null }: PulseWireAppProps) {
   );
   const [lens, setLens] = useState<Lens>(initialData?.lens ?? "window");
   const [data, setData] = useState<HighlightsResponse | null>(initialData);
+  /** Desktop TREND aside (spec §3 three-column) — fetched alongside the feed. */
+  const [asidePack, setAsidePack] = useState<HighlightsResponse | null>(null);
+  /** Mount the aside only at xl — a CSS-hidden copy would duplicate testids. */
+  const [isDesktop, setIsDesktop] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1280px)");
+    const apply = () => setIsDesktop(mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
   const [loading, setLoading] = useState(!initialData);
   const [refreshing, setRefreshing] = useState(false);
   const [night, setNight] = useState(readInitialNight);
@@ -453,11 +465,30 @@ export function PulseWireApp({ initialData = null }: PulseWireAppProps) {
         ? "trend"
         : (section as ContentSectionId | "all");
 
+  useEffect(() => {
+    let alive = true;
+    fetchHighlights("trend", timeWindow, "window", null)
+      .then((pack) => {
+        if (alive) setAsidePack(pack);
+      })
+      .catch(() => {
+        // aside is best-effort; the TREND tab remains the fallback
+      });
+    return () => {
+      alive = false;
+    };
+  }, [timeWindow, data?.generatedAt]);
+
   const radarTripped = Boolean(radar && !radar.clear && radar.trips?.length);
 
   return (
-    <div className="mx-auto min-h-screen w-full max-w-[680px] px-4 py-0 pb-6 sm:px-6">
-      <div className="flex flex-col gap-4">
+    <div className="mx-auto min-h-screen w-full max-w-[680px] px-4 py-0 pb-6 sm:px-6 xl:grid xl:max-w-[1360px] xl:grid-cols-[240px_minmax(0,760px)_360px] xl:items-start xl:gap-9 xl:px-8">
+      <SideNav
+        active={isTrend ? "trend" : "today"}
+        onToday={() => onChipSelect("all")}
+        onTrend={() => onChipSelect("trend")}
+      />
+      <div className="flex min-w-0 flex-col gap-4 xl:pt-5">
         <Header
           lens={lens}
           window={timeWindow}
@@ -598,6 +629,20 @@ export function PulseWireApp({ initialData = null }: PulseWireAppProps) {
           xGovernor={data?.xGovernor}
         />
       </div>
+
+      {isDesktop && !isTrend ? (
+        <aside
+          aria-label="Trending off-platform"
+          className="min-w-0 xl:pt-5"
+        >
+          <SocialTrendsBoard
+            pack={asidePack?.socialTrends}
+            loading={!asidePack}
+          />
+        </aside>
+      ) : (
+        <div aria-hidden className="hidden xl:block" />
+      )}
 
       <BriefOverlay
         open={briefOpen}

@@ -1,8 +1,6 @@
 "use client";
 
-import { Sticker } from "@/components/Sticker";
-import { evidenceLine, signalStateLabel } from "@/lib/fusion";
-import { relativeAge } from "@/lib/time";
+import { signalStateLabel } from "@/lib/fusion";
 import type { HighlightItem } from "@/lib/types";
 
 export type TileTone = "mega" | "teal" | "lav" | "card";
@@ -27,10 +25,34 @@ function tileTestId(item: HighlightItem, index: number): string {
   return `tile-${section}-${index}-${slug || "item"}`;
 }
 
+/** "07:12 IST" for the wire slug. */
+function istClock(iso: string): string {
+  try {
+    const fmt = new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Asia/Kolkata",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+    return `${fmt.format(new Date(iso))} IST`;
+  } catch {
+    return "";
+  }
+}
+
+const DESK_CODE: Record<string, string> = {
+  markets: "MKT",
+  india: "IND",
+  economy: "ECO",
+  tech: "TEC",
+  politics: "POL",
+  sports: "SPT",
+  world: "WLD",
+};
+
 /**
- * Signal design: stories are quiet list rows, not cards. The only color is
- * a left stripe the story earned — marigold for the confirmed multi-source
- * lead (mega), nothing otherwise. Badges are inline, not floating stickers.
+ * WIRE DESK wire row (spec §4.5): mono time-slug line over a condensed
+ * headline. Whole row tappable; no thumbnails, no buttons, no cards.
  */
 export function HighlightTile({
   item,
@@ -48,96 +70,72 @@ export function HighlightTile({
   const state = item.signalState ?? "confirmed";
   const isEarly = state === "early";
   const isBuilding = state === "building";
-  const hasBadges = showHotSticker || showNewSticker || isEarly || isBuilding;
+  const srcName = (item.sources[0]?.name || "wire").toUpperCase();
+  const extra = item.sources.length - 1;
+  const deskCode = item.section ? DESK_CODE[item.section] ?? "" : "";
 
   const body = (
-    <span className="flex w-full items-stretch gap-3">
-      <span
-        aria-hidden
-        className={`w-[3px] shrink-0 self-stretch rounded-[2px] ${
-          mega ? "bg-[var(--warm)]" : "bg-transparent"
-        }`}
-      />
-      <span className="min-w-0 flex-1 py-0.5">
-        <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <span
-            data-testid="tile-text"
-            className={`min-w-0 font-semibold text-[var(--ink)] ${
-              mega
-                ? "text-[16.5px] leading-[1.35]"
-                : "text-[14.5px] leading-[1.42]"
-            }`}
-          >
-            {item.text}
-          </span>
-        </span>
-
-        <span className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
-          {hasBadges ? (
-            <>
-              {isEarly ? (
-                <span data-testid="signal-early">
-                  <Sticker>⚡ early · unconfirmed</Sticker>
-                </span>
-              ) : null}
-              {isBuilding ? (
-                <span data-testid="signal-building">
-                  <Sticker>◐ gaining traction</Sticker>
-                </span>
-              ) : null}
-              {showHotSticker ? (
-                <span data-testid="hot-sticker">
-                  <Sticker className="!border-[var(--warm)] !text-[var(--ink)]">
-                    {`${item.sources.length} sources`}
-                  </Sticker>
-                </span>
-              ) : null}
-              {showNewSticker ? (
-                <span data-testid="new-sticker">
-                  <Sticker className="!border-[var(--brand)] !text-[var(--brand)]">
-                    new
-                  </Sticker>
-                </span>
-              ) : null}
-            </>
-          ) : null}
-          <span
-            data-testid="tile-evidence"
-            className="pw-mono text-[10px] uppercase tracking-[0.07em] text-[var(--faint)]"
-          >
-            {evidenceLine(item)}
-            {" · "}
-            {relativeAge(item.publishedAt)}
-            {showSection && item.section ? ` · ${item.section}` : ""}
-            {isEarly || isBuilding ? (
-              <span data-testid="signal-label">
-                {" · "}
-                {signalStateLabel(state)}
-              </span>
-            ) : null}
-            {item.velocity != null && item.velocity >= 3 ? (
-              <span data-testid="heat-chip">
-                {" · "}▲ {Math.round(item.velocity * 10) / 10}
-              </span>
-            ) : null}
-          </span>
-          {onOpenBrief ? (
-            <span
-              data-testid="brief-hint"
-              className="pw-mono pointer-events-none text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--brand)] opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100 max-md:opacity-80"
-              aria-hidden
-            >
-              → brief
+    <span className="block min-w-0">
+      <span className="pw-mono block text-[10px] font-medium uppercase tracking-[0.10em] text-[var(--pw-ink-dim)]">
+        {istClock(item.publishedAt)}
+        {showSection && deskCode ? ` · ${deskCode}` : ""}
+        {" · "}
+        <span data-testid="tile-evidence">
+          {showHotSticker ? (
+            <span data-testid="hot-sticker">
+              {srcName}
+              {extra > 0 ? ` +${extra}` : ""}
             </span>
-          ) : null}
+          ) : (
+            <>
+              {srcName}
+              {extra > 0 ? ` +${extra}` : ""}
+            </>
+          )}
         </span>
+        {isEarly ? (
+          <span data-testid="signal-early">
+            {" · "}
+            <span data-testid="signal-label">{signalStateLabel(state)}</span>
+          </span>
+        ) : null}
+        {isBuilding ? (
+          <span data-testid="signal-building">
+            {" · "}
+            <span data-testid="signal-label">{signalStateLabel(state)}</span>
+          </span>
+        ) : null}
+        {showNewSticker ? <span data-testid="new-sticker"> · NEW</span> : null}
+        {item.velocity != null && item.velocity >= 3 ? (
+          <span data-testid="heat-chip" style={{ color: "var(--pw-hot)" }}>
+            {" "}
+            · ▲{Math.round(item.velocity * 10) / 10}
+          </span>
+        ) : null}
       </span>
+      <span
+        data-testid="tile-text"
+        className={`pw-display mt-1 block text-[16px] font-semibold leading-[1.3] ${
+          isEarly ? "text-[var(--pw-ink-dim)]" : "text-[var(--pw-ink)]"
+        }`}
+      >
+        {item.text}
+      </span>
+      {onOpenBrief ? (
+        <span
+          data-testid="brief-hint"
+          className="pw-mono pointer-events-none mt-1 block text-[9px] font-semibold uppercase tracking-[0.14em] text-[var(--pw-ink-dim)] opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100 max-md:opacity-70"
+          aria-hidden
+        >
+          → brief
+        </span>
+      ) : null}
     </span>
   );
 
-  const className = `pw-fade-in group relative block w-full min-h-11 py-3 pr-1 text-left ${
-    clickable ? "cursor-pointer" : ""
-  } ${isEarly ? "opacity-90" : ""}`;
+  const className = `pw-fade-in group relative block w-full min-h-11 border-b border-[var(--pw-rule)] py-[10px] text-left last:border-b-0 ${
+    clickable ? "cursor-pointer hover:bg-[var(--pw-rule)]/30" : ""
+  }`;
 
   const dataAttrs = {
     "data-testid": testId,
@@ -156,12 +154,11 @@ export function HighlightTile({
     );
   }
 
-  // Brief opener — source link lives in the overlay footer (SPEC v3.1).
   if (onOpenBrief) {
     return (
       <button
         type="button"
-        className={`${className} focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)]`}
+        className={`${className} focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--pw-ink)]`}
         onClick={() => onOpenBrief(item)}
         {...dataAttrs}
         data-cluster-id={item.clusterId || ""}
@@ -176,7 +173,7 @@ export function HighlightTile({
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className={`${className} focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)]`}
+      className={`${className} focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--pw-ink)]`}
       {...dataAttrs}
     >
       {body}
@@ -212,7 +209,7 @@ export function assignTileTones(
     if (index === megaIdx) {
       return { item, tone: "mega" as const, mega: true };
     }
-    // Rows are tone-free in Signal; tone kept for API compat.
+    // Wire rows are tone-free; tone kept for API compat.
     return { item, tone: "card" as const, mega: false };
   });
 }

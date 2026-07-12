@@ -38,9 +38,9 @@ function TrendTile({ item }: { item: TrendItem }) {
   const accent = trendAccent(item.velocity, item.velocityRatio);
   const border =
     accent === "hot"
-      ? "border-l-[3px] border-l-[var(--mega)]"
+      ? "border-l-[3px] border-l-[var(--pw-hot)]"
       : accent === "warm"
-        ? "border-l-[3px] border-l-[var(--warm)]"
+        ? "border-l-[3px] border-l-[var(--pw-warm)]"
         : "border-l-[3px] border-l-transparent";
 
   return (
@@ -52,21 +52,21 @@ function TrendTile({ item }: { item: TrendItem }) {
         data-testid="trend-tile"
         data-accent={accent}
         data-velocity={item.velocity ?? 0}
-        className={`pw-tile block bg-[var(--card)] p-4 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)] ${border}`}
+        className={`block border-b border-dotted border-[var(--pw-rule)] py-[10px] pl-2 text-left last:border-b-0 hover:bg-[var(--pw-rule)]/30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--pw-ink)] ${border}`}
       >
-        <span className="block text-[15px] font-bold leading-snug text-[var(--ink)]">
-          {item.title}
-        </span>
-        <span className="mt-2 block text-[10px] font-bold uppercase tracking-wide opacity-50">
+        <span className="pw-mono block text-[10px] font-medium uppercase tracking-[0.10em] text-[var(--pw-ink-dim)]">
           {item.source}
           {item.section ? ` · ${sectionLabel(item.section)}` : ""}
           {" · "}
           {relativeAge(item.publishedAt)}
         </span>
+        <span className="pw-display mt-1 block text-[14px] font-semibold leading-snug text-[var(--pw-ink)]">
+          {item.title}
+        </span>
         {item.why ? (
           <span
             data-testid="trend-why"
-            className="mt-1 block text-[11px] font-bold normal-case tracking-normal opacity-60"
+            className="pw-mono mt-1 block text-[11px] normal-case leading-[1.5] tracking-normal text-[var(--pw-ink-dim)]"
           >
             {item.why}
           </span>
@@ -93,7 +93,7 @@ function Column({
 
   return (
     <div data-testid={testId} data-status={status} className="min-w-0">
-      <h2 className="m-0 mb-3 font-mono text-[12px] font-bold uppercase tracking-[0.12em]">
+      <h2 className="pw-mono m-0 mb-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--pw-ink-dim)]">
         {title}
         {status === "ok" && items.length > 0 ? (
           <span
@@ -106,13 +106,13 @@ function Column({
       </h2>
 
       {status === "pending" ? (
-        <p className="m-0 text-[13px] font-bold opacity-45">Loading…</p>
+        <p className="pw-mono m-0 text-[11px] leading-[1.6] text-[var(--pw-ink-dim)]">Loading…</p>
       ) : null}
 
       {status === "needs_key" ? (
         <p
           data-testid={`${testId}-needs-key`}
-          className="m-0 text-[13px] font-bold opacity-45"
+          className="pw-mono m-0 text-[11px] leading-[1.6] text-[var(--pw-ink-dim)]"
         >
           {note || "X plane off — no API key configured"}
         </p>
@@ -121,7 +121,7 @@ function Column({
       {status === "failed" ? (
         <p
           data-testid={`${testId}-failed`}
-          className="m-0 text-[13px] font-bold text-[var(--mega)]"
+          className="pw-mono m-0 text-[11px] leading-[1.6] text-[var(--pw-hot)]"
         >
           {note || "Fetch failed — not quiet"}
         </p>
@@ -130,14 +130,14 @@ function Column({
       {status === "quiet" || (status === "ok" && items.length === 0) ? (
         <p
           data-testid={`${testId}-quiet`}
-          className="m-0 text-[13px] font-bold opacity-45"
+          className="pw-mono m-0 text-[11px] leading-[1.6] text-[var(--pw-ink-dim)]"
         >
           {note || emptyHint}
         </p>
       ) : null}
 
       {status === "ok" && items.length > 0 ? (
-        <ul className="m-0 list-none space-y-3 p-0">
+        <ul className="m-0 list-none p-0">
           {items.map((item) => (
             <TrendTile
               key={`${item.plane}-${item.url}-${item.title.slice(0, 24)}`}
@@ -180,19 +180,20 @@ export function SocialTrendsBoard({ pack, loading }: SocialTrendsBoardProps) {
       aria-label="Trending on Reddit and X"
       className="py-1"
     >
-      <div className="mb-5 max-w-lg">
-        <h2 className="m-0 font-mono text-[11px] font-bold uppercase tracking-[0.14em] opacity-55">
+      <div className="border border-dashed border-[var(--pw-ink-dim)] px-[14px] py-3">
+      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-3">
+        <h2 className="pw-display m-0 text-[13px] font-bold uppercase tracking-[0.12em] text-[var(--pw-ink)]">
           TREND
         </h2>
-        <p className="m-0 mt-1 text-[13px] font-bold leading-snug opacity-65">
-          High-signal Reddit and X only — kept off the news desks on purpose.
+        <p className="pw-mono m-0 text-[9px] font-medium uppercase tracking-[0.12em] text-[var(--pw-ink-dim)]">
+          Unverified social signal · kept off the news desks
         </p>
       </div>
       <div
         className={
           dual
-            ? "grid grid-cols-1 gap-8 border-t-2 border-[var(--ink)] pt-5 sm:grid-cols-2 sm:gap-12"
-            : "grid grid-cols-1 gap-6 border-t-2 border-[var(--ink)] pt-5"
+            ? "grid grid-cols-1 gap-6 sm:grid-cols-2 sm:gap-10"
+            : "grid grid-cols-1 gap-4"
         }
       >
         <Column
@@ -205,7 +206,7 @@ export function SocialTrendsBoard({ pack, loading }: SocialTrendsBoardProps) {
           <p
             data-testid="social-trends-x"
             data-status={xStatus}
-            className="m-0 text-[12px] font-bold opacity-45"
+            className="pw-mono m-0 text-[11px] leading-[1.6] text-[var(--pw-ink-dim)]"
           >
             {xCollapsedCopy(xStatus)}
           </p>
@@ -217,6 +218,7 @@ export function SocialTrendsBoard({ pack, loading }: SocialTrendsBoardProps) {
             emptyHint="Quiet on X"
           />
         )}
+      </div>
       </div>
     </section>
   );

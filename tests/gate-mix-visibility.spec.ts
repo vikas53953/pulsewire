@@ -145,9 +145,20 @@ test.describe("trend panel", () => {
     await expect(mkt).toBeVisible();
     await expect(mkt).toContainText(/\d+/);
     await expect(page.getByTestId("freshness-line")).toBeVisible();
-    // Wrap: chip row is flex-wrap, not a single-line scroller
+    // WIRE DESK: desk board is a column of full-width rows — never a
+    // single-line horizontal scroller.
     const chips = page.getByTestId("score-chips");
-    await expect(chips).toHaveCSS("flex-wrap", "wrap");
+    await expect(chips).toHaveCSS("flex-direction", "column");
+    const widths = await page.evaluate(() => {
+      const board = document.querySelector('[data-testid="score-chips"]');
+      if (!board) return null;
+      return {
+        board: board.scrollWidth,
+        client: board.clientWidth,
+      };
+    });
+    expect(widths).toBeTruthy();
+    expect(widths!.board).toBeLessThanOrEqual(widths!.client + 1);
   });
 
   test("SSR first paint includes desks, verdict, no junk chrome", async ({

@@ -3,57 +3,77 @@
 @tailwind utilities;
 
 /*
- * Design: "Signal" (light) / "Night Desk" (dark).
- * One dramatic element — the serif verdict; everything else is quiet
- * instrumentation. Color only where status earned it.
- * Previous "Bento Zine" look is preserved on branch design/bento-zine.
+ * Design: "WIRE DESK" (design/claude-design-v1 · design/DESIGN-SPEC.md).
+ * Indian broadsheet masthead + wire-service tape + departure-board desk panel.
+ * Color carries STATUS MEANING ONLY (calm/warming/hot/unknown); everything
+ * else is ink on paper. Zero border-radius, everywhere, non-negotiable.
+ * Previous designs preserved on branches design/bento-zine (+ git history).
  */
 :root {
-  --paper: #f7f6f2;
-  --ink: #14161a;
-  --card: #ffffff;
-  --line: #e7e5de;
-  --line-soft: #eceae2;
-  --muted: #6b7280;
-  --faint: #9aa0a8;
-  --brand: #0f766e;
-  --calm: #4f9d6b;
-  --warm: #d9a326;
-  --hot: #c94f3d;
-  --track: #ecebe5;
+  /* Surfaces & ink — LIGHT. Cool instrument white, not cream. */
+  --pw-paper: #f4f5f2;
+  --pw-ink: #17191b;
+  --pw-ink-dim: #565b5e;
+  --pw-rule: #c6cac6;
+  --pw-rule-strong: #17191b;
+  --pw-meter-off: #c6cac6;
 
-  /* Legacy token names still referenced by components */
-  --mega: #c94f3d;
-  --mega-fg: #ffffff;
-  --sticker: #d9a326;
-  --teal: #ffffff;
-  --lav: #ffffff;
+  /* Status — the only hues on the page */
+  --pw-calm: #1f7a44;
+  --pw-warm: #9a6a00;
+  --pw-hot: #c0361c;
+  --pw-unknown-bg: #17191b;
+  --pw-unknown-fg: #f4f5f2;
+  --pw-hazard: repeating-linear-gradient(
+    45deg,
+    var(--pw-ink) 0 10px,
+    var(--pw-paper) 10px 20px
+  );
+
+  --pw-font-display: "IBM Plex Sans Condensed", "Arial Narrow",
+    "Helvetica Neue Condensed", sans-serif;
+  --pw-font-mono: "IBM Plex Mono", "SF Mono", Consolas, monospace;
+
+  --pw-tap: 44px;
+
+  /* Legacy aliases — older components read these; all map into WIRE DESK. */
+  --paper: var(--pw-paper);
+  --ink: var(--pw-ink);
+  --card: var(--pw-paper);
+  --line: var(--pw-rule);
+  --line-soft: var(--pw-rule);
+  --muted: var(--pw-ink-dim);
+  --faint: var(--pw-ink-dim);
+  --brand: var(--pw-ink);
+  --calm: var(--pw-calm);
+  --warm: var(--pw-warm);
+  --hot: var(--pw-hot);
+  --track: var(--pw-meter-off);
+  --mega: var(--pw-hot);
+  --mega-fg: var(--pw-paper);
+  --sticker: var(--pw-warm);
+  --teal: var(--pw-paper);
+  --lav: var(--pw-paper);
   --shadow: transparent;
-
-  --serif: Georgia, "Iowan Old Style", "Times New Roman", serif;
-  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --serif: var(--pw-font-display);
+  --mono: var(--pw-font-mono);
 }
 
-html.night {
-  --paper: #17181c;
-  --ink: #e9e6df;
-  --card: #1e2025;
-  --line: #2e3036;
-  --line-soft: #26282d;
-  --muted: #9b9da4;
-  --faint: #797b82;
-  --brand: #e0a94e;
-  --calm: #63a877;
-  --warm: #e0a94e;
-  --hot: #d96a55;
-  --track: #26282d;
+/* DARK — first-class, phosphor green-black ground. App toggle = html.night. */
+html.night,
+[data-theme="dark"] {
+  --pw-paper: #0e120f;
+  --pw-ink: #e9ebe3;
+  --pw-ink-dim: #8f968d;
+  --pw-rule: #2b312c;
+  --pw-rule-strong: #e9ebe3;
+  --pw-meter-off: #2b312c;
 
-  --mega: #d96a55;
-  --mega-fg: #17181c;
-  --sticker: #e0a94e;
-  --teal: #1e2025;
-  --lav: #1e2025;
-  --shadow: transparent;
+  --pw-calm: #52c97e;
+  --pw-warm: #e0a63c;
+  --pw-hot: #ff6a45;
+  --pw-unknown-bg: #e9ebe3;
+  --pw-unknown-fg: #0e120f;
 }
 
 html,
@@ -61,85 +81,81 @@ body {
   margin: 0;
   padding: 0;
   min-height: 100%;
-  background: var(--paper);
-  color: var(--ink);
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--pw-paper);
+  color: var(--pw-ink);
+  font-family: var(--pw-font-display);
 }
 
 * {
   box-sizing: border-box;
+  border-radius: 0 !important; /* WIRE DESK: radius is 0, non-negotiable */
 }
 
 :focus-visible {
-  outline: 2px solid var(--brand);
+  outline: 2px solid var(--pw-ink);
   outline-offset: 2px;
 }
 
-/* Quiet card: hairline border, no offset shadow, no press gimmick */
+/* Rule grammar — zones separated by rules, never boxes/shadows */
+.pw-rule-hair {
+  border-bottom: 1px solid var(--pw-rule);
+}
+.pw-rule-close {
+  border-bottom: 3px solid var(--pw-rule-strong);
+}
+.pw-rule-mast {
+  border-top: 5px solid var(--pw-rule-strong);
+}
+
+/* Legacy card class → quiet ruled block (no chrome) */
 .pw-tile {
-  border: 1px solid var(--line);
-  border-radius: 12px;
+  border: 1px solid var(--pw-rule);
   box-shadow: none;
   transition: border-color 120ms ease, opacity 200ms ease;
 }
-
-.pw-tile:hover:not(.pw-tile--dead) {
-  border-color: var(--faint);
-}
-
 .pw-tile--dead {
   opacity: 0.6;
   cursor: default;
 }
 
-/* The one dramatic element on the page */
-.pw-verdict-type {
-  font-family: var(--serif);
-  letter-spacing: -0.005em;
+.pw-display {
+  font-family: var(--pw-font-display);
 }
-
 .pw-mono {
-  font-family: var(--mono);
+  font-family: var(--pw-font-mono);
+}
+.pw-verdict-type {
+  font-family: var(--pw-font-display);
+  letter-spacing: normal;
+  text-wrap: pretty;
+}
+.pw-tabular {
+  font-variant-numeric: tabular-nums;
 }
 
+/* Refresh dip — the system's only motion (spec §5) */
 .pw-fade-in {
-  animation: pwFade 200ms ease both;
+  animation: pwDip 120ms ease both;
 }
-
-@keyframes pwFade {
+@keyframes pwDip {
   from {
-    opacity: 0;
+    opacity: 0.4;
   }
   to {
     opacity: 1;
   }
 }
 
-@keyframes pwShimmer {
-  0% {
-    background-position: 100% 0;
-  }
-  100% {
-    background-position: -100% 0;
-  }
-}
-
+/* Loading — quiet block placeholders, no shimmer (spec §5) */
 .pw-skeleton {
-  background: linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--paper) 80%, var(--ink)) 0%,
-    var(--card) 50%,
-    color-mix(in srgb, var(--paper) 80%, var(--ink)) 100%
-  );
-  background-size: 200% 100%;
-  animation: pwShimmer 1.2s linear infinite;
+  background: var(--pw-rule);
+  opacity: 0.35;
 }
 
 .pw-no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
-
 .pw-no-scrollbar::-webkit-scrollbar {
   display: none;
 }
@@ -148,8 +164,7 @@ body {
   .pw-tile {
     transition: none;
   }
-  .pw-fade-in,
-  .pw-skeleton {
+  .pw-fade-in {
     animation: none;
   }
 }

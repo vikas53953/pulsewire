@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 /*
- * Design: "MORNING FEED" (Timeline, frame 7a — dark-first).
+ * Design: "SIGNAL BLACK" (frame 8d — X-black + blue, dark primary).
  * design/claude-design-v1 · design/DESIGN-SPEC.md is the contract.
  * Social-feed vocabulary inverted into status mechanics: desk rings,
  * pinned verdict post, sourced post cards, "you're all caught up".
@@ -11,35 +11,37 @@
  * (WIRE DESK) and branch design/bento-zine.
  */
 :root {
-  /* LIGHT */
-  --pw-bg: #f7f8f6;
-  --pw-panel: #ffffff;
-  --pw-line: #e3e6de;
-  --pw-dash: #c7cbc0;
-  --pw-ink: #191b1d;
-  --pw-dim: #7a7e75;
-  --pw-av: #edefe8;
+  /* LIGHT (Signal Black 8d) */
+  --pw-bg: #ffffff;
+  --pw-panel: #f7f9f9;
+  --pw-line: #eff3f4;
+  --pw-dash: #cfd9de;
+  --pw-ink: #0f1419;
+  --pw-dim: #536471;
+  --pw-av: #e7ecee;
+  /* Brand/action only — NEVER status */
+  --pw-accent: #1d9bf0;
 
   /* Status */
-  --pw-quiet: #c2c7bc;
+  --pw-quiet: #cfd9de;
   --pw-warm: #b98a2e;
   --pw-hot: #c0361c;
-  --pw-unknown: #7a7e75;
-  --pw-success: #3e7a55;
+  --pw-unknown: #536471;
+  --pw-success: #00825c;
 
   /* Verdict plate (pinned post) — inverted vs page */
-  --pw-verdict-bg: #191b1d;
+  --pw-verdict-bg: #0f1419;
   --pw-verdict-ink: #ffffff;
-  --pw-verdict-dim: #9ba096;
-  --pw-verdict-tag: #d9a83e;
+  --pw-verdict-dim: #8b98a5;
+  --pw-verdict-tag: #1d9bf0;
   /* Quiet-win plate */
-  --pw-win-bg: #edf3ec;
-  --pw-win-ink: #1e3a2a;
-  --pw-win-dim: #5c7a66;
+  --pw-win-bg: #edf7f1;
+  --pw-win-ink: #0e3d2a;
+  --pw-win-dim: #4e7a64;
   /* Unknown plate — achromatic inverted + dashed, louder than hot */
-  --pw-unk-bg: #191b1d;
+  --pw-unk-bg: #0f1419;
   --pw-unk-ink: #ffffff;
-  --pw-unk-alert: #ff6a45;
+  --pw-unk-alert: #f0764a;
 
   --pw-font: "Archivo", "Helvetica Neue", Arial, sans-serif;
   --pw-mono: "Spline Sans Mono", "SF Mono", Consolas, monospace;
@@ -86,30 +88,31 @@
 html.night,
 html.dark,
 [data-theme="dark"] {
-  --pw-bg: #131610;
-  --pw-panel: #1a1d16;
-  --pw-line: #262a21;
-  --pw-dash: #3a4033;
-  --pw-ink: #e8eae0;
-  --pw-dim: #8d927f;
-  --pw-av: #262a21;
+  --pw-bg: #000000;
+  --pw-panel: #16181c;
+  --pw-line: #2f3336;
+  --pw-dash: #3e4144;
+  --pw-ink: #e7e9ea;
+  --pw-dim: #71767b;
+  --pw-av: #202327;
+  --pw-accent: #1d9bf0;
 
-  --pw-quiet: #4a5142;
+  --pw-quiet: #3e4144;
   --pw-warm: #d9a83e;
   --pw-hot: #f0764a;
-  --pw-unknown: #8d927f;
-  --pw-success: #7fbf8e;
+  --pw-unknown: #71767b;
+  --pw-success: #00ba7c;
 
-  --pw-verdict-bg: #e8eae0;
-  --pw-verdict-ink: #131610;
-  --pw-verdict-dim: #5c6152;
-  --pw-verdict-tag: #9a6f1f;
-  --pw-win-bg: #16241b;
-  --pw-win-ink: #dcebdd;
-  --pw-win-dim: #7fa089;
-  --pw-unk-bg: #e8eae0;
-  --pw-unk-ink: #131610;
-  --pw-unk-alert: #b3261e;
+  --pw-verdict-bg: #e7e9ea;
+  --pw-verdict-ink: #0a0a0a;
+  --pw-verdict-dim: #536471;
+  --pw-verdict-tag: #1d9bf0;
+  --pw-win-bg: #06251a;
+  --pw-win-ink: #d2f5e4;
+  --pw-win-dim: #6fa98d;
+  --pw-unk-bg: #e7e9ea;
+  --pw-unk-ink: #0a0a0a;
+  --pw-unk-alert: #c0361c;
 }
 
 html,
@@ -127,7 +130,7 @@ body {
 }
 
 :focus-visible {
-  outline: 2px solid var(--pw-ink);
+  outline: 2px solid var(--pw-accent);
   outline-offset: 2px;
 }
 

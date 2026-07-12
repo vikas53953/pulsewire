@@ -9,6 +9,7 @@ import { ScoreChips, type ChipId } from "@/components/ScoreChips";
 import { StatusBar } from "@/components/StatusBar";
 import { SocialTrendsBoard } from "@/components/SocialTrendsBoard";
 import { SideNav } from "@/components/SideNav";
+import { DeskLeaderboard } from "@/components/DeskLeaderboard";
 import { FreshnessLine } from "@/components/FreshnessLine";
 import { VerdictHero } from "@/components/VerdictHero";
 import type { BriefPayload } from "@/lib/brief";
@@ -487,6 +488,10 @@ export function PulseWireApp({ initialData = null }: PulseWireAppProps) {
         active={isTrend ? "trend" : "today"}
         onToday={() => onChipSelect("all")}
         onTrend={() => onChipSelect("trend")}
+        onRefresh={() =>
+          void load(section, timeWindow, lens, { refresh: true })
+        }
+        refreshing={showSkeleton}
       />
       <div className="flex min-w-0 flex-col gap-4 xl:pt-5">
         <Header
@@ -633,12 +638,15 @@ export function PulseWireApp({ initialData = null }: PulseWireAppProps) {
       {isDesktop && !isTrend ? (
         <aside
           aria-label="Trending off-platform"
-          className="min-w-0 xl:pt-5"
+          className="flex min-w-0 flex-col gap-4 xl:pt-5"
         >
-          <SocialTrendsBoard
-            pack={asidePack?.socialTrends}
-            loading={!asidePack}
-          />
+          <div className="pw-card px-4 py-4">
+            <SocialTrendsBoard
+              pack={asidePack?.socialTrends}
+              loading={!asidePack}
+            />
+          </div>
+          <DeskLeaderboard scores={data?.scores ?? []} />
         </aside>
       ) : (
         <div aria-hidden className="hidden xl:block" />

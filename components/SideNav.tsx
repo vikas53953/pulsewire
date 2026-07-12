@@ -1,11 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Logo } from "@/components/Logo";
 
 type SideNavProps = {
   active: "today" | "trend";
   onToday: () => void;
   onTrend: () => void;
+  onRefresh: () => void;
+  refreshing?: boolean;
 };
 
 function istClock(now: Date): string {
@@ -19,11 +22,17 @@ function istClock(now: Date): string {
 }
 
 /**
- * MORNING FEED desktop nav rail (spec §4.1). Today/Trend are live views;
- * Desks scrolls to the ring row; History is visibly not-yet (never a dead
- * link pretending to work).
+ * SIGNAL BLACK nav rail (spec §4): brand block, pill-hover nav rows, blue
+ * Refresh pill (blue = brand/action only, never status), product block at
+ * the bottom. Not-yet items are visibly "soon" — never dead links.
  */
-export function SideNav({ active, onToday, onTrend }: SideNavProps) {
+export function SideNav({
+  active,
+  onToday,
+  onTrend,
+  onRefresh,
+  refreshing = false,
+}: SideNavProps) {
   const [clock, setClock] = useState<string>("");
   useEffect(() => {
     const tick = () => setClock(istClock(new Date()));
@@ -32,24 +41,30 @@ export function SideNav({ active, onToday, onTrend }: SideNavProps) {
     return () => clearInterval(id);
   }, []);
 
-  const item = (selected: boolean) =>
-    `pw-display block w-full min-h-11 rounded-[var(--pw-r-chip)] px-3 py-2 text-left text-[17px] transition-colors duration-[120ms] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--pw-ink)] ${
-      selected
-        ? "font-bold text-[var(--pw-ink)]"
-        : "font-medium text-[var(--pw-dim)] hover:text-[var(--pw-ink)]"
+  const item = (selected: boolean, disabled = false) =>
+    `pw-display flex w-full min-h-[48px] items-center gap-2 rounded-full px-4 py-2 text-left text-[18px] transition-colors duration-[120ms] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--pw-accent)] ${
+      disabled
+        ? "cursor-default font-medium text-[var(--pw-dim)] opacity-50"
+        : selected
+          ? "font-bold text-[var(--pw-ink)]"
+          : "font-medium text-[var(--pw-dim)] hover:bg-[var(--pw-panel)] hover:text-[var(--pw-ink)]"
     }`;
 
   return (
     <nav
       data-testid="side-nav"
       aria-label="PulseWire navigation"
-      className="sticky top-0 hidden h-screen flex-col py-5 pr-4 xl:flex"
+      className="sticky top-0 hidden h-screen flex-col py-5 pr-6 xl:flex"
     >
-      <p className="pw-display m-0 mb-8 text-[22px] font-extrabold tracking-[0.04em] text-[var(--pw-ink)]">
-        PULSEWIRE
-      </p>
+      <div className="mb-7 flex items-center gap-3 px-2">
+        <Logo size={40} />
+        <span className="pw-display text-[21px] font-extrabold tracking-[0.03em] text-[var(--pw-ink)]">
+          PulseWire
+        </span>
+      </div>
+
       <button type="button" className={item(active === "today")} onClick={onToday}>
-        {active === "today" ? "● " : ""}Today
+        Today
       </button>
       <button
         type="button"
@@ -63,24 +78,43 @@ export function SideNav({ active, onToday, onTrend }: SideNavProps) {
         Desks
       </button>
       <button type="button" className={item(active === "trend")} onClick={onTrend}>
-        {active === "trend" ? "● " : ""}Trend
+        Trend
       </button>
-      <span
-        className={`${item(false)} cursor-default opacity-50 hover:text-[var(--pw-dim)]`}
-        aria-disabled
-        title="History — coming with the baseline archive"
-      >
+      <span className={item(false, true)} aria-disabled title="History — coming with the baseline archive">
         History
-        <span className="pw-mono ml-2 text-[10px] uppercase tracking-[0.08em]">
-          soon
-        </span>
+        <span className="pw-mono text-[10px] uppercase tracking-[0.08em]">soon</span>
       </span>
-      <span
-        className="pw-mono mt-auto text-[12px] text-[var(--pw-dim)]"
-        suppressHydrationWarning
+      <span className={item(false, true)} aria-disabled title="Settings — coming with pinned desks">
+        Settings
+        <span className="pw-mono text-[10px] uppercase tracking-[0.08em]">soon</span>
+      </span>
+
+      <button
+        type="button"
+        onClick={onRefresh}
+        disabled={refreshing}
+        data-testid="rail-refresh"
+        className="pw-display mt-5 min-h-[50px] w-full rounded-full bg-[var(--pw-accent)] px-4 text-[16px] font-bold text-white transition-opacity duration-[120ms] hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--pw-accent)] disabled:opacity-50"
       >
-        {clock} · auto 10 min
-      </span>
+        {refreshing ? "Refreshing…" : "Refresh now"}
+      </button>
+
+      <div className="mt-auto flex items-center gap-3 rounded-full px-2 py-2">
+        <span className="flex h-[42px] w-[42px] items-center justify-center overflow-hidden rounded-full">
+          <Logo size={42} />
+        </span>
+        <span className="min-w-0">
+          <span className="pw-display block text-[15px] font-semibold text-[var(--pw-ink)]">
+            PulseWire
+          </span>
+          <span
+            className="pw-mono block text-[12px] text-[var(--pw-dim)]"
+            suppressHydrationWarning
+          >
+            new delhi · {clock}
+          </span>
+        </span>
+      </div>
     </nav>
   );
 }

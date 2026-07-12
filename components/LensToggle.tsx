@@ -32,14 +32,14 @@ export function LensToggle({
         <div
           role="group"
           aria-label="Lens"
-          className="inline-flex overflow-hidden rounded-[10px] border border-[var(--line)] bg-[var(--card)]"
+          className="inline-flex overflow-hidden border border-[var(--pw-ink)] bg-transparent"
         >
           <button
             type="button"
             data-testid="lens-since"
             aria-pressed={lens === "since"}
             onClick={() => onLensChange("since")}
-            className={`min-h-11 px-3 text-[11px] font-bold uppercase tracking-wide transition-colors duration-[120ms] ${
+            className={`min-h-11 px-3 pw-mono text-[10px] font-semibold uppercase tracking-[0.10em] transition-colors duration-[120ms] ${
               lens === "since"
                 ? "bg-[var(--ink)] text-[var(--paper)]"
                 : "bg-transparent text-[var(--ink)]"
@@ -52,7 +52,7 @@ export function LensToggle({
             data-testid="lens-window"
             aria-pressed={lens === "window"}
             onClick={() => onLensChange("window")}
-            className={`min-h-11 px-3 text-[11px] font-bold uppercase tracking-wide transition-colors duration-[120ms] ${
+            className={`min-h-11 px-3 pw-mono text-[10px] font-semibold uppercase tracking-[0.10em] transition-colors duration-[120ms] ${
               lens === "window"
                 ? "bg-[var(--ink)] text-[var(--paper)]"
                 : "bg-transparent text-[var(--ink)]"
@@ -78,7 +78,7 @@ export function LensToggle({
         <div
           role="group"
           aria-label="Time window"
-          className="inline-flex overflow-hidden rounded-[10px] border border-[var(--line)] bg-[var(--card)]"
+          className="inline-flex overflow-hidden border border-[var(--pw-ink)] bg-transparent"
         >
           {TIME_WINDOWS.map((w) => {
             const active = w === window;
@@ -89,7 +89,7 @@ export function LensToggle({
                 onClick={() => onWindowChange(w)}
                 aria-pressed={active}
                 data-testid={`pill-${w}`}
-                className={`min-h-11 min-w-[44px] px-3 text-[12px] font-bold uppercase tracking-wide transition-colors duration-[120ms] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)] ${
+                className={`min-h-11 min-w-[44px] px-3 pw-mono text-[10px] font-semibold uppercase tracking-[0.10em] transition-colors duration-[120ms] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)] ${
                   active
                     ? "bg-[var(--ink)] text-[var(--paper)]"
                     : "bg-transparent text-[var(--ink)]"

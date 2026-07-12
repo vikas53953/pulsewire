@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LensToggle } from "@/components/LensToggle";
 import type { Lens, TimeWindow } from "@/lib/types";
@@ -12,9 +13,27 @@ type HeaderProps = {
   hasLastVisit: boolean;
   night: boolean;
   onToggleNight: () => void;
-  /** Kept for API compat; sticker no longer shown (reads as unfinished). */
+  /** Appended to the folio slug when true (spec §4.1) — no sticker. */
   rawMode: boolean;
 };
+
+/** Live IST dateline: "FRI 11 JUL 2026 · 07:42 IST" */
+function istFolio(now: Date): string {
+  const fmt = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Kolkata",
+    weekday: "short",
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+  const parts = Object.fromEntries(
+    fmt.formatToParts(now).map((p) => [p.type, p.value]),
+  );
+  return `${(parts.weekday ?? "").toUpperCase()} ${parts.day} ${(parts.month ?? "").toUpperCase()} ${parts.year} · ${parts.hour}:${parts.minute} IST`;
+}
 
 export function Header({
   lens,
@@ -24,21 +43,49 @@ export function Header({
   hasLastVisit,
   night,
   onToggleNight,
-  rawMode: _rawMode,
+  rawMode,
 }: HeaderProps) {
+  const [folio, setFolio] = useState<string>("");
+  useEffect(() => {
+    const tick = () => setFolio(istFolio(new Date()));
+    tick();
+    const id = setInterval(tick, 30_000);
+    return () => clearInterval(id);
+  }, []);
+
   return (
-    <header className="flex flex-wrap items-center justify-between gap-3">
-      <div className="flex items-center gap-2">
+    <header className="pw-rule-mast">
+      {/* Masthead row */}
+      <div className="flex items-center justify-between gap-3 py-3">
         <h1
-          className="pw-mono m-0 text-[14px] font-bold uppercase tracking-[0.18em] text-[var(--ink)] sm:text-[15px]"
+          className="pw-display m-0 text-[24px] font-bold leading-none tracking-[0.10em] text-[var(--pw-ink)]"
           data-testid="brand"
         >
-          Pulse<span className="text-[var(--brand)]">Wire</span>
+          PULSEWIRE
         </h1>
-        {/* RAW sticker hidden — default mode is raw; showing it reads as unfinished. */}
+        <ThemeToggle night={night} onToggle={onToggleNight} />
       </div>
 
-      <div className="flex flex-wrap items-center justify-end gap-2">
+      {/* Folio: thin rule above, thick rule below */}
+      <div className="border-t border-[var(--pw-rule)] pw-rule-close">
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 py-1.5">
+          <span className="pw-mono text-[10px] font-medium uppercase tracking-[0.10em] text-[var(--pw-ink-dim)]">
+            New Delhi edition
+          </span>
+          <span
+            className="pw-mono text-[10px] font-medium uppercase tracking-[0.10em] text-[var(--pw-ink)]"
+            suppressHydrationWarning
+          >
+            {folio}
+            {rawMode ? (
+              <span className="text-[var(--pw-ink-dim)]"> · RAW</span>
+            ) : null}
+          </span>
+        </div>
+      </div>
+
+      {/* Lens + windows */}
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
         <LensToggle
           lens={lens}
           window={window}
@@ -46,7 +93,6 @@ export function Header({
           onWindowChange={onWindowChange}
           hasLastVisit={hasLastVisit}
         />
-        <ThemeToggle night={night} onToggle={onToggleNight} />
       </div>
     </header>
   );

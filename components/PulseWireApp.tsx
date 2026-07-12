@@ -456,7 +456,7 @@ export function PulseWireApp({ initialData = null }: PulseWireAppProps) {
   const radarTripped = Boolean(radar && !radar.clear && radar.trips?.length);
 
   return (
-    <div className="mx-auto min-h-screen w-full max-w-zine px-3 py-4 sm:px-5 sm:py-6">
+    <div className="mx-auto min-h-screen w-full max-w-[680px] px-4 py-0 pb-6 sm:px-6">
       <div className="flex flex-col gap-4">
         <Header
           lens={lens}

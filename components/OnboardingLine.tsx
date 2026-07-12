@@ -28,17 +28,16 @@ export function OnboardingLine() {
   return (
     <p
       data-testid="onboarding-line"
-      className="m-0 flex items-start gap-2 text-[12px] leading-snug text-[var(--muted)]"
+      className="pw-mono m-0 flex items-center gap-2 border-b border-[var(--pw-rule)] py-2 text-[11px] uppercase leading-snug tracking-[0.04em] text-[var(--pw-ink-dim)]"
       role="status"
     >
       <span className="min-w-0 flex-1">
-        PulseWire tells you if India news needs you right now — green means go
-        live your life.
+        PulseWire tells you whether you need the news at all. Under 30 seconds.
       </span>
       <button
         type="button"
         data-testid="onboarding-dismiss"
-        className="shrink-0 text-[11px] font-bold uppercase tracking-wide text-[var(--ink)] underline decoration-[var(--muted)] underline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)]"
+        className="pw-mono min-h-[36px] shrink-0 border border-[var(--pw-ink)] px-3 text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--pw-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--pw-ink)]"
         onClick={() => {
           try {
             localStorage.setItem(ONBOARD_KEY, "1");

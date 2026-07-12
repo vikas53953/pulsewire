@@ -77,7 +77,7 @@ export function StatusBar({
   };
 
   return (
-    <footer className="flex flex-col items-center gap-2 border-t-2 border-[var(--ink)] pt-4 text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--ink)]">
+    <footer className="pw-mono flex min-h-[48px] flex-col items-center gap-2 border-t-[3px] border-[var(--pw-rule-strong)] pt-3 text-[10px] font-medium uppercase tracking-[0.10em] text-[var(--pw-ink-dim)]">
       {pauseNote ? (
         <p
           data-testid="x-plane-paused"
@@ -108,7 +108,7 @@ export function StatusBar({
           aria-label="Refresh now. Long-press for deep refresh (X)."
           title="Tap: refresh · Long-press: deep refresh (1 X call)"
           data-testid="refresh-btn"
-          className="flex h-11 w-11 items-center justify-center rounded-[10px] border border-[var(--line)] bg-[var(--card)] text-base transition-[border-color] duration-[120ms] hover:border-[var(--faint)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)] disabled:opacity-50"
+          className="flex h-11 w-11 items-center justify-center border border-[var(--pw-ink)] bg-transparent text-base text-[var(--pw-ink)] transition-colors duration-[120ms] hover:bg-[var(--pw-rule)]/30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--pw-ink)] disabled:opacity-50"
         >
           {refreshing ? "…" : "↻"}
         </button>

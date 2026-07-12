@@ -15,7 +15,7 @@ import type {
 } from "@/lib/types";
 import { SCORE_CHIP_ORDER, sectionChip } from "@/lib/types";
 
-/** Chip row includes TREND after World (owner: dedicated panel, not under every desk). */
+/** Board row set includes ALL + TREND actions (owner: dedicated panel). */
 export type ChipId = ContentSectionId | "all" | "trend";
 
 type ScoreChipsProps = {
@@ -26,70 +26,60 @@ type ScoreChipsProps = {
   drivingSection?: ContentSectionId | null;
 };
 
-/** Gauge fill color per level (Signal: color only where status earned it). */
-const LEVEL_FILL: Record<string, string> = {
-  green: "bg-[var(--calm)]",
-  yellow: "bg-[var(--warm)]",
-  red: "bg-[var(--hot)]",
+const LEVEL_COLOR: Record<string, string> = {
+  green: "var(--pw-calm)",
+  yellow: "var(--pw-warm)",
+  red: "var(--pw-hot)",
 };
 
-const LEVEL_NUM: Record<string, string> = {
-  green: "text-[var(--ink)]",
-  yellow: "text-[var(--ink)]",
-  red: "text-[var(--hot)]",
+const LEVEL_WORD: Record<string, string> = {
+  green: "QUIET",
+  yellow: "WARMING",
+  red: "HOT",
 };
 
-function Spark({ values }: { values: number[] }) {
-  if (!values.length) return null;
-  const max = Math.max(...values, 0.1);
-  const w = 28;
-  const h = 10;
-  const pts = values
-    .map((v, i) => {
-      const x = values.length === 1 ? w / 2 : (i / (values.length - 1)) * w;
-      const y = h - (v / max) * (h - 1) - 0.5;
-      return `${x.toFixed(1)},${y.toFixed(1)}`;
-    })
-    .join(" ");
+/** Departure-board tick meter: ▮ filled in status color, ▯ unfilled. */
+function Meter({
+  score,
+  color,
+  dim,
+  empty = false,
+}: {
+  score: number;
+  color: string;
+  dim: boolean;
+  /** Unknown state: all ticks unfilled (spec §4.4). */
+  empty?: boolean;
+}) {
+  const filled = empty ? 0 : Math.max(1, Math.round(score / 10));
   return (
-    <svg
-      data-testid="velocity-spark"
-      width={w}
-      height={h}
-      viewBox={`0 0 ${w} ${h}`}
-      className="inline-block align-middle text-[var(--hot)]"
+    <span
       aria-hidden
+      className="pw-mono text-[12px] leading-none tracking-[2px]"
     >
-      <polyline
-        points={pts}
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinejoin="round"
-        strokeLinecap="round"
-      />
-    </svg>
+      <span style={{ color: dim ? "var(--pw-ink-dim)" : color }}>
+        {"▮".repeat(Math.min(10, filled))}
+      </span>
+      <span style={{ color: "var(--pw-meter-off)" }}>
+        {"▯".repeat(Math.max(0, 10 - filled))}
+      </span>
+    </span>
   );
 }
 
-/** Instrument-card chip: label, number, gauge bar (how warm, not just that). */
-const gaugeChip = (selected: boolean, driving: boolean) =>
-  `min-h-11 min-w-[72px] shrink-0 rounded-[10px] border bg-[var(--card)] px-2.5 pb-2 pt-1.5 text-left transition-[border-color,background-color] duration-[120ms] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)] ${
+/** Small bordered action cell (ALL / TREND) — inverted when active. */
+const actionCell = (selected: boolean) =>
+  `pw-mono min-h-[28px] border px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.12em] transition-colors duration-[120ms] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--pw-ink)] ${
     selected
-      ? "border-[var(--ink)]"
-      : driving
-        ? "border-[var(--warm)]"
-        : "border-[var(--line)] hover:border-[var(--faint)]"
+      ? "border-[var(--pw-ink)] bg-[var(--pw-ink)] text-[var(--pw-paper)]"
+      : "border-[var(--pw-ink)] bg-transparent text-[var(--pw-ink)]"
   }`;
 
-/** Plain text chip (ALL / TREND) — same height, quieter body. */
-const textChip = (selected: boolean) =>
-  `min-h-11 shrink-0 self-stretch rounded-[10px] border px-4 pw-mono text-[12px] font-bold uppercase tracking-[0.08em] transition-[border-color,background-color] duration-[120ms] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)] ${
-    selected
-      ? "border-[var(--ink)] bg-[var(--ink)] text-[var(--paper)]"
-      : "border-[var(--line)] bg-[var(--card)] text-[var(--ink)] hover:border-[var(--faint)]"
-  }`;
-
+/**
+ * WIRE DESK desk board (spec §4.4): seven fixed rows in strict columns —
+ * code · tick meter · tabular score · status word. Whole row is the tap
+ * target; tap filters the wire to that desk.
+ */
 export function ScoreChips({
   scores,
   active,
@@ -110,8 +100,7 @@ export function ScoreChips({
         return;
       }
       try {
-        // Sequence: calibrating explainer only after onboarding is done
-        // (or on a later visit when onboard was already dismissed).
+        // Sequence: calibrating explainer only after onboarding is done.
         if (localStorage.getItem(ONBOARD_KEY) !== "1") {
           setShowCalExplainer(false);
           return;
@@ -131,28 +120,49 @@ export function ScoreChips({
   }, [anyCalibrating]);
 
   return (
-    <div className="flex flex-col gap-2">
-      <p className="pw-mono m-0 text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--faint)]">
-        Desks
-      </p>
+    <div className="flex flex-col">
+      {/* Section header: DESK BOARD · legend · ALL/TREND actions */}
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 pb-2 pt-1">
+        <span className="pw-display text-[13px] font-bold uppercase leading-none tracking-[0.12em] text-[var(--pw-ink)]">
+          Desk board
+        </span>
+        <span className="flex items-center gap-2">
+          <span
+            data-testid="pulse-legend"
+            className="pw-mono text-[9px] font-medium uppercase tracking-[0.12em] text-[var(--pw-ink-dim)]"
+          >
+            Pulse 0–100 vs normal hour
+          </span>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={active === "all"}
+            data-testid="chip-all"
+            onClick={() => onSelect("all")}
+            className={actionCell(active === "all")}
+          >
+            ALL
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={active === "trend"}
+            data-testid="chip-trend"
+            title="Trend — Reddit and X across all categories"
+            onClick={() => onSelect("trend")}
+            className={actionCell(active === "trend")}
+          >
+            TREND
+          </button>
+        </span>
+      </div>
+
       <div
         role="tablist"
         aria-label="Section pulse scores"
         data-testid="score-chips"
-        className="flex flex-wrap items-stretch gap-2"
+        className="pw-rule-close flex flex-col border-t border-[var(--pw-rule)]"
       >
-        <button
-          type="button"
-          role="tab"
-          aria-selected={active === "all"}
-          data-testid="chip-all"
-          onClick={() => onSelect("all")}
-          onFocus={() => setPeek(null)}
-          onMouseEnter={() => setPeek(null)}
-          className={textChip(active === "all")}
-        >
-          ALL
-        </button>
         {SCORE_CHIP_ORDER.map((id) => {
           const score = byId.get(id);
           const unknown = Boolean(score?.unknown);
@@ -165,7 +175,7 @@ export function ScoreChips({
           const why = score
             ? pulseWhy(score)
             : `${sectionChip(id)} pulse ${value}`;
-          const fillPct = unknown ? 0 : Math.max(0, Math.min(100, value));
+          const color = LEVEL_COLOR[level];
           return (
             <button
               key={id}
@@ -181,36 +191,48 @@ export function ScoreChips({
               data-driving={driving ? "1" : "0"}
               data-social-led={socialLed ? "1" : "0"}
               title={why}
-              onClick={() => onSelect(id)}
+              onClick={() => onSelect(selected ? "all" : id)}
               onFocus={() => setPeek(id)}
               onMouseEnter={() => setPeek(id)}
               onMouseLeave={() => setPeek((cur) => (cur === id ? null : cur))}
               onBlur={() => setPeek((cur) => (cur === id ? null : cur))}
-              className={gaugeChip(selected, driving)}
+              className={`grid min-h-11 w-full grid-cols-[46px_1fr_44px_86px] items-center gap-2 border-b border-[var(--pw-rule)] px-0.5 text-left transition-colors duration-[120ms] last:border-b-0 hover:bg-[var(--pw-rule)]/30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--pw-ink)] ${
+                selected
+                  ? "border-l-[3px] border-l-[var(--pw-ink)] pl-2"
+                  : ""
+              }`}
             >
-              <span className="flex items-center gap-1">
-                <span className="pw-mono text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--faint)]">
-                  {sectionChip(id)}
-                </span>
+              <span
+                className={`pw-display text-[15px] font-bold tracking-[0.05em] text-[var(--pw-ink)] ${
+                  selected ? "underline underline-offset-4" : ""
+                }`}
+              >
+                {sectionChip(id)}
                 {driving ? (
                   <span
                     data-testid={`driving-dot-${id}`}
-                    className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--warm)]"
+                    className="ml-1 inline-block h-[6px] w-[6px] align-middle"
+                    style={{ background: color }}
                     aria-hidden
                   />
                 ) : null}
                 {socialLed ? (
                   <span
                     data-testid={`social-led-${id}`}
-                    className="text-[10px]"
+                    className="pw-mono ml-1 text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--pw-ink-dim)]"
                   >
-                    ⚡
+                    SOC
                   </span>
                 ) : null}
-                {!unknown && level === "red" && score?.velocitySpark?.length ? (
-                  <Spark values={score.velocitySpark} />
-                ) : null}
               </span>
+
+              <Meter
+                score={value}
+                color={color}
+                dim={calibrating}
+                empty={unknown}
+              />
+
               <span
                 data-testid={`pulse-num-${id}`}
                 aria-label={
@@ -220,61 +242,55 @@ export function ScoreChips({
                       ? `Pulse ${value}, still calibrating`
                       : `Pulse ${value}`
                 }
-                className={`mt-0.5 block text-[17px] font-bold leading-none tabular-nums ${
-                  calibrating ? "opacity-45" : ""
-                } ${unknown ? "text-[var(--faint)]" : LEVEL_NUM[level]}`}
+                className={`pw-mono pw-tabular text-right text-[16px] font-semibold leading-none ${
+                  unknown || calibrating
+                    ? "text-[var(--pw-ink-dim)]"
+                    : "text-[var(--pw-ink)]"
+                }`}
               >
                 <span data-testid={`pulse-score-${id}`}>
                   {unknown ? "—" : value}
                 </span>
               </span>
+
+              {unknown ? (
+                <span className="pw-mono bg-[var(--pw-unknown-bg)] px-1 py-0.5 text-center text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--pw-unknown-fg)]">
+                  UNKNOWN
+                </span>
+              ) : (
+                <span
+                  className="pw-mono text-right text-[9px] font-semibold uppercase tracking-[0.12em]"
+                  style={{
+                    color: calibrating ? "var(--pw-ink-dim)" : color,
+                  }}
+                >
+                  {calibrating ? "CALIBRATING" : LEVEL_WORD[level]}
+                </span>
+              )}
               {calibrating ? (
                 <span data-testid={`calibrating-${id}`} className="sr-only">
                   calibrating
                 </span>
               ) : null}
-              <span
-                className="mt-1.5 block h-[3px] w-full overflow-hidden rounded-[2px] bg-[var(--track)]"
-                aria-hidden
-              >
-                <span
-                  className={`block h-full rounded-[2px] ${
-                    unknown ? "bg-transparent" : LEVEL_FILL[level]
-                  } ${calibrating ? "opacity-45" : ""}`}
-                  style={{ width: `${fillPct}%` }}
-                />
-              </span>
             </button>
           );
         })}
-        <button
-          type="button"
-          role="tab"
-          aria-selected={active === "trend"}
-          data-testid="chip-trend"
-          title="Trend — Reddit and X across all categories"
-          onClick={() => onSelect("trend")}
-          onFocus={() => setPeek(null)}
-          onMouseEnter={() => setPeek(null)}
-          className={textChip(active === "trend")}
-        >
-          TREND
-        </button>
       </div>
+
       {showCalExplainer ? (
         <p
           data-testid="calibrating-explainer"
-          className="m-0 flex items-start gap-2 text-[12px] leading-snug text-[var(--muted)]"
+          className="pw-mono m-0 flex items-start gap-2 pt-2 text-[11px] leading-[1.6] text-[var(--pw-ink-dim)]"
           role="status"
         >
           <span className="min-w-0 flex-1">
-            Pulse gets accurate after ~2 weeks of history — muted scores are
-            still learning a normal hour.
+            CALIBRATING — learning what normal sounds like for each hour of
+            the week. Scores are provisional, not baselined.
           </span>
           <button
             type="button"
             data-testid="calibrating-dismiss"
-            className="shrink-0 text-[11px] font-bold uppercase tracking-wide text-[var(--ink)] underline decoration-[var(--muted)] underline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)]"
+            className="pw-mono min-h-[28px] shrink-0 border border-[var(--pw-ink)] px-2 text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--pw-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--pw-ink)]"
             onClick={() => {
               try {
                 localStorage.setItem(CALIBRATING_KEY, "1");
@@ -292,20 +308,11 @@ export function ScoreChips({
         <p
           id="pulse-why-line"
           data-testid="pulse-why"
-          className="m-0 max-w-2xl text-[12px] font-semibold leading-snug text-[var(--ink)] opacity-80"
+          className="pw-mono m-0 max-w-2xl pt-2 text-[11px] leading-[1.6] text-[var(--pw-ink)]"
         >
           {whyLine}
         </p>
-      ) : (
-        <p
-          data-testid="pulse-legend"
-          className="pw-mono m-0 px-0.5 text-[10px] font-bold uppercase tracking-[0.06em] text-[var(--faint)]"
-        >
-          Pulse 0–100 vs a normal hour · bar = how loud · green quiet · amber
-          warming · red hot · — unknown · muted = calibrating · ⚡ social-led ·
-          hover a chip for why
-        </p>
-      )}
+      ) : null}
     </div>
   );
 }

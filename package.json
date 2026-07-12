@@ -24,6 +24,8 @@
     "glob": "^10.5.0"
   },
   "dependencies": {
+    "@fontsource/ibm-plex-mono": "^5.2.7",
+    "@fontsource/ibm-plex-sans-condensed": "^5.2.8",
     "@types/sql.js": "^1.4.11",
     "@vercel/blob": "^2.6.1",
     "next": "^14.2.35",

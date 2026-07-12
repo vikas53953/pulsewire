@@ -145,10 +145,8 @@ test.describe("trend panel", () => {
     await expect(mkt).toBeVisible();
     await expect(mkt).toContainText(/\d+/);
     await expect(page.getByTestId("freshness-line")).toBeVisible();
-    // WIRE DESK: desk board is a column of full-width rows — never a
-    // single-line horizontal scroller.
-    const chips = page.getByTestId("score-chips");
-    await expect(chips).toHaveCSS("flex-direction", "column");
+    // Desk board must never be a horizontal scroller, whatever its layout
+    // (rows, rings, chips). Assert the intent: content fits the container.
     const widths = await page.evaluate(() => {
       const board = document.querySelector('[data-testid="score-chips"]');
       if (!board) return null;

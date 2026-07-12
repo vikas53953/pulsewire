@@ -3,77 +3,113 @@
 @tailwind utilities;
 
 /*
- * Design: "WIRE DESK" (design/claude-design-v1 · design/DESIGN-SPEC.md).
- * Indian broadsheet masthead + wire-service tape + departure-board desk panel.
- * Color carries STATUS MEANING ONLY (calm/warming/hot/unknown); everything
- * else is ink on paper. Zero border-radius, everywhere, non-negotiable.
- * Previous designs preserved on branches design/bento-zine (+ git history).
+ * Design: "MORNING FEED" (Timeline, frame 7a — dark-first).
+ * design/claude-design-v1 · design/DESIGN-SPEC.md is the contract.
+ * Social-feed vocabulary inverted into status mechanics: desk rings,
+ * pinned verdict post, sourced post cards, "you're all caught up".
+ * Color carries STATUS MEANING ONLY. Previous identities in git history
+ * (WIRE DESK) and branch design/bento-zine.
  */
 :root {
-  /* Surfaces & ink — LIGHT. Cool instrument white, not cream. */
-  --pw-paper: #f4f5f2;
-  --pw-ink: #17191b;
-  --pw-ink-dim: #565b5e;
-  --pw-rule: #c6cac6;
-  --pw-rule-strong: #17191b;
-  --pw-meter-off: #c6cac6;
+  /* LIGHT */
+  --pw-bg: #f7f8f6;
+  --pw-panel: #ffffff;
+  --pw-line: #e3e6de;
+  --pw-dash: #c7cbc0;
+  --pw-ink: #191b1d;
+  --pw-dim: #7a7e75;
+  --pw-av: #edefe8;
 
-  /* Status — the only hues on the page */
-  --pw-calm: #1f7a44;
-  --pw-warm: #9a6a00;
+  /* Status */
+  --pw-quiet: #c2c7bc;
+  --pw-warm: #b98a2e;
   --pw-hot: #c0361c;
-  --pw-unknown-bg: #17191b;
-  --pw-unknown-fg: #f4f5f2;
-  --pw-hazard: repeating-linear-gradient(
-    45deg,
-    var(--pw-ink) 0 10px,
-    var(--pw-paper) 10px 20px
-  );
+  --pw-unknown: #7a7e75;
+  --pw-success: #3e7a55;
 
-  --pw-font-display: "IBM Plex Sans Condensed", "Arial Narrow",
-    "Helvetica Neue Condensed", sans-serif;
-  --pw-font-mono: "IBM Plex Mono", "SF Mono", Consolas, monospace;
+  /* Verdict plate (pinned post) — inverted vs page */
+  --pw-verdict-bg: #191b1d;
+  --pw-verdict-ink: #ffffff;
+  --pw-verdict-dim: #9ba096;
+  --pw-verdict-tag: #d9a83e;
+  /* Quiet-win plate */
+  --pw-win-bg: #edf3ec;
+  --pw-win-ink: #1e3a2a;
+  --pw-win-dim: #5c7a66;
+  /* Unknown plate — achromatic inverted + dashed, louder than hot */
+  --pw-unk-bg: #191b1d;
+  --pw-unk-ink: #ffffff;
+  --pw-unk-alert: #ff6a45;
 
+  --pw-font: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --pw-mono: "Spline Sans Mono", "SF Mono", Consolas, monospace;
+
+  --pw-r-card: 16px;
+  --pw-r-chip: 12px;
+  --pw-ring: 64px;
+  --pw-ring-b: 4px;
   --pw-tap: 44px;
 
-  /* Legacy aliases — older components read these; all map into WIRE DESK. */
-  --paper: var(--pw-paper);
+  /* Legacy aliases — older components (BriefOverlay, VibePanel, Radar…) */
+  --paper: var(--pw-bg);
   --ink: var(--pw-ink);
-  --card: var(--pw-paper);
-  --line: var(--pw-rule);
-  --line-soft: var(--pw-rule);
-  --muted: var(--pw-ink-dim);
-  --faint: var(--pw-ink-dim);
+  --card: var(--pw-panel);
+  --line: var(--pw-line);
+  --line-soft: var(--pw-line);
+  --muted: var(--pw-dim);
+  --faint: var(--pw-dim);
   --brand: var(--pw-ink);
-  --calm: var(--pw-calm);
+  --calm: var(--pw-success);
   --warm: var(--pw-warm);
   --hot: var(--pw-hot);
-  --track: var(--pw-meter-off);
+  --track: var(--pw-line);
   --mega: var(--pw-hot);
-  --mega-fg: var(--pw-paper);
+  --mega-fg: var(--pw-bg);
   --sticker: var(--pw-warm);
-  --teal: var(--pw-paper);
-  --lav: var(--pw-paper);
+  --teal: var(--pw-panel);
+  --lav: var(--pw-panel);
   --shadow: transparent;
-  --serif: var(--pw-font-display);
-  --mono: var(--pw-font-mono);
+  --serif: var(--pw-font);
+  --mono: var(--pw-mono);
+  /* WIRE DESK-era aliases still referenced in a few spots */
+  --pw-paper: var(--pw-bg);
+  --pw-ink-dim: var(--pw-dim);
+  --pw-rule: var(--pw-line);
+  --pw-rule-strong: var(--pw-ink);
+  --pw-meter-off: var(--pw-line);
+  --pw-calm: var(--pw-success);
+  --pw-unknown-bg: var(--pw-unk-bg);
+  --pw-unknown-fg: var(--pw-unk-ink);
 }
 
-/* DARK — first-class, phosphor green-black ground. App toggle = html.night. */
+/* DARK — primary theme (7a). App toggle = html.night. */
 html.night,
+html.dark,
 [data-theme="dark"] {
-  --pw-paper: #0e120f;
-  --pw-ink: #e9ebe3;
-  --pw-ink-dim: #8f968d;
-  --pw-rule: #2b312c;
-  --pw-rule-strong: #e9ebe3;
-  --pw-meter-off: #2b312c;
+  --pw-bg: #131610;
+  --pw-panel: #1a1d16;
+  --pw-line: #262a21;
+  --pw-dash: #3a4033;
+  --pw-ink: #e8eae0;
+  --pw-dim: #8d927f;
+  --pw-av: #262a21;
 
-  --pw-calm: #52c97e;
-  --pw-warm: #e0a63c;
-  --pw-hot: #ff6a45;
-  --pw-unknown-bg: #e9ebe3;
-  --pw-unknown-fg: #0e120f;
+  --pw-quiet: #4a5142;
+  --pw-warm: #d9a83e;
+  --pw-hot: #f0764a;
+  --pw-unknown: #8d927f;
+  --pw-success: #7fbf8e;
+
+  --pw-verdict-bg: #e8eae0;
+  --pw-verdict-ink: #131610;
+  --pw-verdict-dim: #5c6152;
+  --pw-verdict-tag: #9a6f1f;
+  --pw-win-bg: #16241b;
+  --pw-win-ink: #dcebdd;
+  --pw-win-dim: #7fa089;
+  --pw-unk-bg: #e8eae0;
+  --pw-unk-ink: #131610;
+  --pw-unk-alert: #b3261e;
 }
 
 html,
@@ -81,14 +117,13 @@ body {
   margin: 0;
   padding: 0;
   min-height: 100%;
-  background: var(--pw-paper);
+  background: var(--pw-bg);
   color: var(--pw-ink);
-  font-family: var(--pw-font-display);
+  font-family: var(--pw-font);
 }
 
 * {
   box-sizing: border-box;
-  border-radius: 0 !important; /* WIRE DESK: radius is 0, non-negotiable */
 }
 
 :focus-visible {
@@ -96,20 +131,17 @@ body {
   outline-offset: 2px;
 }
 
-/* Rule grammar — zones separated by rules, never boxes/shadows */
-.pw-rule-hair {
-  border-bottom: 1px solid var(--pw-rule);
+/* Post/verdict card chrome */
+.pw-card {
+  background: var(--pw-panel);
+  border: 1px solid var(--pw-line);
+  border-radius: var(--pw-r-card);
 }
-.pw-rule-close {
-  border-bottom: 3px solid var(--pw-rule-strong);
-}
-.pw-rule-mast {
-  border-top: 5px solid var(--pw-rule-strong);
-}
-
-/* Legacy card class → quiet ruled block (no chrome) */
+/* Legacy class kept for BriefOverlay etc. */
 .pw-tile {
-  border: 1px solid var(--pw-rule);
+  background: var(--pw-panel);
+  border: 1px solid var(--pw-line);
+  border-radius: var(--pw-r-card);
   box-shadow: none;
   transition: border-color 120ms ease, opacity 200ms ease;
 }
@@ -119,23 +151,36 @@ body {
 }
 
 .pw-display {
-  font-family: var(--pw-font-display);
+  font-family: var(--pw-font);
 }
 .pw-mono {
-  font-family: var(--pw-font-mono);
+  font-family: var(--pw-mono);
+  font-variant-numeric: tabular-nums;
 }
 .pw-verdict-type {
-  font-family: var(--pw-font-display);
-  letter-spacing: normal;
+  font-family: var(--pw-font);
   text-wrap: pretty;
 }
 .pw-tabular {
   font-variant-numeric: tabular-nums;
 }
 
-/* Refresh dip — the system's only motion (spec §5) */
+/* Motion (spec §5): refresh dip + post rise-in. Nothing else. */
 .pw-fade-in {
-  animation: pwDip 120ms ease both;
+  animation: pwRise 200ms ease both;
+}
+@keyframes pwRise {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.pw-dip {
+  animation: pwDip 150ms ease both;
 }
 @keyframes pwDip {
   from {
@@ -146,10 +191,11 @@ body {
   }
 }
 
-/* Loading — quiet block placeholders, no shimmer (spec §5) */
+/* Loading — quiet panel placeholders, no shimmer */
 .pw-skeleton {
-  background: var(--pw-rule);
-  opacity: 0.35;
+  background: var(--pw-panel);
+  border: 1px solid var(--pw-line);
+  border-radius: var(--pw-r-card);
 }
 
 .pw-no-scrollbar {
@@ -164,7 +210,8 @@ body {
   .pw-tile {
     transition: none;
   }
-  .pw-fade-in {
+  .pw-fade-in,
+  .pw-dip {
     animation: none;
   }
 }

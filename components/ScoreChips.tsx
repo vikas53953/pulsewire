@@ -13,9 +13,9 @@ import type {
   SectionScore,
   TrafficLevel,
 } from "@/lib/types";
-import { SCORE_CHIP_ORDER, sectionChip } from "@/lib/types";
+import { SCORE_CHIP_ORDER, sectionChip, sectionLabel } from "@/lib/types";
 
-/** Board row set includes ALL + TREND actions (owner: dedicated panel). */
+/** Ring row + feed tabs; ALL and TREND live as feed tabs. */
 export type ChipId = ContentSectionId | "all" | "trend";
 
 type ScoreChipsProps = {
@@ -27,58 +27,23 @@ type ScoreChipsProps = {
 };
 
 const LEVEL_COLOR: Record<string, string> = {
-  green: "var(--pw-calm)",
+  green: "var(--pw-quiet)",
   yellow: "var(--pw-warm)",
   red: "var(--pw-hot)",
 };
 
-const LEVEL_WORD: Record<string, string> = {
-  green: "QUIET",
-  yellow: "WARMING",
-  red: "HOT",
-};
-
-/** Departure-board tick meter: ▮ filled in status color, ▯ unfilled. */
-function Meter({
-  score,
-  color,
-  dim,
-  empty = false,
-}: {
-  score: number;
-  color: string;
-  dim: boolean;
-  /** Unknown state: all ticks unfilled (spec §4.4). */
-  empty?: boolean;
-}) {
-  const filled = empty ? 0 : Math.max(1, Math.round(score / 10));
-  return (
-    <span
-      aria-hidden
-      className="pw-mono text-[12px] leading-none tracking-[2px]"
-    >
-      <span style={{ color: dim ? "var(--pw-ink-dim)" : color }}>
-        {"▮".repeat(Math.min(10, filled))}
-      </span>
-      <span style={{ color: "var(--pw-meter-off)" }}>
-        {"▯".repeat(Math.max(0, 10 - filled))}
-      </span>
-    </span>
-  );
-}
-
-/** Small bordered action cell (ALL / TREND) — inverted when active. */
-const actionCell = (selected: boolean) =>
-  `pw-mono min-h-11 border px-3 py-1 text-[9px] font-semibold uppercase tracking-[0.12em] transition-colors duration-[120ms] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--pw-ink)] ${
+/** Feed tab (TODAY / TREND) — Archivo, underline-active. */
+const feedTab = (selected: boolean) =>
+  `pw-display min-h-11 px-1 text-[16px] font-bold transition-colors duration-[120ms] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--pw-ink)] ${
     selected
-      ? "border-[var(--pw-ink)] bg-[var(--pw-ink)] text-[var(--pw-paper)]"
-      : "border-[var(--pw-ink)] bg-transparent text-[var(--pw-ink)]"
+      ? "text-[var(--pw-ink)] underline decoration-2 underline-offset-8"
+      : "text-[var(--pw-dim)] hover:text-[var(--pw-ink)]"
   }`;
 
 /**
- * WIRE DESK desk board (spec §4.4): seven fixed rows in strict columns —
- * code · tick meter · tabular score · status word. Whole row is the tap
- * target; tap filters the wire to that desk.
+ * MORNING FEED desk rings (spec §4.2): story-ring vocabulary inverted into
+ * status — seven fixed circles, score inside, ring color = status. Quiet
+ * rings are deliberately muted so a calm morning looks calm.
  */
 export function ScoreChips({
   scores,
@@ -120,48 +85,44 @@ export function ScoreChips({
   }, [anyCalibrating]);
 
   return (
-    <div className="flex flex-col">
-      {/* Section header: DESK BOARD · legend · ALL/TREND actions */}
-      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 pb-2 pt-1">
-        <span className="pw-display text-[13px] font-bold uppercase leading-none tracking-[0.12em] text-[var(--pw-ink)]">
-          Desk board
-        </span>
-        <span className="flex items-center gap-2">
-          <span
-            data-testid="pulse-legend"
-            className="pw-mono text-[9px] font-medium uppercase tracking-[0.12em] text-[var(--pw-ink-dim)]"
-          >
-            Pulse 0–100 vs normal hour
-          </span>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={active === "all"}
-            data-testid="chip-all"
-            onClick={() => onSelect("all")}
-            className={actionCell(active === "all")}
-          >
-            ALL
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={active === "trend"}
-            data-testid="chip-trend"
-            title="Trend — Reddit and X across all categories"
-            onClick={() => onSelect("trend")}
-            className={actionCell(active === "trend")}
-          >
-            TREND
-          </button>
+    <div className="flex flex-col gap-2">
+      {/* Feed tabs: TODAY (all) · TREND */}
+      <div className="flex items-center gap-5 border-b border-[var(--pw-line)]">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={active === "all"}
+          data-testid="chip-all"
+          onClick={() => onSelect("all")}
+          className={feedTab(active === "all")}
+        >
+          Today
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={active === "trend"}
+          data-testid="chip-trend"
+          title="Trend — Reddit and X across all categories"
+          onClick={() => onSelect("trend")}
+          className={feedTab(active === "trend")}
+        >
+          Trend
+        </button>
+        <span
+          data-testid="pulse-legend"
+          className="pw-mono ml-auto hidden text-[11px] text-[var(--pw-dim)] sm:block"
+        >
+          pulse 0–100 vs normal hour
         </span>
       </div>
 
+      {/* Desk rings */}
       <div
         role="tablist"
         aria-label="Section pulse scores"
         data-testid="score-chips"
-        className="pw-rule-close flex flex-col border-t border-[var(--pw-rule)]"
+        className="flex flex-row flex-wrap items-start justify-between gap-1 py-2 sm:justify-start sm:gap-4"
       >
         {SCORE_CHIP_ORDER.map((id) => {
           const score = byId.get(id);
@@ -175,7 +136,14 @@ export function ScoreChips({
           const why = score
             ? pulseWhy(score)
             : `${sectionChip(id)} pulse ${value}`;
-          const color = LEVEL_COLOR[level];
+          const ringColor = unknown
+            ? "var(--pw-unknown)"
+            : LEVEL_COLOR[level];
+          const borderStyle = unknown
+            ? "dashed"
+            : calibrating
+              ? "dotted"
+              : "solid";
           return (
             <button
               key={id}
@@ -196,77 +164,65 @@ export function ScoreChips({
               onMouseEnter={() => setPeek(id)}
               onMouseLeave={() => setPeek((cur) => (cur === id ? null : cur))}
               onBlur={() => setPeek((cur) => (cur === id ? null : cur))}
-              className={`grid min-h-11 w-full grid-cols-[46px_1fr_44px_86px] items-center gap-2 border-b border-[var(--pw-rule)] px-0.5 text-left transition-colors duration-[120ms] last:border-b-0 hover:bg-[var(--pw-rule)]/30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--pw-ink)] ${
-                selected
-                  ? "border-l-[3px] border-l-[var(--pw-ink)] pl-2"
-                  : ""
-              }`}
+              className="flex min-h-11 min-w-[44px] flex-col items-center gap-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--pw-ink)]"
             >
               <span
-                className={`pw-display text-[15px] font-bold tracking-[0.05em] text-[var(--pw-ink)] ${
-                  selected ? "underline underline-offset-4" : ""
+                aria-hidden
+                className="flex h-[44px] w-[44px] items-center justify-center bg-[var(--pw-panel)] sm:h-[64px] sm:w-[64px]"
+                style={{
+                  borderRadius: "9999px",
+                  borderWidth: "var(--pw-ring-b)",
+                  borderStyle,
+                  borderColor: ringColor,
+                  outline: selected ? "2px solid var(--pw-ink)" : undefined,
+                  outlineOffset: selected ? "2px" : undefined,
+                }}
+              >
+                <span
+                  data-testid={`pulse-num-${id}`}
+                  aria-label={
+                    unknown
+                      ? "Pulse unknown"
+                      : calibrating
+                        ? `Pulse ${value}, still calibrating`
+                        : `Pulse ${value}`
+                  }
+                  className={`pw-mono pw-tabular text-[13px] font-bold sm:text-[18px] ${
+                    unknown || calibrating || level === "green"
+                      ? "text-[var(--pw-dim)]"
+                      : "text-[var(--pw-ink)]"
+                  }`}
+                >
+                  <span data-testid={`pulse-score-${id}`}>
+                    {unknown ? "?" : value}
+                  </span>
+                </span>
+              </span>
+              <span
+                className={`pw-display text-[11px] sm:text-[13px] ${
+                  selected
+                    ? "font-semibold text-[var(--pw-ink)]"
+                    : "font-medium text-[var(--pw-dim)]"
                 }`}
               >
-                {sectionChip(id)}
+                {sectionLabel(id)}
                 {driving ? (
                   <span
                     data-testid={`driving-dot-${id}`}
-                    className="ml-1 inline-block h-[6px] w-[6px] align-middle"
-                    style={{ background: color }}
+                    className="ml-1 inline-block h-[5px] w-[5px] rounded-full align-middle"
+                    style={{ background: "var(--pw-warm)" }}
                     aria-hidden
                   />
                 ) : null}
                 {socialLed ? (
                   <span
                     data-testid={`social-led-${id}`}
-                    className="pw-mono ml-1 text-[9px] font-semibold uppercase tracking-[0.08em] text-[var(--pw-ink-dim)]"
+                    className="pw-mono ml-1 text-[9px] uppercase text-[var(--pw-dim)]"
                   >
-                    SOC
+                    soc
                   </span>
                 ) : null}
               </span>
-
-              <Meter
-                score={value}
-                color={color}
-                dim={calibrating}
-                empty={unknown}
-              />
-
-              <span
-                data-testid={`pulse-num-${id}`}
-                aria-label={
-                  unknown
-                    ? "Pulse unknown"
-                    : calibrating
-                      ? `Pulse ${value}, still calibrating`
-                      : `Pulse ${value}`
-                }
-                className={`pw-mono pw-tabular text-right text-[16px] font-semibold leading-none ${
-                  unknown || calibrating
-                    ? "text-[var(--pw-ink-dim)]"
-                    : "text-[var(--pw-ink)]"
-                }`}
-              >
-                <span data-testid={`pulse-score-${id}`}>
-                  {unknown ? "—" : value}
-                </span>
-              </span>
-
-              {unknown ? (
-                <span className="pw-mono bg-[var(--pw-unknown-bg)] px-1 py-0.5 text-center text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--pw-unknown-fg)]">
-                  UNKNOWN
-                </span>
-              ) : (
-                <span
-                  className="pw-mono text-right text-[9px] font-semibold uppercase tracking-[0.12em]"
-                  style={{
-                    color: calibrating ? "var(--pw-ink-dim)" : color,
-                  }}
-                >
-                  {calibrating ? "CALIBRATING" : LEVEL_WORD[level]}
-                </span>
-              )}
               {calibrating ? (
                 <span data-testid={`calibrating-${id}`} className="sr-only">
                   calibrating
@@ -280,17 +236,17 @@ export function ScoreChips({
       {showCalExplainer ? (
         <p
           data-testid="calibrating-explainer"
-          className="pw-mono m-0 flex items-start gap-2 pt-2 text-[11px] leading-[1.6] text-[var(--pw-ink-dim)]"
+          className="pw-mono m-0 flex items-center gap-2 text-[12px] leading-[1.6] text-[var(--pw-dim)]"
           role="status"
         >
           <span className="min-w-0 flex-1">
-            CALIBRATING — learning what normal sounds like for each hour of
-            the week. Scores are provisional, not baselined.
+            dotted = calibrating · learning what a normal morning sounds like ·
+            scores provisional
           </span>
           <button
             type="button"
             data-testid="calibrating-dismiss"
-            className="pw-mono min-h-11 shrink-0 border border-[var(--pw-ink)] px-3 text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--pw-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--pw-ink)]"
+            className="pw-display min-h-11 shrink-0 rounded-[var(--pw-r-chip)] border border-[var(--pw-line)] bg-[var(--pw-panel)] px-3 text-[12px] font-semibold text-[var(--pw-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--pw-ink)]"
             onClick={() => {
               try {
                 localStorage.setItem(CALIBRATING_KEY, "1");
@@ -308,7 +264,7 @@ export function ScoreChips({
         <p
           id="pulse-why-line"
           data-testid="pulse-why"
-          className="pw-mono m-0 max-w-2xl pt-2 text-[11px] leading-[1.6] text-[var(--pw-ink)]"
+          className="pw-mono m-0 max-w-2xl text-[12px] leading-[1.6] text-[var(--pw-ink)]"
         >
           {whyLine}
         </p>

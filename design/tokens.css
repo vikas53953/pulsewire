@@ -1,0 +1,70 @@
+/* PulseWire — WIRE DESK design tokens
+   Branch contract: design/claude-design-v1 · replaces "Bento Zine" tokens in app/globals.css
+   Rule of the system: color carries STATUS MEANING ONLY (calm / warming / hot / unknown).
+   Everything else is ink on paper. Zero border-radius anywhere. */
+
+:root {
+  /* Surfaces & ink — LIGHT (default). Cool instrument white, not cream. */
+  --pw-paper: #F4F5F2;        /* page background */
+  --pw-ink: #17191B;          /* primary text, strong rules, masthead */
+  --pw-ink-dim: #565B5E;      /* slugs, meta, legends, watch-line */
+  --pw-rule: #C6CAC6;         /* internal 1px row rules */
+  --pw-rule-strong: #17191B;  /* section-closing 3px rules, masthead rules */
+  --pw-meter-off: #C6CAC6;    /* unfilled meter ticks */
+
+  /* Status — the only hues on the page */
+  --pw-calm: #1F7A44;         /* quiet 0–39. Deep green: all-clear, not "empty" */
+  --pw-warm: #9A6A00;         /* warming 40–69. Ochre amber, ink-weight dark */
+  --pw-hot: #C0361C;          /* hot 70–100. Vermilion, newsprint red not neon */
+  --pw-unknown-bg: #17191B;   /* unknown is ACHROMATIC + INVERTED (ink plate) */
+  --pw-unknown-fg: #F4F5F2;
+  --pw-hazard: repeating-linear-gradient(45deg, var(--pw-ink) 0 10px, var(--pw-paper) 10px 20px);
+
+  /* Type */
+  --pw-font-display: 'IBM Plex Sans Condensed', 'Arial Narrow', 'Helvetica Neue Condensed', sans-serif;
+  --pw-font-mono: 'IBM Plex Mono', 'SF Mono', 'Consolas', monospace;
+
+  /* Type scale (px) — see DESIGN-SPEC.md §3 */
+  --pw-text-verdict: 27px;    /* verdict sentence, 700 display, lh 1.16 */
+  --pw-text-quiet-stamp: 40px;/* ALL QUIET / STATUS UNKNOWN plates, 700 display */
+  --pw-text-masthead: 24px;   /* PULSEWIRE, 700 display, tracking 0.10em */
+  --pw-text-headline: 16px;   /* wire headlines, 600 display, lh 1.3 */
+  --pw-text-section: 13px;    /* DESK BOARD / THE WIRE / TREND labels, 700 display, tracking 0.12em */
+  --pw-text-body-mono: 12px;  /* watch-line, honesty notes, 400 mono, lh 1.55 */
+  --pw-text-score: 16px;      /* desk scores, 600 mono, tabular-nums */
+  --pw-text-slug: 10px;       /* time·desk·source slugs, 500 mono, tracking 0.10em */
+  --pw-text-micro: 9px;       /* legends, END OF WIRE, chips-status words, 500–600 mono, tracking 0.12–0.16em */
+
+  /* Spacing — 4px base grid */
+  --pw-space-1: 4px;
+  --pw-space-2: 8px;
+  --pw-space-3: 12px;
+  --pw-space-4: 16px;   /* page gutter at 360–430px */
+  --pw-space-5: 20px;
+  --pw-space-6: 24px;
+  --pw-tap: 44px;       /* minimum touch target */
+
+  /* Rules */
+  --pw-rule-w-hair: 1px;
+  --pw-rule-w-close: 3px;   /* closes a zone (verdict, board, footer-top) */
+  --pw-rule-w-mast: 5px;    /* very top of page */
+  --pw-radius: 0;           /* non-negotiable */
+}
+
+/* DARK — first-class, not an inversion filter. Phosphor green-black ground. */
+[data-theme='dark'],
+html.dark {
+  --pw-paper: #0E120F;
+  --pw-ink: #E9EBE3;
+  --pw-ink-dim: #8F968D;
+  --pw-rule: #2B312C;
+  --pw-rule-strong: #E9EBE3;
+  --pw-meter-off: #2B312C;
+
+  --pw-calm: #52C97E;
+  --pw-warm: #E0A63C;
+  --pw-hot: #FF6A45;
+  --pw-unknown-bg: #E9EBE3;  /* inverted again: paper plate on dark ground */
+  --pw-unknown-fg: #0E120F;
+  --pw-hazard: repeating-linear-gradient(45deg, var(--pw-ink) 0 10px, var(--pw-paper) 10px 20px);
+}

@@ -1,158 +1,133 @@
 "use client";
 
 import type { VerdictPayload } from "@/lib/types";
+import { sectionLabel } from "@/lib/types";
 
 type VerdictHeroProps = {
   verdict: VerdictPayload | null;
   quietTop?: string | null;
 };
 
-function stampFor(level: VerdictPayload["level"]): {
-  word: string;
-  cls: string;
-} {
-  if (level === "red") {
-    // The only filled color plate in the system (spec §4.3).
-    return {
-      word: "HOT",
-      cls: "bg-[var(--pw-hot)] text-[var(--pw-paper)] border border-[var(--pw-hot)]",
-    };
+function istNow(): string {
+  try {
+    const fmt = new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Asia/Kolkata",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+    return fmt.format(new Date());
+  } catch {
+    return "";
   }
-  if (level === "yellow") {
-    return {
-      word: "MOSTLY QUIET",
-      cls: "border-[1.5px] border-[var(--pw-warm)] text-[var(--pw-warm)]",
-    };
-  }
-  return {
-    word: "ALL QUIET",
-    cls: "border-[1.5px] border-[var(--pw-calm)] text-[var(--pw-calm)]",
-  };
 }
 
 /**
- * WIRE DESK verdict zone (spec §4.3): status stamp → condensed sentence →
- * mono watch-line; quiet win = bordered calm plate; unknown = inverted
- * hazard plate that out-shouts HOT.
+ * MORNING FEED pinned verdict post (spec §4.3): the product speaks first,
+ * as a post from "PulseWire". Plate inverts vs the page so it is always
+ * the brightest element. Unknown out-shouts hot: inverted achromatic plate
+ * with a 4px dashed border and an alert tag.
  */
 export function VerdictHero({ verdict, quietTop }: VerdictHeroProps) {
   if (!verdict) {
     return (
       <div
         data-testid="verdict-skeleton"
-        className="pw-skeleton min-h-[88px] w-full"
+        className="pw-skeleton min-h-[104px] w-full"
       />
     );
   }
 
   const isBlind = Boolean(verdict.blind);
   const isQuiet = verdict.level === "green" && !isBlind;
+  const isHot = verdict.level === "red" && !isBlind;
+  const time = istNow();
+
+  let plate = "";
+  let plateStyle: React.CSSProperties = {};
+  let tag = `VERDICT · PINNED${time ? ` · ${time}` : ""}`;
+  let tagColor = "var(--pw-verdict-tag)";
+  let inkColor = "var(--pw-verdict-ink)";
+  let dimColor = "var(--pw-verdict-dim)";
 
   if (isBlind) {
-    return (
-      <section
-        data-testid="verdict-hero"
-        data-level={verdict.level}
-        data-llm={verdict.llmPolished ? "1" : "0"}
-        data-quiet="0"
-        data-blind="1"
-        className="pw-rule-close w-full py-4"
-        aria-live="polite"
-      >
-        <div style={{ background: "var(--pw-hazard)", padding: 7 }}>
-          <div className="bg-[var(--pw-unknown-bg)] px-4 py-5 text-[var(--pw-unknown-fg)]">
-            <p
-              data-testid="blind-banner"
-              className="pw-display m-0 text-[32px] font-bold leading-[1.05] tracking-[0.04em]"
-            >
-              STATUS UNKNOWN
-            </p>
-            <p className="pw-mono m-0 mt-2 text-[11px] font-semibold uppercase tracking-[0.16em]">
-              Not quiet — verdict withheld
-            </p>
-            <p className="pw-mono m-0 mt-3 text-[12px] leading-[1.55]">
-              {verdict.text}
-            </p>
-            {verdict.why ? (
-              <p
-                data-testid="verdict-why"
-                className="pw-mono m-0 mt-2 text-[12px] leading-[1.55] opacity-90"
-              >
-                {verdict.why}
-              </p>
-            ) : null}
-          </div>
-        </div>
-      </section>
-    );
+    plate = "border-4 border-dashed";
+    plateStyle = {
+      background: "var(--pw-unk-bg)",
+      borderColor: "var(--pw-unk-ink)",
+    };
+    tag = "⚠ STATUS UNKNOWN — NOT QUIET · VERDICT WITHHELD";
+    tagColor = "var(--pw-unk-alert)";
+    inkColor = "var(--pw-unk-ink)";
+    dimColor = "var(--pw-unk-ink)";
+  } else if (isHot) {
+    plateStyle = { background: "var(--pw-hot)" };
+    tag = `VERDICT · ${verdict.drivingSection ? sectionLabel(verdict.drivingSection).toUpperCase() + " " : ""}HOT${time ? ` · ${time}` : ""}`;
+    tagColor = "var(--pw-bg)";
+    inkColor = "var(--pw-bg)";
+    dimColor = "var(--pw-bg)";
+  } else if (isQuiet) {
+    plate = "border-2";
+    plateStyle = {
+      background: "var(--pw-win-bg)",
+      borderColor: "var(--pw-success)",
+    };
+    tag = "VERDICT · ALL QUIET";
+    tagColor = "var(--pw-success)";
+    inkColor = "var(--pw-win-ink)";
+    dimColor = "var(--pw-win-dim)";
+  } else {
+    plateStyle = { background: "var(--pw-verdict-bg)" };
   }
 
-  if (isQuiet) {
-    return (
-      <section
-        data-testid="verdict-hero"
-        data-level={verdict.level}
-        data-llm={verdict.llmPolished ? "1" : "0"}
-        data-quiet="1"
-        data-blind="0"
-        className="pw-rule-close w-full py-4"
-        aria-live="polite"
-      >
-        <div className="border-2 border-[var(--pw-calm)] px-[18px] py-[22px]">
-          <p
-            data-testid="quiet-win"
-            className="pw-display m-0 text-[40px] font-bold leading-[1.05] tracking-[0.04em] text-[var(--pw-calm)]"
-          >
-            ALL QUIET
-          </p>
-          <p className="pw-verdict-type m-0 mt-2 text-[21px] font-bold leading-[1.2] text-[var(--pw-ink)]">
-            {verdict.text}
-          </p>
-          {quietTop ? (
-            <p
-              data-testid="quiet-top"
-              className="pw-mono m-0 mt-3 text-[12px] uppercase tracking-[0.06em] text-[var(--pw-ink-dim)]"
-            >
-              {quietTop}
-            </p>
-          ) : null}
-        </div>
-      </section>
-    );
-  }
-
-  const stamp = stampFor(verdict.level);
   return (
     <section
       data-testid="verdict-hero"
       data-level={verdict.level}
       data-llm={verdict.llmPolished ? "1" : "0"}
-      data-quiet="0"
-      data-blind="0"
-      className="pw-rule-close w-full pb-5 pt-[18px]"
+      data-quiet={isQuiet ? "1" : "0"}
+      data-blind={isBlind ? "1" : "0"}
       aria-live="polite"
+      className={`w-full rounded-[var(--pw-r-card)] px-4 py-4 sm:px-[30px] sm:py-6 ${plate}`}
+      style={plateStyle}
     >
-      <span
-        className={`pw-mono inline-block px-[9px] py-[5px] text-[10px] font-semibold uppercase tracking-[0.16em] ${stamp.cls}`}
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+        <span
+          className="pw-display text-[15px] font-bold"
+          style={{ color: inkColor }}
+        >
+          PulseWire
+        </span>
+        <span
+          data-testid={isBlind ? "blind-banner" : undefined}
+          className="pw-mono text-[12px] font-semibold uppercase tracking-[0.08em]"
+          style={{ color: tagColor }}
+        >
+          {tag}
+        </span>
+      </div>
+      <p
+        className="pw-verdict-type m-0 mt-3 max-w-[36ch] text-[17px] font-semibold leading-[1.32] sm:text-[26px]"
+        style={{ color: inkColor }}
       >
-        {stamp.word}
-      </span>
-      <p className="pw-verdict-type m-0 mt-3 max-w-[30ch] text-[24px] font-bold leading-[1.16] text-[var(--pw-ink)] sm:text-[27px]">
-        {verdict.text}
+        {isQuiet ? <span data-testid="quiet-win">{verdict.text}</span> : verdict.text}
       </p>
       {verdict.why ? (
         <p
           data-testid="verdict-why"
-          className="pw-mono m-0 mt-3 max-w-[68ch] text-[12px] leading-[1.55] text-[var(--pw-ink-dim)]"
+          className="pw-mono m-0 mt-3 max-w-[68ch] text-[13px] leading-[1.55] sm:text-[15px]"
+          style={{ color: dimColor, opacity: isBlind || isHot ? 0.9 : 1 }}
         >
-          {verdict.why.startsWith("Watch") ? (
-            <>
-              <span className="uppercase">WATCH — </span>
-              {verdict.why.replace(/^Watch:\s*/i, "")}
-            </>
-          ) : (
-            verdict.why
-          )}
+          {verdict.why.replace(/^Watch:\s*/i, "watch — ")}
+        </p>
+      ) : null}
+      {isQuiet && quietTop ? (
+        <p
+          data-testid="quiet-top"
+          className="pw-mono m-0 mt-3 text-[13px] leading-[1.55]"
+          style={{ color: dimColor }}
+        >
+          top of the quiet — {quietTop.replace(/^Top of the quiet:\s*/i, "")}
         </p>
       ) : null}
     </section>

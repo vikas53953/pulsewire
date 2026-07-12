@@ -180,13 +180,13 @@ export function SocialTrendsBoard({ pack, loading }: SocialTrendsBoardProps) {
       aria-label="Trending on Reddit and X"
       className="py-1"
     >
-      <div className="border border-dashed border-[var(--pw-ink-dim)] px-[14px] py-3">
+      <div className="px-0 py-1">
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-3">
-        <h2 className="pw-display m-0 text-[13px] font-bold uppercase tracking-[0.12em] text-[var(--pw-ink)]">
-          TREND
+        <h2 className="pw-display m-0 text-[16px] font-bold text-[var(--pw-ink)]">
+          Trending off-platform
         </h2>
         <p className="pw-mono m-0 text-[9px] font-medium uppercase tracking-[0.12em] text-[var(--pw-ink-dim)]">
-          Unverified social signal · kept off the news desks
+          unverified · reddit + x · kept off the news desks
         </p>
       </div>
       <div

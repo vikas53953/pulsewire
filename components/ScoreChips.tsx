@@ -69,7 +69,7 @@ function Meter({
 
 /** Small bordered action cell (ALL / TREND) — inverted when active. */
 const actionCell = (selected: boolean) =>
-  `pw-mono min-h-[28px] border px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.12em] transition-colors duration-[120ms] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--pw-ink)] ${
+  `pw-mono min-h-11 border px-3 py-1 text-[9px] font-semibold uppercase tracking-[0.12em] transition-colors duration-[120ms] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--pw-ink)] ${
     selected
       ? "border-[var(--pw-ink)] bg-[var(--pw-ink)] text-[var(--pw-paper)]"
       : "border-[var(--pw-ink)] bg-transparent text-[var(--pw-ink)]"
@@ -290,7 +290,7 @@ export function ScoreChips({
           <button
             type="button"
             data-testid="calibrating-dismiss"
-            className="pw-mono min-h-[28px] shrink-0 border border-[var(--pw-ink)] px-2 text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--pw-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--pw-ink)]"
+            className="pw-mono min-h-11 shrink-0 border border-[var(--pw-ink)] px-3 text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--pw-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--pw-ink)]"
             onClick={() => {
               try {
                 localStorage.setItem(CALIBRATING_KEY, "1");

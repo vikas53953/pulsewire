@@ -37,7 +37,7 @@ export function OnboardingLine() {
       <button
         type="button"
         data-testid="onboarding-dismiss"
-        className="pw-mono min-h-[36px] shrink-0 border border-[var(--pw-ink)] px-3 text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--pw-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--pw-ink)]"
+        className="pw-mono min-h-11 shrink-0 border border-[var(--pw-ink)] px-3 text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--pw-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--pw-ink)]"
         onClick={() => {
           try {
             localStorage.setItem(ONBOARD_KEY, "1");

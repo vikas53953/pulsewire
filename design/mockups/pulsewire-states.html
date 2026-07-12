@@ -1,326 +1,155 @@
-<!DOCTYPE html>
-<html lang="en-IN">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>PulseWire — Honesty states</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&display=swap" rel="stylesheet"><style>
-/* PulseWire — WIRE DESK design tokens
-   Branch contract: design/claude-design-v1 · replaces "Bento Zine" tokens in app/globals.css
-   Rule of the system: color carries STATUS MEANING ONLY (calm / warming / hot / unknown).
-   Everything else is ink on paper. Zero border-radius anywhere. */
+<!DOCTYPE html><html lang="en-IN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#F7F8F6"><title>PulseWire — States</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Spline+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet"><style>
+/* PulseWire — "MORNING FEED" (Timeline) design tokens
+   Direction locked from canvas frame 7a (dark-first) · light theme co-equal.
+   Color carries STATUS MEANING ONLY (quiet / warming / hot / unknown / success). */
 
 :root {
-  /* Surfaces & ink — LIGHT (default). Cool instrument white, not cream. */
-  --pw-paper: #F4F5F2;        /* page background */
-  --pw-ink: #17191B;          /* primary text, strong rules, masthead */
-  --pw-ink-dim: #565B5E;      /* slugs, meta, legends, watch-line */
-  --pw-rule: #C6CAC6;         /* internal 1px row rules */
-  --pw-rule-strong: #17191B;  /* section-closing 3px rules, masthead rules */
-  --pw-meter-off: #C6CAC6;    /* unfilled meter ticks */
+  /* LIGHT */
+  --pw-bg: #F7F8F6;          /* page */
+  --pw-panel: #FFFFFF;       /* cards, ring interiors, sidebars */
+  --pw-line: #E3E6DE;        /* card borders, dividers */
+  --pw-dash: #C7CBC0;        /* dashed border of TREND (lower-trust) */
+  --pw-ink: #191B1D;         /* primary text */
+  --pw-dim: #7A7E75;         /* meta, secondary */
+  --pw-av: #EDEFE8;          /* source avatar bg */
 
-  /* Status — the only hues on the page */
-  --pw-calm: #1F7A44;         /* quiet 0–39. Deep green: all-clear, not "empty" */
-  --pw-warm: #9A6A00;         /* warming 40–69. Ochre amber, ink-weight dark */
-  --pw-hot: #C0361C;          /* hot 70–100. Vermilion, newsprint red not neon */
-  --pw-unknown-bg: #17191B;   /* unknown is ACHROMATIC + INVERTED (ink plate) */
-  --pw-unknown-fg: #F4F5F2;
-  --pw-hazard: repeating-linear-gradient(45deg, var(--pw-ink) 0 10px, var(--pw-paper) 10px 20px);
+  /* Status */
+  --pw-quiet: #C2C7BC;       /* ring color 0–39: deliberately muted */
+  --pw-warm: #B98A2E;        /* 40–69 */
+  --pw-hot: #C0361C;         /* 70–100 */
+  --pw-unknown: #7A7E75;     /* dashed ring + '?' */
+  --pw-success: #3E7A55;     /* caught-up line, quiet-win plate */
 
-  /* Type */
-  --pw-font-display: 'IBM Plex Sans Condensed', 'Arial Narrow', 'Helvetica Neue Condensed', sans-serif;
-  --pw-font-mono: 'IBM Plex Mono', 'SF Mono', 'Consolas', monospace;
+  /* Verdict plate (pinned post) — inverted vs page */
+  --pw-verdict-bg: #191B1D;
+  --pw-verdict-ink: #FFFFFF;
+  --pw-verdict-dim: #9BA096;
+  --pw-verdict-tag: #D9A83E;
+  /* Quiet-win plate */
+  --pw-win-bg: #EDF3EC; --pw-win-ink: #1E3A2A; --pw-win-dim: #5C7A66;
+  /* Unknown plate — achromatic inverted + dashed, louder than hot */
+  --pw-unk-bg: #191B1D; --pw-unk-ink: #FFFFFF; --pw-unk-alert: #FF6A45;
 
-  /* Type scale (px) — see DESIGN-SPEC.md §3 */
-  --pw-text-verdict: 27px;    /* verdict sentence, 700 display, lh 1.16 */
-  --pw-text-quiet-stamp: 40px;/* ALL QUIET / STATUS UNKNOWN plates, 700 display */
-  --pw-text-masthead: 24px;   /* PULSEWIRE, 700 display, tracking 0.10em */
-  --pw-text-headline: 16px;   /* wire headlines, 600 display, lh 1.3 */
-  --pw-text-section: 13px;    /* DESK BOARD / THE WIRE / TREND labels, 700 display, tracking 0.12em */
-  --pw-text-body-mono: 12px;  /* watch-line, honesty notes, 400 mono, lh 1.55 */
-  --pw-text-score: 16px;      /* desk scores, 600 mono, tabular-nums */
-  --pw-text-slug: 10px;       /* time·desk·source slugs, 500 mono, tracking 0.10em */
-  --pw-text-micro: 9px;       /* legends, END OF WIRE, chips-status words, 500–600 mono, tracking 0.12–0.16em */
+  --pw-font: 'Archivo', 'Helvetica Neue', Arial, sans-serif;
+  --pw-mono: 'Spline Sans Mono', 'SF Mono', Consolas, monospace;
 
-  /* Spacing — 4px base grid */
-  --pw-space-1: 4px;
-  --pw-space-2: 8px;
-  --pw-space-3: 12px;
-  --pw-space-4: 16px;   /* page gutter at 360–430px */
-  --pw-space-5: 20px;
-  --pw-space-6: 24px;
-  --pw-tap: 44px;       /* minimum touch target */
+  --pw-r-card: 16px;         /* posts, verdict plate */
+  --pw-r-chip: 12px;         /* trend items */
+  --pw-ring: 64px;           /* desk ring diameter (44px at <400px) */
+  --pw-ring-b: 4px;          /* ring border width */
+  --pw-tap: 44px;
 
-  /* Rules */
-  --pw-rule-w-hair: 1px;
-  --pw-rule-w-close: 3px;   /* closes a zone (verdict, board, footer-top) */
-  --pw-rule-w-mast: 5px;    /* very top of page */
-  --pw-radius: 0;           /* non-negotiable */
+  --pw-s1: 4px; --pw-s2: 8px; --pw-s3: 12px; --pw-s4: 16px;
+  --pw-s5: 20px; --pw-s6: 24px; --pw-s8: 36px;
 }
 
-/* DARK — first-class, not an inversion filter. Phosphor green-black ground. */
-[data-theme='dark'],
-html.dark {
-  --pw-paper: #0E120F;
-  --pw-ink: #E9EBE3;
-  --pw-ink-dim: #8F968D;
-  --pw-rule: #2B312C;
-  --pw-rule-strong: #E9EBE3;
-  --pw-meter-off: #2B312C;
+/* DARK — primary theme (7a) */
+[data-theme='dark'], html.dark {
+  --pw-bg: #131610;
+  --pw-panel: #1A1D16;
+  --pw-line: #262A21;
+  --pw-dash: #3A4033;
+  --pw-ink: #E8EAE0;
+  --pw-dim: #8D927F;
+  --pw-av: #262A21;
 
-  --pw-calm: #52C97E;
-  --pw-warm: #E0A63C;
-  --pw-hot: #FF6A45;
-  --pw-unknown-bg: #E9EBE3;  /* inverted again: paper plate on dark ground */
-  --pw-unknown-fg: #0E120F;
-  --pw-hazard: repeating-linear-gradient(45deg, var(--pw-ink) 0 10px, var(--pw-paper) 10px 20px);
+  --pw-quiet: #4A5142;
+  --pw-warm: #D9A83E;
+  --pw-hot: #F0764A;
+  --pw-unknown: #8D927F;
+  --pw-success: #7FBF8E;
+
+  --pw-verdict-bg: #E8EAE0;  /* inverted: light plate on dark ground */
+  --pw-verdict-ink: #131610;
+  --pw-verdict-dim: #5C6152;
+  --pw-verdict-tag: #9A6F1F;
+  --pw-win-bg: #16241B; --pw-win-ink: #DCEBDD; --pw-win-dim: #7FA089;
+  --pw-unk-bg: #E8EAE0; --pw-unk-ink: #131610; --pw-unk-alert: #B3261E;
 }
 
-* { box-sizing: border-box; }
-body { margin:0; background: var(--pw-paper); color: var(--pw-ink);
-  font-family: var(--pw-font-mono); -webkit-font-smoothing: antialiased; }
-a { color: var(--pw-ink); } a:hover { color: var(--pw-hot); }
-.page { max-width: 680px; margin: 0 auto; border-top: 5px solid var(--pw-rule-strong); min-height: 100vh; }
-.mast { padding: 14px 16px 0; }
-.mast-row { display:flex; align-items:center; justify-content:space-between; }
-.wordmark { font: 700 24px var(--pw-font-display); letter-spacing: .10em; }
-.theme-btn { width:44px; height:44px; border:1px solid var(--pw-ink); background:none; color:var(--pw-ink); font:500 15px var(--pw-font-mono); display:flex; align-items:center; justify-content:center; cursor:pointer; }
-.folio { display:flex; justify-content:space-between; border-top:1px solid var(--pw-rule-strong); border-bottom:3px solid var(--pw-rule-strong); padding:6px 0; margin-top:8px; font:500 10px var(--pw-font-mono); letter-spacing:.12em; }
-.folio .dim { color: var(--pw-ink-dim); }
-.lens { display:flex; margin:12px 16px 0; border:1px solid var(--pw-ink); }
-.lens > div { flex:1; min-height:44px; display:flex; align-items:center; justify-content:center; font:600 10px var(--pw-font-mono); letter-spacing:.10em; color:var(--pw-ink-dim); }
-.lens > .on { background:var(--pw-ink); color:var(--pw-paper); }
-.verdict { padding:18px 16px 20px; border-bottom:3px solid var(--pw-rule-strong); }
-.stamp { display:inline-block; font:600 10px var(--pw-font-mono); letter-spacing:.16em; padding:5px 9px; }
-.stamp.warm { border:1.5px solid var(--pw-warm); color:var(--pw-warm); }
-.stamp.calm { border:1.5px solid var(--pw-calm); color:var(--pw-calm); }
-.stamp.hot { background:var(--pw-hot); color:var(--pw-paper); padding:6px 10px; }
-.stamp.cal { border:1.5px dashed var(--pw-ink-dim); color:var(--pw-ink-dim); }
-.sentence { font:700 var(--pw-text-verdict)/1.16 var(--pw-font-display); margin-top:12px; text-wrap:pretty; }
-.watch { font:400 12px/1.55 var(--pw-font-mono); color:var(--pw-ink-dim); margin-top:12px; }
-.zone-h { display:flex; justify-content:space-between; align-items:baseline; padding:14px 16px 8px; }
-.zone-h .t { font:700 13px var(--pw-font-display); letter-spacing:.12em; }
-.zone-h .r { font:500 9px var(--pw-font-mono); letter-spacing:.10em; color:var(--pw-ink-dim); }
-.board { margin:0 16px; border-bottom:3px solid var(--pw-rule-strong); }
-.desk { display:flex; align-items:center; min-height:44px; border-top:1px solid var(--pw-rule); cursor:pointer; }
-.desk:hover { background: color-mix(in srgb, var(--pw-rule) 30%, transparent); }
-.desk .code { font:700 15px var(--pw-font-display); letter-spacing:.05em; width:46px; }
-.desk .meter { font:400 12px var(--pw-font-mono); letter-spacing:2px; }
-.desk .meter .off { color: var(--pw-meter-off); }
-.desk .score { margin-left:auto; font:600 16px var(--pw-font-mono); font-variant-numeric:tabular-nums; width:34px; text-align:right; }
-.desk .word { margin-left:12px; width:86px; text-align:right; font:600 9px var(--pw-font-mono); letter-spacing:.12em; padding:4px 0; }
-.desk.unknown .word { background:var(--pw-unknown-bg); color:var(--pw-unknown-fg); text-align:center; }
-.desk.cal .score { color: var(--pw-ink-dim); }
-.calm { color:var(--pw-calm); } .warm { color:var(--pw-warm); } .hot { color:var(--pw-hot); } .dim { color:var(--pw-ink-dim); }
-.wire { margin:0 16px; }
-.story { padding:10px 0; border-top:1px solid var(--pw-rule); cursor:pointer; }
-.story .slug { font:500 10px var(--pw-font-mono); letter-spacing:.10em; color:var(--pw-ink-dim); }
-.story .hl { font:600 16px/1.3 var(--pw-font-display); margin-top:4px; text-wrap:pretty; }
-.endwire { font:500 9px var(--pw-font-mono); letter-spacing:.16em; color:var(--pw-ink-dim); padding:12px 0; border-top:1px solid var(--pw-rule); text-align:center; }
-.trend { margin:8px 16px 16px; border:1px dashed var(--pw-ink-dim); padding:12px 14px; }
-.trend-item { padding:9px 0 2px; border-top:1px dotted var(--pw-rule); margin-top:9px; }
-.trend-item .txt { font:600 14px/1.35 var(--pw-font-display); margin-top:3px; }
-.trend .empty { font:400 11px/1.6 var(--pw-font-mono); color:var(--pw-ink-dim); margin-top:10px; }
-.statusbar { display:flex; align-items:center; justify-content:space-between; border-top:3px solid var(--pw-rule-strong); padding:0 16px; min-height:48px; }
-.statusbar .l { font:500 10px var(--pw-font-mono); letter-spacing:.08em; color:var(--pw-ink-dim); }
-.refresh { border:1px solid var(--pw-ink); background:none; color:var(--pw-ink); min-width:44px; min-height:32px; font:500 14px var(--pw-font-mono); cursor:pointer; }
-.quietplate { margin:16px; border:2px solid var(--pw-calm); padding:22px 18px; }
-.quietplate .big { font:700 40px/1.05 var(--pw-font-display); letter-spacing:.06em; color:var(--pw-calm); }
-.quietplate .sub { font:700 21px/1.25 var(--pw-font-display); margin-top:8px; text-wrap:pretty; }
-.quietplate .top { font:400 12px/1.6 var(--pw-font-mono); color:var(--pw-ink-dim); margin-top:14px; }
-.closedwire { display:flex; align-items:center; gap:12px; margin:20px 16px; }
-.closedwire .l { flex:1; height:1px; background:var(--pw-ink); }
-.closedwire span { font:500 9px var(--pw-font-mono); letter-spacing:.18em; }
-.hazard { margin:16px; padding:7px; background:var(--pw-hazard); }
-.hazard .plate { background:var(--pw-unknown-bg); color:var(--pw-unknown-fg); padding:18px 16px; }
-.hazard .big { font:700 32px/1.05 var(--pw-font-display); letter-spacing:.04em; }
-.hazard .tag { font:600 11px var(--pw-font-mono); letter-spacing:.16em; margin-top:4px; }
-.hazard .body { font:400 12px/1.6 var(--pw-font-mono); margin-top:12px; opacity:.85; }
-.calnote { font:400 11px/1.6 var(--pw-font-mono); color:var(--pw-ink-dim); margin:0 16px; padding:10px 0 12px; border-bottom:3px solid var(--pw-rule-strong); }
-@media (max-width: 379px) { .sentence { font-size:24px; } }
-
-[data-theme='dark'] {
-  --pw-paper:#0E120F; --pw-ink:#E9EBE3; --pw-ink-dim:#8F968D; --pw-rule:#2B312C; --pw-rule-strong:#E9EBE3; --pw-meter-off:#2B312C;
-  --pw-calm:#52C97E; --pw-warm:#E0A63C; --pw-hot:#FF6A45; --pw-unknown-bg:#E9EBE3; --pw-unknown-fg:#0E120F;
-  --pw-hazard: repeating-linear-gradient(45deg, var(--pw-ink) 0 10px, var(--pw-paper) 10px 20px);
-}
-[data-theme] .page, .statepage .page { border-top:none; min-height:0; background:var(--pw-paper); color:var(--pw-ink); font-family:var(--pw-font-mono); }
-.statepage .page > header { border-top:5px solid var(--pw-rule-strong); }
-
-body { background:#D9DBD5; padding:32px; }
-.rowwrap { display:flex; gap:40px; flex-wrap:wrap; align-items:flex-start; }
-.rowwrap .page { max-width:none; }
-</style></head>
-<body class="statepage">
-<div style="font:700 24px 'IBM Plex Sans Condensed',sans-serif;color:#17191B;margin-bottom:6px">PULSEWIRE — HONESTY STATES</div>
-<div style="font:400 12px/1.6 monospace;color:#3A3E40;max-width:760px;margin-bottom:24px">Quiet is a win (page gets shorter)  ·  Status unknown out-shouts hot via inversion + hazard stripes, never reads calm  ·  Calibrating never fakes confidence.</div>
-<div class="rowwrap">
-<div style="flex:0 0 400px;max-width:400px"><div style="font:500 11px monospace;letter-spacing:.1em;margin:0 0 8px;color:#3A3E40">QUIET IS A WIN  ·  LIGHT</div><div style="border:2px solid #17191B"><div class="page">
-<header class="mast">
-  <div class="mast-row"><div class="wordmark">PULSEWIRE</div><button class="theme-btn" aria-label="Toggle theme">◐</button></div>
-  <div class="folio"><span class="dim">NEW DELHI EDITION</span><span>SAT 12 JUL 2026 · 08:05 IST</span></div>
-</header>
-<section class="quietplate">
-  <div class="big">ALL QUIET</div>
-  <div class="sub">Nothing needs you today. Closing this tab is the product working.</div>
-  <div class="top">TOP OF THE QUIET — Monsoon advances on schedule, IMD confirms. (IMD  ·  05:40 IST)</div>
-</section>
-<div class="board" style="border-top:1px solid var(--pw-rule)">
-<div class="desk " role="button" tabindex="0">
-    <span class="code">MKT</span>
-    <span class="meter"><span class="calm">▮▮</span><span class="off">▯▯▯▯▯▯▯▯</span></span>
-    <span class="score">21</span>
-    <span class="word calm">QUIET</span>
-  </div><div class="desk " role="button" tabindex="0">
-    <span class="code">IND</span>
-    <span class="meter"><span class="calm">▮▮</span><span class="off">▯▯▯▯▯▯▯▯</span></span>
-    <span class="score">18</span>
-    <span class="word calm">QUIET</span>
-  </div><div class="desk " role="button" tabindex="0">
-    <span class="code">ECO</span>
-    <span class="meter"><span class="calm">▮▮▮</span><span class="off">▯▯▯▯▯▯▯</span></span>
-    <span class="score">25</span>
-    <span class="word calm">QUIET</span>
-  </div><div class="desk " role="button" tabindex="0">
-    <span class="code">TEC</span>
-    <span class="meter"><span class="calm">▮</span><span class="off">▯▯▯▯▯▯▯▯▯</span></span>
-    <span class="score">12</span>
-    <span class="word calm">QUIET</span>
-  </div><div class="desk " role="button" tabindex="0">
-    <span class="code">POL</span>
-    <span class="meter"><span class="calm">▮▮</span><span class="off">▯▯▯▯▯▯▯▯</span></span>
-    <span class="score">16</span>
-    <span class="word calm">QUIET</span>
-  </div><div class="desk " role="button" tabindex="0">
-    <span class="code">SPT</span>
-    <span class="meter"><span class="calm">▮▮</span><span class="off">▯▯▯▯▯▯▯▯</span></span>
-    <span class="score">22</span>
-    <span class="word calm">QUIET</span>
-  </div><div class="desk " role="button" tabindex="0">
-    <span class="code">WLD</span>
-    <span class="meter"><span class="calm">▮▮</span><span class="off">▯▯▯▯▯▯▯▯</span></span>
-    <span class="score">19</span>
-    <span class="word calm">QUIET</span>
-  </div>
-</div>
-<div class="closedwire"><div class="l"></div><span>WIRE CLOSED 08:05 IST  ·  SEE YOU TOMORROW</span><div class="l"></div></div>
-<section class="trend" style="margin-top:0"><span class="r" style="font:500 10px var(--pw-font-mono);letter-spacing:.10em;color:var(--pw-ink-dim)">TREND — NO SURGE. NORMAL CHATTER ON REDDIT AND X.</span></section>
-<footer class="statusbar"><span class="l">UPDATED 2 MIN AGO · AUTO 10 MIN</span><button class="refresh" aria-label="Refresh">↻</button></footer>
-</div></div></div>
-<div style="flex:0 0 400px;max-width:400px"><div style="font:500 11px monospace;letter-spacing:.1em;margin:0 0 8px;color:#3A3E40">STATUS UNKNOWN  ·  DARK</div><div data-theme="dark" style="border:2px solid #17191B"><div class="page">
-<header class="mast">
-  <div class="mast-row"><div class="wordmark">PULSEWIRE</div><button class="theme-btn" aria-label="Toggle theme">◑</button></div>
-  <div class="folio"><span class="dim">NEW DELHI EDITION</span><span>FRI 11 JUL 2026 · 07:42 IST</span></div>
-</header>
-<section class="hazard"><div class="plate">
-  <div class="big">STATUS UNKNOWN</div>
-  <div class="tag">NOT QUIET — VERDICT WITHHELD</div>
-  <div class="body">5 of 7 feeds unreachable since 06:50 IST. Absence of signal is not calm. Retrying every 60 seconds.</div>
-</div></section>
-<div class="zone-h"><span class="t">DESK BOARD</span><span class="r">2 OF 7 DESKS REPORTING</span></div>
-<div class="board">
-<div class="desk unknown" role="button" tabindex="0">
-    <span class="code">MKT</span>
-    <span class="meter"><span class="off"></span><span class="off">▯▯▯▯▯▯▯▯▯▯</span></span>
-    <span class="score">—</span>
-    <span class="word ">UNKNOWN</span>
-  </div><div class="desk unknown" role="button" tabindex="0">
-    <span class="code">IND</span>
-    <span class="meter"><span class="off"></span><span class="off">▯▯▯▯▯▯▯▯▯▯</span></span>
-    <span class="score">—</span>
-    <span class="word ">UNKNOWN</span>
-  </div><div class="desk " role="button" tabindex="0">
-    <span class="code">ECO</span>
-    <span class="meter"><span class="warm">▮▮▮▮</span><span class="off">▯▯▯▯▯▯</span></span>
-    <span class="score">44</span>
-    <span class="word warm">WARMING</span>
-  </div><div class="desk unknown" role="button" tabindex="0">
-    <span class="code">TEC</span>
-    <span class="meter"><span class="off"></span><span class="off">▯▯▯▯▯▯▯▯▯▯</span></span>
-    <span class="score">—</span>
-    <span class="word ">UNKNOWN</span>
-  </div><div class="desk unknown" role="button" tabindex="0">
-    <span class="code">POL</span>
-    <span class="meter"><span class="off"></span><span class="off">▯▯▯▯▯▯▯▯▯▯</span></span>
-    <span class="score">—</span>
-    <span class="word ">UNKNOWN</span>
-  </div><div class="desk " role="button" tabindex="0">
-    <span class="code">SPT</span>
-    <span class="meter"><span class="calm">▮▮▮</span><span class="off">▯▯▯▯▯▯▯</span></span>
-    <span class="score">31</span>
-    <span class="word calm">QUIET</span>
-  </div><div class="desk unknown" role="button" tabindex="0">
-    <span class="code">WLD</span>
-    <span class="meter"><span class="off"></span><span class="off">▯▯▯▯▯▯▯▯▯▯</span></span>
-    <span class="score">—</span>
-    <span class="word ">UNKNOWN</span>
-  </div>
-</div>
-<div class="zone-h"><span class="t" style="color:var(--pw-ink-dim)">LAST CONFIRMED WIRE</span><span class="r">AS OF 06:41 IST</span></div>
-<div class="wire">
-<div class="story"><div class="slug">06:41 IST · IND · NDTV +1</div><div class="hl" style="color:var(--pw-ink-dim)">PM condoles deaths of Indian tourists in Vietnam boat tragedy</div></div>
-<div class="story"><div class="slug">06:12 IST · SPT · NDTV</div><div class="hl" style="color:var(--pw-ink-dim)">Toss for fifth India vs England T20I delayed by wet outfield</div></div>
-</div>
-<footer class="statusbar"><span class="l">LAST GOOD UPDATE 52 MIN AGO</span><button class="refresh" aria-label="Refresh">↻</button></footer>
-</div></div></div>
-<div style="flex:0 0 400px;max-width:400px"><div style="font:500 11px monospace;letter-spacing:.1em;margin:0 0 8px;color:#3A3E40">CALIBRATING + EMPTY TREND  ·  LIGHT</div><div style="border:2px solid #17191B"><div class="page">
-<header class="mast">
-  <div class="mast-row"><div class="wordmark">PULSEWIRE</div><button class="theme-btn" aria-label="Toggle theme">◐</button></div>
-  <div class="folio"><span class="dim">NEW DELHI EDITION</span><span>FRI 11 JUL 2026 · 07:42 IST</span></div>
-</header>
-<section class="verdict">
-  <span class="stamp cal">MOSTLY QUIET  ·  UNCALIBRATED</span>
-  <h1 class="sentence" style="font-size:25px">Broadly warming, provisionally. Economy leads — PMFME coverage crosses 2 lakh micro units, 2 sources.</h1>
-  <p class="watch">WATCH — if Economy cools without a second wave in the next hour, ignore it.</p>
-</section>
-<div class="zone-h"><span class="t">DESK BOARD</span><span class="r">PULSE 0–100 VS NORMAL HOUR</span></div>
-<div class="board" style="border-bottom:1px solid var(--pw-rule)">
-<div class="desk cal" role="button" tabindex="0">
-    <span class="code">MKT</span>
-    <span class="meter"><span class="dim">▮▮▮▮</span><span class="off">▯▯▯▯▯▯</span></span>
-    <span class="score">43</span>
-    <span class="word cal">CALIBRATING</span>
-  </div><div class="desk cal" role="button" tabindex="0">
-    <span class="code">IND</span>
-    <span class="meter"><span class="dim">▮▮▮▮▮▮</span><span class="off">▯▯▯▯</span></span>
-    <span class="score">56</span>
-    <span class="word cal">CALIBRATING</span>
-  </div><div class="desk cal" role="button" tabindex="0">
-    <span class="code">ECO</span>
-    <span class="meter"><span class="dim">▮▮▮▮▮▮</span><span class="off">▯▯▯▯</span></span>
-    <span class="score">61</span>
-    <span class="word cal">CALIBRATING</span>
-  </div><div class="desk cal" role="button" tabindex="0">
-    <span class="code">TEC</span>
-    <span class="meter"><span class="dim">▮▮▮▮▮</span><span class="off">▯▯▯▯▯</span></span>
-    <span class="score">47</span>
-    <span class="word cal">CALIBRATING</span>
-  </div><div class="desk cal" role="button" tabindex="0">
-    <span class="code">POL</span>
-    <span class="meter"><span class="dim">▮▮▮▮▮</span><span class="off">▯▯▯▯▯</span></span>
-    <span class="score">48</span>
-    <span class="word cal">CALIBRATING</span>
-  </div><div class="desk cal" role="button" tabindex="0">
-    <span class="code">SPT</span>
-    <span class="meter"><span class="dim">▮▮▮▮▮▮</span><span class="off">▯▯▯▯</span></span>
-    <span class="score">59</span>
-    <span class="word cal">CALIBRATING</span>
-  </div><div class="desk cal" role="button" tabindex="0">
-    <span class="code">WLD</span>
-    <span class="meter"><span class="dim">▮▮▮▮▮</span><span class="off">▯▯▯▯▯</span></span>
-    <span class="score">48</span>
-    <span class="word cal">CALIBRATING</span>
-  </div>
-</div>
-<div class="calnote">CALIBRATING — learning what normal sounds like for each hour of the week. 9 of 14 mornings collected. Scores are provisional, not baselined.</div>
-<div class="zone-h"><span class="t">THE WIRE</span><span class="r">3 ITEMS · CAP 8</span></div>
-<div class="wire">
-<div class="story"><div class="slug">07:12 IST · ECO · HINDU BUSINESS LINE +1</div><div class="hl">Over 2 lakh micro food processing enterprises now covered under PMFME, minister says</div></div>
-<div class="story"><div class="slug">06:40 IST · SPT · NDTV +1</div><div class="hl">Toss for fifth India vs England T20I delayed by wet outfield at Trent Bridge</div></div>
-<div class="story"><div class="slug">05:55 IST · IND · NDTV +2</div><div class="hl">PM condoles deaths of Indian tourists in Vietnam boat tragedy; embassy assisting families</div></div>
-<div class="endwire">— END OF WIRE  ·  3 ITEMS  ·  NOTHING HELD BACK —</div>
-</div>
-<section class="trend">
-  <div class="zone-h" style="padding:0"><span class="t">TREND</span><span class="r">UNVERIFIED SOCIAL SIGNAL</span></div>
-  <div class="empty">NO SURGE. Reddit and X at normal chatter for a Friday morning. This panel only speaks when social runs ahead of the wire.</div>
-</section>
-<footer class="statusbar"><span class="l">UPDATED 1 MIN AGO · AUTO 10 MIN</span><button class="refresh" aria-label="Refresh">↻</button></footer>
-</div></div></div>
-</div>
-</body></html>
+*{box-sizing:border-box}
+body{margin:0;background:var(--pw-bg);color:var(--pw-ink);font-family:var(--pw-font);-webkit-font-smoothing:antialiased}
+a{color:var(--pw-ink)} a:hover{color:var(--pw-warm)}
+.app{display:grid;grid-template-columns:250px minmax(0,1fr) 380px;min-height:100vh;max-width:1440px;margin:0 auto}
+.nav{border-right:1px solid var(--pw-line);padding:34px 30px;display:flex;flex-direction:column;gap:24px}
+.wm{font:800 22px var(--pw-font);letter-spacing:.04em}
+.nav a{font:500 17px var(--pw-font);color:var(--pw-dim);text-decoration:none;min-height:28px}
+.nav a.on{font-weight:600;color:var(--pw-ink)}
+.nav .foot{margin-top:auto;font:500 14px var(--pw-mono);color:var(--pw-dim)}
+.feed{display:flex;flex-direction:column}
+.rings{display:flex;gap:24px;padding:24px 36px 20px;border-bottom:1px solid var(--pw-line)}
+.ring{display:flex;flex-direction:column;align-items:center;gap:8px;background:none;border:none;padding:0;cursor:pointer;font-family:var(--pw-font)}
+.ring .c{width:var(--pw-ring);height:var(--pw-ring);border-radius:50%;border:var(--pw-ring-b) solid var(--pw-quiet);display:flex;align-items:center;justify-content:center;background:var(--pw-panel);font:700 18px var(--pw-font);color:var(--pw-dim)}
+.ring.warm .c{border-color:var(--pw-warm);color:var(--pw-ink)}
+.ring.hot .c{border-color:var(--pw-hot);color:var(--pw-ink)}
+.ring.unk .c{border-style:dashed;border-color:var(--pw-unknown)}
+.ring.cal .c{border-style:dotted}
+.ring .n{font:500 13px var(--pw-font);color:var(--pw-dim)}
+.verdict{margin:20px 36px 0;background:var(--pw-verdict-bg);border-radius:var(--pw-r-card);padding:24px 30px}
+.verdict .h{display:flex;gap:10px;align-items:center}
+.verdict .who{font:700 15px var(--pw-font);color:var(--pw-verdict-ink)}
+.verdict .tag{font:600 12px var(--pw-mono);letter-spacing:.08em;color:var(--pw-verdict-tag)}
+.verdict .t{font:600 26px/1.32 var(--pw-font);color:var(--pw-verdict-ink);margin-top:10px;text-wrap:pretty}
+.verdict .w{font:400 15px var(--pw-mono);color:var(--pw-verdict-dim);margin-top:12px}
+.verdict.hotv{background:var(--pw-hot)}
+.verdict.hotv .who,.verdict.hotv .t{color:var(--pw-bg)}
+.verdict.hotv .tag,.verdict.hotv .w{color:var(--pw-bg);opacity:.75}
+.verdict.win{background:var(--pw-win-bg);border:2px solid var(--pw-success)}
+.verdict.win .who,.verdict.win .t{color:var(--pw-win-ink)}
+.verdict.win .tag{color:var(--pw-success)} .verdict.win .w{color:var(--pw-win-dim)}
+.verdict.unk{background:var(--pw-unk-bg);border:4px dashed var(--pw-unk-ink)}
+.verdict.unk .who,.verdict.unk .t{color:var(--pw-unk-ink)}
+.verdict.unk .tag{color:var(--pw-unk-alert)} .verdict.unk .w{color:var(--pw-unk-ink);opacity:.7}
+.post{margin:14px 36px 0;background:var(--pw-panel);border:1px solid var(--pw-line);border-radius:var(--pw-r-card);padding:20px 26px;cursor:pointer}
+.post.stale{opacity:.55}
+.post .h{display:flex;align-items:center;gap:12px}
+.post .av{width:36px;height:36px;border-radius:50%;background:var(--pw-av);display:flex;align-items:center;justify-content:center;font:700 14px var(--pw-font)}
+.post .src{font:600 15px var(--pw-font)}
+.post .when{font:500 13px var(--pw-mono);color:var(--pw-dim)}
+.post .hl{font:500 20px/1.4 var(--pw-font);margin-top:10px;text-wrap:pretty}
+.post .ev{display:flex;gap:22px;margin-top:12px;font:500 13px var(--pw-mono);color:var(--pw-dim)}
+.caught{text-align:center;padding:24px 40px;font:600 16px var(--pw-font);color:var(--pw-success)}
+.caught.warn{color:var(--pw-hot)} .caught.dim{color:var(--pw-dim)}
+.side{border-left:1px solid var(--pw-line);padding:30px}
+.side .t{font:700 16px var(--pw-font)}
+.side .s{font:500 12px var(--pw-mono);color:var(--pw-dim);margin-top:4px}
+.titem{margin-top:14px;padding:16px;border:1.5px dashed var(--pw-dash);border-radius:var(--pw-r-chip)}
+.titem .slug{font:500 13px var(--pw-mono);color:var(--pw-dim)}
+.titem .txt{font:600 16px/1.35 var(--pw-font);margin-top:6px}
+.legend{margin:0 36px;font:400 12px/1.5 var(--pw-mono);color:var(--pw-dim);padding:10px 0 0}
+@media(max-width:1199px){.app{grid-template-columns:250px minmax(0,1fr)}.side{display:none}}
+@media(max-width:767px){.app{display:block}.nav{flex-direction:row;align-items:center;padding:14px 16px;border-right:none;border-bottom:1px solid var(--pw-line)}.nav a,.nav .foot{display:none}.rings{gap:4px;padding:14px 12px 10px;justify-content:space-between}.ring .c{width:44px;height:44px;border-width:3px;font-size:13px}.ring .n{font-size:9px}.verdict,.post{margin-left:16px;margin-right:16px}.verdict{padding:16px 18px}.verdict .t{font-size:17px}.post{padding:14px 16px}.post .hl{font-size:15px}}
+</style></head><body><div style="background:#0C0E0A">
+<div style="font:600 14px var(--pw-mono);letter-spacing:.1em;color:#7A7E75;padding:28px 16px 10px;max-width:1440px;margin:0 auto">HOT MORNING · DARK</div><div data-theme="dark"><div class="app"><nav class="nav"><span class="wm">PULSEWIRE</span><a class="on" href="#">● Today</a><a href="#">Desks</a><a href="#">Trend</a><a href="#">History</a><span class="foot">07:52 IST · auto 10 min</span></nav><main class="feed">
+<div class="rings"><button class="ring hot"><span class="c">84</span><span class="n">Markets</span></button><button class="ring "><span class="c">36</span><span class="n">India</span></button><button class="ring warm"><span class="c">58</span><span class="n">Economy</span></button><button class="ring "><span class="c">24</span><span class="n">Tech</span></button><button class="ring "><span class="c">31</span><span class="n">Politics</span></button><button class="ring "><span class="c">18</span><span class="n">Sports</span></button><button class="ring warm"><span class="c">42</span><span class="n">World</span></button></div>
+<article class="verdict hotv"><div class="h"><span class="who">PulseWire</span><span class="tag">VERDICT · MARKETS HOT · 07:52</span></div><div class="t">Markets is hot — RBI surprise repo cut, 6 sources in 40 minutes. Worth two minutes of your day.</div><div class="w">economy is following — bond desks reacting. everything else normal</div></article>
+<article class="post"><div class="h"><span class="av">RE</span><span class="src">Reuters</span><span class="when">+5 sources · 11m</span></div><div class="hl">RBI cuts repo rate 25 bps in surprise off-cycle move; first outside MPC calendar since 2020</div><div class="ev"><span style="color:#F0764A">◉ pulse 84</span><span>Markets</span><span>6 sources agree</span></div></article>
+<article class="post"><div class="h"><span class="av">MI</span><span class="src">Mint</span><span class="when">+3 sources · 8m</span></div><div class="hl">Sensex jumps 900 points at open as banks rally on the cut</div><div class="ev"><span style="color:#F0764A">◉ pulse 84</span><span>Markets</span><span>4 sources agree</span></div></article>
+<article class="post"><div class="h"><span class="av">BS</span><span class="src">Business Standard</span><span class="when"> · 13m</span></div><div class="hl">Bond yields slide 12 bps; 10-year at a five-month low</div><div class="ev"><span style="color:#D9A83E">◉ pulse 58</span><span>Economy</span><span>1 source so far</span></div></article>
+<div class="caught dim">✓ Caught up — all heat is Markets. Nothing else moved.</div>
+</main><aside class="side"><div class="t">Trending off-platform</div><div class="s">UNVERIFIED · REDDIT + X</div><div class="titem"><div class="slug">X #RBI · surging</div><div class="txt">14k posts/hr vs ~1.2k normal — social is 20 min ahead of the wire</div></div><div class="titem"><div class="slug">r/IndianStockMarket · rising</div><div class="txt">“Rate cut — what to buy” at +900 pts/hr</div></div></aside></div></div>
+<div style="font:600 14px var(--pw-mono);letter-spacing:.1em;color:#7A7E75;padding:28px 16px 10px;max-width:1440px;margin:0 auto">QUIET IS A WIN · DARK</div><div data-theme="dark"><div class="app"><nav class="nav"><span class="wm">PULSEWIRE</span><a class="on" href="#">● Today</a><a href="#">Desks</a><a href="#">Trend</a><a href="#">History</a><span class="foot">08:05 IST · auto 10 min</span></nav><main class="feed">
+<div class="rings"><button class="ring "><span class="c">21</span><span class="n">Markets</span></button><button class="ring "><span class="c">18</span><span class="n">India</span></button><button class="ring "><span class="c">25</span><span class="n">Economy</span></button><button class="ring "><span class="c">12</span><span class="n">Tech</span></button><button class="ring "><span class="c">16</span><span class="n">Politics</span></button><button class="ring "><span class="c">22</span><span class="n">Sports</span></button><button class="ring "><span class="c">19</span><span class="n">World</span></button></div>
+<article class="verdict win"><div class="h"><span class="who">PulseWire</span><span class="tag">VERDICT · ALL QUIET · 08:05</span></div><div class="t">All seven desks are quiet. Nothing needs you today — closing this tab is the product working. ☕</div><div class="w">top of the quiet — monsoon advances on schedule, IMD confirms (05:40)</div></article>
+<article class="post"><div class="h"><span class="av">IM</span><span class="src">IMD</span><span class="when"> · 2h</span></div><div class="hl">Monsoon advances on schedule across central India, IMD confirms</div><div class="ev"><span style="color:#8D927F">◉ pulse 25</span><span>Economy</span><span>routine · for the record</span></div></article>
+<div class="caught">✓ That’s everything. One routine post. Enjoy the chai — see you tomorrow.</div>
+</main><aside class="side"><div class="t">Trending off-platform</div><div class="s">UNVERIFIED · REDDIT + X</div><div class="titem"><div class="slug">reddit + x · no surge</div><div class="txt">Normal Saturday chatter. This panel speaks only when social runs ahead of the news.</div></div></aside></div></div>
+<div style="font:600 14px var(--pw-mono);letter-spacing:.1em;color:#7A7E75;padding:28px 16px 10px;max-width:1440px;margin:0 auto">STATUS UNKNOWN · DARK · LOUDER THAN HOT, NEVER CALM</div><div data-theme="dark"><div class="app"><nav class="nav"><span class="wm">PULSEWIRE</span><a class="on" href="#">● Today</a><a href="#">Desks</a><a href="#">Trend</a><a href="#">History</a><span class="foot">last good update 52 min ago</span></nav><main class="feed">
+<div class="rings"><button class="ring unk"><span class="c">?</span><span class="n">Markets</span></button><button class="ring unk"><span class="c">?</span><span class="n">India</span></button><button class="ring warm"><span class="c">44</span><span class="n">Economy</span></button><button class="ring unk"><span class="c">?</span><span class="n">Tech</span></button><button class="ring unk"><span class="c">?</span><span class="n">Politics</span></button><button class="ring "><span class="c">31</span><span class="n">Sports</span></button><button class="ring unk"><span class="c">?</span><span class="n">World</span></button></div>
+<article class="verdict unk"><div class="h"><span class="who">PulseWire</span><span class="tag">⚠ STATUS UNKNOWN — NOT QUIET · VERDICT WITHHELD</span></div><div class="t">5 of 7 desks unreachable since 06:50. Absence of signal is not calm. Retrying every 60 seconds.</div><div class="w">below: last confirmed posts, as of 06:41 — treat as stale</div></article>
+<article class="post stale"><div class="h"><span class="av">ND</span><span class="src">NDTV</span><span class="when">+1 · as of 06:41</span></div><div class="hl">PM condoles deaths of Indian tourists in Vietnam boat tragedy</div><div class="ev"><span style="color:#8D927F">◉ pulse 34</span><span>India</span><span>confirmed 06:41</span></div></article>
+<article class="post stale"><div class="h"><span class="av">ND</span><span class="src">NDTV</span><span class="when"> · as of 06:12</span></div><div class="hl">Fifth India—England T20I toss delayed by wet outfield</div><div class="ev"><span style="color:#8D927F">◉ pulse 31</span><span>Sports</span><span>confirmed 06:12</span></div></article>
+<div class="caught warn">⚠ Cannot confirm you’re caught up — feeds down. Do not read silence as quiet.</div>
+</main><aside class="side"><div class="t">Trending off-platform</div><div class="s">UNVERIFIED · REDDIT + X</div><div class="titem"><div class="slug">trend unreachable</div><div class="txt">Social monitors down with the feeds. No signal ≠ no news.</div></div></aside></div></div>
+<div style="font:600 14px var(--pw-mono);letter-spacing:.1em;color:#7A7E75;padding:28px 16px 10px;max-width:1440px;margin:0 auto">CALIBRATING · MOBILE 360 · LIGHT</div>
+<div style="max-width:360px;margin:0 auto 40px;background:var(--pw-bg)">
+<div class="app" style="display:block">
+<nav class="nav"><span class="wm" style="font-size:17px">PULSEWIRE</span><span style="margin-left:auto;font:500 11px var(--pw-mono);color:var(--pw-dim)">07:41 IST</span></nav>
+<div class="rings"><button class="ring cal"><span class="c">43</span><span class="n">Markets</span></button><button class="ring cal"><span class="c">56</span><span class="n">India</span></button><button class="ring cal"><span class="c">61</span><span class="n">Economy</span></button><button class="ring cal"><span class="c">47</span><span class="n">Tech</span></button><button class="ring cal"><span class="c">48</span><span class="n">Politics</span></button><button class="ring cal"><span class="c">59</span><span class="n">Sports</span></button><button class="ring cal"><span class="c">48</span><span class="n">World</span></button></div>
+<div class="legend" style="margin:0 16px">dotted = calibrating · 9 of 14 mornings learned · scores provisional</div>
+<article class="verdict "><div class="h"><span class="who">PulseWire</span><span class="tag">VERDICT · PROVISIONAL · 07:41</span></div><div class="t">Broadly warming, provisionally. Economy leads — PMFME crosses 2 lakh units, 2 sources.</div></article>
+<article class="post"><div class="h"><span class="av">HB</span><span class="src">Hindu Business Line</span><span class="when">+1 · 29m</span></div><div class="hl">PMFME now covers 2 lakh+ micro food processing enterprises</div><div class="ev"><span style="color:#B98A2E">◉ pulse 61</span><span>Economy</span><span>2 sources agree</span></div></article>
+<div class="caught">✓ You’re all caught up — 2 posts this morning</div>
+<div class="titem" style="margin:0 16px 20px"><div class="slug">reddit + x · no surge</div><div class="txt" style="font-weight:500;font-size:13px;color:var(--pw-dim)">Normal Friday chatter. This panel speaks only when social runs ahead of the news.</div></div>
+</div></div>
+</div></body></html>

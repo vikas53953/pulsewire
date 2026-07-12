@@ -180,6 +180,15 @@ export function PulseWireApp({ initialData = null }: PulseWireAppProps) {
   const [data, setData] = useState<HighlightsResponse | null>(initialData);
   /** Desktop TREND aside (spec §3 three-column) — fetched alongside the feed. */
   const [asidePack, setAsidePack] = useState<HighlightsResponse | null>(null);
+  /** Mount the aside only at xl — a CSS-hidden copy would duplicate testids. */
+  const [isDesktop, setIsDesktop] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1280px)");
+    const apply = () => setIsDesktop(mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
   const [loading, setLoading] = useState(!initialData);
   const [refreshing, setRefreshing] = useState(false);
   const [night, setNight] = useState(readInitialNight);
@@ -621,15 +630,19 @@ export function PulseWireApp({ initialData = null }: PulseWireAppProps) {
         />
       </div>
 
-      <aside
-        aria-label="Trending off-platform"
-        className={`hidden min-w-0 xl:block xl:pt-5 ${isTrend ? "xl:hidden" : ""}`}
-      >
-        <SocialTrendsBoard
-          pack={asidePack?.socialTrends}
-          loading={!asidePack}
-        />
-      </aside>
+      {isDesktop && !isTrend ? (
+        <aside
+          aria-label="Trending off-platform"
+          className="min-w-0 xl:pt-5"
+        >
+          <SocialTrendsBoard
+            pack={asidePack?.socialTrends}
+            loading={!asidePack}
+          />
+        </aside>
+      ) : (
+        <div aria-hidden className="hidden xl:block" />
+      )}
 
       <BriefOverlay
         open={briefOpen}

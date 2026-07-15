@@ -194,6 +194,40 @@ body {
   }
 }
 
+/* Brand mark refresh ping — "the board just refreshed", never status. */
+.pw-logo-dot {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: pwLogoDot 620ms ease-out both;
+}
+@keyframes pwLogoDot {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.7);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.pw-logo-ring {
+  transform-box: fill-box;
+  transform-origin: center;
+  opacity: 0;
+  animation: pwLogoRing 620ms ease-out both;
+}
+@keyframes pwLogoRing {
+  0% {
+    opacity: 0.7;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(3);
+  }
+}
+
 /* Loading — quiet panel placeholders, no shimmer */
 .pw-skeleton {
   background: var(--pw-panel);
@@ -214,7 +248,12 @@ body {
     transition: none;
   }
   .pw-fade-in,
-  .pw-dip {
+  .pw-dip,
+  .pw-logo-dot,
+  .pw-logo-ring {
     animation: none;
+  }
+  .pw-logo-ring {
+    opacity: 0;
   }
 }

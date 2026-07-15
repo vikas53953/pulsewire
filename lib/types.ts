@@ -62,6 +62,8 @@ export interface RawFeedItem {
   url: string;
   publishedAt: string;
   section: ContentSectionId | "xpulse";
+  /** Article image from RSS media/enclosure (https) — absent → fallback tile. */
+  image?: string;
 }
 
 export interface HighlightItem {
@@ -91,6 +93,8 @@ export interface HighlightItem {
   firstSocialAt?: string;
   /** Heat driven primarily by unconfirmed social. */
   socialLed?: boolean;
+  /** Representative article image (https) — absent → designed fallback tile. */
+  image?: string;
 }
 
 export interface SectionScore {

@@ -9,6 +9,8 @@ type SideNavProps = {
   onTrend: () => void;
   onRefresh: () => void;
   refreshing?: boolean;
+  /** Change (e.g. generatedAt) to replay the logo refresh ping. */
+  pulseKey?: string | number;
 };
 
 function istClock(now: Date): string {
@@ -32,6 +34,7 @@ export function SideNav({
   onTrend,
   onRefresh,
   refreshing = false,
+  pulseKey,
 }: SideNavProps) {
   const [clock, setClock] = useState<string>("");
   useEffect(() => {
@@ -56,11 +59,15 @@ export function SideNav({
       aria-label="PulseWire navigation"
       className="sticky top-0 hidden h-screen flex-col py-5 pr-6 xl:flex"
     >
-      <div className="mb-7 flex items-center gap-3 px-2">
-        <Logo size={40} />
-        <span className="pw-display text-[21px] font-extrabold tracking-[0.03em] text-[var(--pw-ink)]">
-          PulseWire
-        </span>
+      <div className="mb-7 flex items-center px-2">
+        <button
+          type="button"
+          onClick={onToday}
+          aria-label="PulseWire — go to Today"
+          className="rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--pw-accent)]"
+        >
+          <Logo size={40} pulse={pulseKey} />
+        </button>
       </div>
 
       <button type="button" className={item(active === "today")} onClick={onToday}>

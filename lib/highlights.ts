@@ -32,7 +32,7 @@ import type {
   SectionScore,
   TimeWindow,
 } from "./types";
-import { SCORE_CHIP_ORDER } from "./types";
+import { SCORE_CHIP_ORDER, windowToMs } from "./types";
 import { buildVerdictTemplate } from "./verdict";
 import { buildSocialTrendsPack } from "./trend";
 import { getXPulseHighlights } from "./x-pulse";
@@ -331,8 +331,8 @@ export async function getHighlights(options: {
   if (section === "trend") {
     const bySection = await ensureSectionCaches(forceRefresh);
     const scores = computeAllScores(bySection, window, "window", undefined, now);
-    const verdict = buildVerdictTemplate({ scores, lens: "window" });
     let socialTrends;
+    let xUnavailable = false;
     try {
       let reddit = await getRedditSignals();
       if (reddit.length === 0) {
@@ -342,17 +342,29 @@ export async function getHighlights(options: {
       if (xSignals.length === 0) {
         xSignals = await loadCachedXSignals("markets");
       }
+      // The time window is one rule for the whole app: a 1h Trend must not
+      // surface 13h-old posts. Filter social signals to the selected window.
+      const withinWindow = (iso: string) => {
+        const age = now - new Date(iso).getTime();
+        return Number.isFinite(age) && age >= 0 && age <= windowToMs(window);
+      };
+      reddit = reddit.filter((s) => withinWindow(s.publishedAt));
+      xSignals = xSignals.filter((s) => withinWindow(s.publishedAt));
       const { isLlmConfigured } = await import("./llm");
+      const xConfigured = isTestMode() || isLlmConfigured();
+      xUnavailable = !xConfigured;
       socialTrends = buildSocialTrendsPack({
         reddit,
         x: xSignals,
-        xConfigured: isTestMode() || isLlmConfigured(),
+        xConfigured,
       });
     } catch (err) {
       console.warn(
         `[pulsewire] trend panel skip: ${err instanceof Error ? err.message : String(err)}`,
       );
     }
+    // Capability honesty: don't promise X when it isn't configured.
+    if (socialTrends?.x.status === "needs_key") xUnavailable = true;
     return {
       section: "trend",
       window,
@@ -361,7 +373,9 @@ export async function getHighlights(options: {
       stale: false,
       rawMode: true,
       verdict: {
-        text: "Trend — what’s loud on Reddit and X.",
+        text: xUnavailable
+          ? "Trend — what’s loud on Reddit. X is not configured."
+          : "Trend — what’s loud on Reddit and X.",
         level: "green",
         llmPolished: false,
       },

@@ -34,20 +34,29 @@ export function pulseWhy(score: SectionScore): string {
     return `${label}: sources unreachable — status unknown (not quiet).`;
   }
   const topic = score.topText ? shortEvent(score.topText, 10) : null;
-  const breadth =
-    score.topBreadth != null && score.topBreadth >= 1
-      ? Math.round(score.topBreadth)
+  // "N sources" = independent publishers only (never weighted breadth).
+  const publishers =
+    score.topPublisherCount != null && score.topPublisherCount >= 1
+      ? Math.round(score.topPublisherCount)
       : null;
   const sources =
-    breadth == null ? null : breadth === 1 ? "1 source" : `${breadth} sources`;
+    publishers == null
+      ? null
+      : publishers === 1
+        ? "1 source"
+        : `${publishers} sources`;
   const age =
     score.topSpanMinutes != null
       ? ` · span ${score.topSpanMinutes}m`
       : "";
+  const scoreLabel = `${score.score}${score.calibrating ? "·c" : ""}${levelGlyph(score.level)}`;
+  const baselineProgress = score.calibrating
+    ? ` · provisional, ${score.baselineSampleCount ?? 0}/${score.baselineRequired ?? 14} baseline samples`
+    : "";
 
   if (score.socialLed || score.topSignalState === "early") {
     return topic
-      ? `${label} ${score.score}${levelGlyph(score.level)} — driven by: ${topic} (social-led, unconfirmed)`
+      ? `${label} ${scoreLabel} — driven by: ${topic} (social-led, unconfirmed)`
       : `${label}: social-led heat — waiting on wire confirmation.`;
   }
 
@@ -57,11 +66,11 @@ export function pulseWhy(score: SectionScore): string {
       : age
         ? ` (${age.replace(/^ · /, "")})`
         : "";
-    return `${label} ${score.score}${levelGlyph(score.level)} — driven by: ${topic}${receipt}.`;
+    return `${label} ${scoreLabel} — driven by: ${topic}${receipt}${baselineProgress}.`;
   }
 
   if (score.calibrating) {
-    return `${label}: calibrating baseline (${score.score}/100) — no standout cluster yet.`;
+    return `${label}: ${score.score}·c provisional — ${score.baselineSampleCount ?? 0}/${score.baselineRequired ?? 14} baseline samples; no standout cluster yet.`;
   }
 
   // D1: server-computed quiet receipt (never import history on the client)

@@ -182,8 +182,11 @@ export async function getBrief(input: {
   forceRaw?: boolean;
   socialFirst?: string;
 }): Promise<BriefPayload> {
+  // A reduced/raw fallback is NOT a completed Brief — never serve a cached raw
+  // row as if it were one. Ignoring it lets a future evidence-backed capability
+  // regenerate this cluster instead of being pinned to "sources only" forever.
   const cached = readCached(input.clusterId);
-  if (cached) {
+  if (cached && !cached.rawMode) {
     return {
       ...cached,
       sources: input.sources,
@@ -200,7 +203,8 @@ export async function getBrief(input: {
     (!isTestMode() && (process.env.LLM_SUMMARIZE ?? "0").trim() !== "1");
 
   if (forceRaw) {
-    const payload: BriefPayload = {
+    // No writeCache — a "sources only" view is a capability gap, not a result.
+    return {
       clusterId: input.clusterId,
       title: input.title,
       lines: null,
@@ -209,13 +213,6 @@ export async function getBrief(input: {
       sources: input.sources,
       socialFirst: input.socialFirst,
     };
-    writeCache({
-      clusterId: input.clusterId,
-      title: input.title,
-      lines: null,
-      rawMode: true,
-    });
-    return payload;
   }
 
   let lines: BriefLines | null = null;

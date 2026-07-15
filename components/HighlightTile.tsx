@@ -1,6 +1,7 @@
 "use client";
 
 import { signalStateLabel } from "@/lib/fusion";
+import { distinctPublisherCount } from "@/lib/publisher";
 import { relativeAge } from "@/lib/time";
 import type { HighlightItem } from "@/lib/types";
 import { sectionLabel } from "@/lib/types";
@@ -68,7 +69,8 @@ export function HighlightTile({
   const isEarly = state === "early";
   const isBuilding = state === "building";
   const srcName = item.sources[0]?.name || "wire";
-  const n = item.sources.length;
+  // Independent publishers, not feed rows — one outlet never counts twice.
+  const n = Math.max(1, distinctPublisherCount(item.sources));
   const levelColor = item.hot
     ? LEVEL_COLOR.red
     : n >= 2

@@ -582,6 +582,7 @@ export function PulseWireApp({ initialData = null }: PulseWireAppProps) {
             loading={showSkeleton}
             section={section}
             window={timeWindow}
+            lens={lens}
             blind={Boolean(data?.verdict?.blind || data?.sourcesUnreachable)}
             onTryWiderWindow={() =>
               setTimeWindow(nextWiderWindow(timeWindow))

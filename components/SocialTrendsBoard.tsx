@@ -171,13 +171,18 @@ export function SocialTrendsBoard({ pack, loading }: SocialTrendsBoardProps) {
     pack.reddit?.status === "ok" && (pack.reddit.items?.length ?? 0) > 0;
   const xOk = pack.x?.status === "ok" && (pack.x.items?.length ?? 0) > 0;
   const xStatus = pack.x?.status ?? "quiet";
+  const xUnavailable = xStatus === "needs_key";
   const dual = redditOk && xOk;
   const collapseX = redditOk && !xOk;
 
   return (
     <section
       data-testid="social-trends"
-      aria-label="Trending on Reddit and X"
+      aria-label={
+        xUnavailable
+          ? "Trending on Reddit; X not configured"
+          : "Trending on Reddit and X"
+      }
       className="py-1"
     >
       <div className="px-0 py-1">
@@ -186,7 +191,9 @@ export function SocialTrendsBoard({ pack, loading }: SocialTrendsBoardProps) {
           Trending off-platform
         </h2>
         <p className="pw-mono m-0 text-[9px] font-medium uppercase tracking-[0.12em] text-[var(--pw-ink-dim)]">
-          unverified · reddit + x · kept off the news desks
+          {xUnavailable
+            ? "unverified · reddit only · x not configured"
+            : "unverified · reddit + x · kept off the news desks"}
         </p>
       </div>
       <div

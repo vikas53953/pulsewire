@@ -35,7 +35,12 @@ export function blendWithBaseline(input: {
   sectionRaw: number;
   scoreV0: number;
   at?: Date;
-}): { score: number; calibrating: boolean; deviation?: number } {
+}): {
+  score: number;
+  calibrating: boolean;
+  deviation?: number;
+  sampleCount: number;
+} {
   const at = input.at ?? new Date();
   const { hourIst, weekdayIst } = istBucketParts(at);
   const samples = readBucketSamples(
@@ -46,7 +51,11 @@ export function blendWithBaseline(input: {
   );
 
   if (samples.length < CALIBRATING_MIN_SAMPLES) {
-    return { score: input.scoreV0, calibrating: true };
+    return {
+      score: input.scoreV0,
+      calibrating: true,
+      sampleCount: samples.length,
+    };
   }
 
   const med = median(samples);
@@ -61,5 +70,6 @@ export function blendWithBaseline(input: {
     score: Math.max(0, Math.min(100, score)),
     calibrating: false,
     deviation,
+    sampleCount: samples.length,
   };
 }

@@ -98,10 +98,16 @@ export interface SectionScore {
   score: number;
   level: TrafficLevel;
   calibrating: boolean;
+  /** Trusted comparable observations behind the baseline (explainability). */
+  baselineSampleCount?: number;
+  baselineRequired?: number;
   /** Sources unreachable — unknown ≠ quiet. */
   unknown?: boolean;
   topHeat?: number;
   topText?: string;
+  /** Actual independent RSS publishers on the top story — safe to label "sources". */
+  topPublisherCount?: number;
+  /** Weighted cross-plane evidence strength (RSS+social) — NEVER label as sources. */
   topBreadth?: number;
   topVelocity?: number;
   topSpanMinutes?: number;

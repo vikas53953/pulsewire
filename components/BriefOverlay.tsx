@@ -70,12 +70,19 @@ export function BriefOverlay({
         {!loading && brief?.rawMode ? (
           <div data-testid="brief-raw" className="mt-4 space-y-2">
             <p className="m-0 text-[12px] font-bold uppercase tracking-wide opacity-60">
-              RAW — title + sources only
+              Sources — reduced view, no generated summary
             </p>
             <ul className="m-0 list-none space-y-1 p-0">
               {(brief.sources || []).map((s) => (
                 <li key={`${s.name}-${s.url}`} className="text-[13px] font-bold">
-                  {s.name}
+                  <a
+                    href={s.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex min-h-11 items-center underline decoration-[var(--faint)] underline-offset-4 hover:decoration-[var(--ink)]"
+                  >
+                    {s.name} →
+                  </a>
                 </li>
               ))}
             </ul>
@@ -116,7 +123,7 @@ export function BriefOverlay({
           </dl>
         ) : null}
 
-        {primary?.url ? (
+        {primary?.url && !brief?.rawMode ? (
           <a
             data-testid="brief-source-link"
             href={primary.url}

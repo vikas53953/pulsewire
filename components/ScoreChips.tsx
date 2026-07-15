@@ -213,7 +213,7 @@ export function ScoreChips({
           role="tab"
           aria-selected={active === "trend"}
           data-testid="chip-trend"
-          title="Trend — Reddit and X across all categories"
+          title="Trend — off-platform signals (Reddit, plus X when configured)"
           onClick={() => onSelect("trend")}
           onFocus={() => setPeek(null)}
           onMouseEnter={() => setPeek(null)}
@@ -237,8 +237,10 @@ export function ScoreChips({
         data-testid="pulse-legend"
         className="pw-mono text-[11px] text-[var(--pw-dim)]"
       >
-        pulse 0–100 vs normal hour
-        {anyCalibrating ? " · ·c = calibrating, provisional" : ""}
+        pulse 0–100 vs a normal hour · green quiet · yellow warming · red hot
+        {anyCalibrating
+          ? " · ·c = calibrating (provisional, not yet baselined)"
+          : ""}
       </span>
 
       {showCalExplainer ? (

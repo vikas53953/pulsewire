@@ -4,13 +4,21 @@ import {
   assignTileTones,
   HighlightTile,
 } from "@/components/HighlightTile";
-import type { HighlightItem, SectionId, TimeWindow } from "@/lib/types";
+import type {
+  ContentSectionId,
+  HighlightItem,
+  Lens,
+  SectionId,
+  TimeWindow,
+} from "@/lib/types";
+import { sectionLabel } from "@/lib/types";
 
 type BentoGridProps = {
   items: HighlightItem[];
   loading: boolean;
   section: SectionId;
   window: TimeWindow;
+  lens: Lens;
   onTryWiderWindow: () => void;
   onOpenBrief?: (item: HighlightItem) => void;
   /** Blind board — never show "quiet hour" empty state. */
@@ -26,6 +34,7 @@ export function BentoGrid({
   loading,
   section,
   window,
+  lens,
   onTryWiderWindow,
   onOpenBrief,
   blind = false,
@@ -50,6 +59,22 @@ export function BentoGrid({
           >
             ⚠ Cannot confirm you&rsquo;re caught up — sources unreachable. Do
             not read silence as quiet. Not a quiet hour.
+          </p>
+        </div>
+      );
+    }
+    if (lens === "since") {
+      const desk =
+        section === "all"
+          ? "Today"
+          : sectionLabel(section as ContentSectionId);
+      return (
+        <div data-testid="since-empty" className="py-6">
+          <p
+            className="pw-display m-0 text-center text-[16px] font-semibold"
+            style={{ color: "var(--pw-success)" }}
+          >
+            ✓ No {desk} stories since your last visit. You&rsquo;re caught up.
           </p>
         </div>
       );

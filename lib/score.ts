@@ -1,5 +1,6 @@
-import { blendWithBaseline } from "./baseline";
+import { blendWithBaseline, CALIBRATING_MIN_SAMPLES } from "./baseline";
 import { isBootWindowCluster, processBootAt } from "./boot";
+import { distinctPublisherCount } from "./publisher";
 import { eightWords } from "./copy";
 import {
   crossBonus,
@@ -231,6 +232,9 @@ export function scoreSection(
   const scoreV0 = saturateScore(raw);
   const top = [...enriched].sort((a, b) => (b.heat ?? 0) - (a.heat ?? 0))[0];
   const topBreadth = top ? weightedBreadth(defaultEvidence(top)) : 0;
+  // Real independent RSS publishers on the top story — this is what "N sources"
+  // must mean. Distinct from topBreadth (weighted cross-plane heat evidence).
+  const topPublisherCount = top ? distinctPublisherCount(top.sources) : 0;
 
   const shouldPersist =
     opts?.persistHistory ??
@@ -308,8 +312,11 @@ export function scoreSection(
     score,
     level: trafficLevel(score),
     calibrating: blended.calibrating,
+    baselineSampleCount: blended.sampleCount,
+    baselineRequired: CALIBRATING_MIN_SAMPLES,
     topHeat: top?.heat,
     topText: top?.text,
+    topPublisherCount: topPublisherCount || undefined,
     topBreadth: topBreadth || undefined,
     topVelocity: top?.velocity,
     topSpanMinutes,

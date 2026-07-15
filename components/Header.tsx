@@ -63,9 +63,14 @@ export function Header({
           <span
             className="pw-mono text-[12px] text-[var(--pw-dim)]"
             suppressHydrationWarning
+            title={
+              rawMode
+                ? "Direct feeds — headlines merged from wires, no AI summary"
+                : "AI summaries available"
+            }
           >
             {clock}
-            {rawMode ? " · raw" : ""}
+            {rawMode ? " · direct feeds" : ""}
           </span>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2">

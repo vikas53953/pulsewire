@@ -52,9 +52,13 @@ function topItemFor(
     .sort((a, b) => (b.heat ?? 0) - (a.heat ?? 0))[0];
 }
 
-/** Real source breadth only — never substitute velocity (that lied as "sources"). */
+/**
+ * "N sources" = N independent publishers only. Never topBreadth — that is
+ * weighted cross-plane heat (RSS 1.0 + reddit 0.6 = 1.6) and would round a
+ * lone wire + one subreddit up to a fake "2 sources".
+ */
 function sourceCount(s: SectionScore): number | null {
-  const n = s.topBreadth;
+  const n = s.topPublisherCount;
   if (n == null || !Number.isFinite(n) || n < 1) return null;
   return Math.round(n);
 }

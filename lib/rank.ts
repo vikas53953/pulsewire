@@ -302,13 +302,17 @@ function ageBuckets(
   return [b0.sort(byHeat), b1.sort(byHeat), b2.sort(byHeat)];
 }
 
-/** Filter items that appeared (or gained sources) after `since`. */
+/**
+ * Filter items that appeared (or gained sources) after `since`.
+ * Fails CLOSED: an invalid boundary returns nothing, never the whole pool —
+ * showing every story as "new since your last visit" is a trust lie.
+ */
 export function filterSince(
   items: HighlightItem[],
   sinceIso: string
 ): HighlightItem[] {
   const since = new Date(sinceIso).getTime();
-  if (!Number.isFinite(since)) return items;
+  if (!Number.isFinite(since)) return [];
 
   return items.filter((item) => {
     const first = new Date(item.firstSeen || item.publishedAt).getTime();

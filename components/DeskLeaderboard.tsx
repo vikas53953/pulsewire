@@ -1,6 +1,6 @@
 "use client";
 
-import type { SectionScore } from "@/lib/types";
+import type { ContentSectionId, SectionScore } from "@/lib/types";
 import { sectionLabel } from "@/lib/types";
 
 const LEVEL_COLOR: Record<string, string> = {
@@ -14,7 +14,14 @@ const LEVEL_COLOR: Record<string, string> = {
  * 5px bar width = score, colored by status. A vertical answer to
  * "which desk is loudest right now?"
  */
-export function DeskLeaderboard({ scores }: { scores: SectionScore[] }) {
+export function DeskLeaderboard({
+  scores,
+  onSelect,
+}: {
+  scores: SectionScore[];
+  /** Rows become clickable — jump to that desk. */
+  onSelect?: (section: ContentSectionId) => void;
+}) {
   if (!scores.length) return null;
   const sorted = [...scores].sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
   return (
@@ -26,16 +33,16 @@ export function DeskLeaderboard({ scores }: { scores: SectionScore[] }) {
       <h2 className="pw-display m-0 mb-3 text-[16px] font-bold text-[var(--pw-ink)]">
         Desk leaderboard
       </h2>
-      <ul className="m-0 flex list-none flex-col gap-2.5 p-0">
+      <ul className="m-0 flex list-none flex-col gap-1 p-0">
         {sorted.map((s) => {
           const unknown = Boolean(s.unknown);
           const color = unknown
             ? "var(--pw-unknown)"
             : LEVEL_COLOR[s.level] ?? "var(--pw-quiet)";
           const width = unknown ? 0 : Math.max(2, Math.min(100, s.score));
-          return (
-            <li key={s.section} className="flex items-center gap-3">
-              <span className="pw-display w-[72px] shrink-0 truncate text-[13px] font-medium text-[var(--pw-dim)]">
+          const row = (
+            <>
+              <span className="pw-display w-[72px] shrink-0 truncate text-left text-[13px] font-medium text-[var(--pw-dim)]">
                 {sectionLabel(s.section)}
               </span>
               <span className="h-[5px] min-w-0 flex-1 overflow-hidden rounded-full bg-[var(--pw-line)]">
@@ -52,6 +59,22 @@ export function DeskLeaderboard({ scores }: { scores: SectionScore[] }) {
               >
                 {unknown ? "?" : s.score}
               </span>
+            </>
+          );
+          return (
+            <li key={s.section}>
+              {onSelect ? (
+                <button
+                  type="button"
+                  data-testid={`leaderboard-${s.section}`}
+                  onClick={() => onSelect(s.section)}
+                  className="flex w-full items-center gap-3 rounded-[10px] px-2 py-1.5 text-left transition-colors duration-[120ms] hover:bg-[var(--pw-panel)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--pw-accent)]"
+                >
+                  {row}
+                </button>
+              ) : (
+                <span className="flex items-center gap-3 px-2 py-1.5">{row}</span>
+              )}
             </li>
           );
         })}

@@ -6,7 +6,13 @@ import {
   setRefreshing,
   type CacheEntry,
 } from "./cache";
-import { fetchAllPools, fetchSectionPool, filterByWindow } from "./feed-engine";
+import {
+  fetchAllPools,
+  fetchSectionPool,
+  filterByWindow,
+  getFeedHealth,
+} from "./feed-engine";
+import { quietStreakForSection } from "./quiet-receipts";
 import { CONTENT_SECTIONS } from "./feeds.config";
 import {
   fuseSocialIntoItems,
@@ -365,6 +371,7 @@ export async function getHighlights(options: {
     }
     // Capability honesty: don't promise X when it isn't configured.
     if (socialTrends?.x.status === "needs_key") xUnavailable = true;
+    const mkt = scores.find((s) => s.section === "markets");
     return {
       section: "trend",
       window,
@@ -382,6 +389,11 @@ export async function getHighlights(options: {
       scores,
       items: [],
       socialTrends,
+      sourceHealth: getFeedHealth(),
+      quietStreak:
+        mkt && !mkt.unknown
+          ? quietStreakForSection("markets", mkt.sectionRaw ?? 0, new Date(now))
+          : null,
     };
   }
 
@@ -630,6 +642,14 @@ export async function getHighlights(options: {
     });
   }
 
+  // Rail widgets (desktop): honest source health + quiet-morning streak.
+  const sourceHealth = getFeedHealth();
+  const mkt = finalScores.find((s) => s.section === "markets");
+  const quietStreak =
+    mkt && !mkt.unknown
+      ? quietStreakForSection("markets", mkt.sectionRaw ?? 0, new Date(now))
+      : null;
+
   return {
     section,
     window,
@@ -643,6 +663,8 @@ export async function getHighlights(options: {
     scores: finalScores,
     items: sliced,
     sinceSummary,
+    sourceHealth,
+    quietStreak,
     xGovernor,
     xPulseUsage,
   };

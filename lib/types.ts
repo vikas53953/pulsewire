@@ -207,6 +207,10 @@ export interface HighlightsResponse {
   socialTrends?: SocialTrendsPack;
   /** Since-lens one-liner above the board (D3). */
   sinceSummary?: string | null;
+  /** Rail widget: feeds reporting vs configured (honest source health). */
+  sourceHealth?: { reporting: number; total: number; down: string[] };
+  /** Rail widget: consecutive quiet mornings for the lead desk (null = calibrating). */
+  quietStreak?: { streak: number; quietestSince: string | null } | null;
   verdict: VerdictPayload;
   scores: SectionScore[];
   items: HighlightItem[];

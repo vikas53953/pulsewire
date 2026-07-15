@@ -37,4 +37,23 @@ test.describe("v2 desktop layout", () => {
       "true",
     );
   });
+
+  test("rail widgets: source health + market snapshot render", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await expect(page.getByTestId("side-nav")).toBeVisible({ timeout: 15_000 });
+
+    // Source health (test mode = full health, never a fake outage).
+    await expect(page.getByTestId("source-health")).toBeVisible();
+    await expect(page.getByTestId("source-health")).toContainText(
+      /feeds reporting/i,
+    );
+
+    // Market snapshot renders real-data honesty markers (fixture in test mode).
+    const market = page.getByTestId("market-snapshot");
+    await expect(market).toBeVisible();
+    await expect(market).toContainText("NIFTY");
+    await expect(market).toContainText(/delayed/i);
+  });
 });

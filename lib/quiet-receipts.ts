@@ -71,6 +71,32 @@ export function consecutiveQuietDays(input: {
   return { streak, quietestSince };
 }
 
+/**
+ * Rail-widget streak: consecutive quiet mornings for one desk's hour×weekday
+ * bucket. Returns null when calibrating (<14 samples) or when the desk isn't
+ * currently below its own median — never fakes a streak.
+ */
+export function quietStreakForSection(
+  section: ContentSectionId,
+  currentRaw: number,
+  at = new Date(),
+): { streak: number; quietestSince: string | null } | null {
+  const { hourIst, weekdayIst } = istBucketParts(at);
+  let rows: ReturnType<typeof readBucketSampleRows>;
+  try {
+    rows = readBucketSampleRows(section, hourIst, weekdayIst, at.getTime());
+  } catch {
+    return null;
+  }
+  return consecutiveQuietDays({
+    samples: rows.map((r) => ({
+      sectionRaw: r.sectionRaw,
+      timestamp: r.timestamp,
+    })),
+    currentRaw,
+  });
+}
+
 export function quietDeskWhyLine(
   score: SectionScore,
   sectionRaw: number | undefined,

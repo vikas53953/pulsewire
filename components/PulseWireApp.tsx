@@ -12,6 +12,11 @@ import { SideNav } from "@/components/SideNav";
 import { DeskLeaderboard } from "@/components/DeskLeaderboard";
 import { LensToggle } from "@/components/LensToggle";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import {
+  MarketSnapshotWidget,
+  QuietStreak,
+  SourceHealth,
+} from "@/components/RailWidgets";
 import { FreshnessLine } from "@/components/FreshnessLine";
 import { VerdictHero } from "@/components/VerdictHero";
 import type { BriefPayload } from "@/lib/brief";
@@ -503,6 +508,12 @@ export function PulseWireApp({ initialData = null }: PulseWireAppProps) {
       <DeskLeaderboard
         scores={data?.scores ?? []}
         onSelect={(s) => onChipSelect(s)}
+      />
+      <QuietStreak streak={data?.quietStreak} />
+      <MarketSnapshotWidget />
+      <SourceHealth
+        health={data?.sourceHealth}
+        blind={Boolean(data?.sourcesUnreachable)}
       />
     </>
   ) : null;

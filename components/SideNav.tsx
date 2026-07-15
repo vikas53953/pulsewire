@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Logo } from "@/components/Logo";
 
 type SideNavProps = {
@@ -11,6 +11,8 @@ type SideNavProps = {
   refreshing?: boolean;
   /** Change (e.g. generatedAt) to replay the logo refresh ping. */
   pulseKey?: string | number;
+  /** Desktop rail widgets (time control, leaderboard) — mounted only at xl. */
+  extras?: ReactNode;
 };
 
 function istClock(now: Date): string {
@@ -35,6 +37,7 @@ export function SideNav({
   onRefresh,
   refreshing = false,
   pulseKey,
+  extras,
 }: SideNavProps) {
   const [clock, setClock] = useState<string>("");
   useEffect(() => {
@@ -73,17 +76,6 @@ export function SideNav({
       <button type="button" className={item(active === "today")} onClick={onToday}>
         Today
       </button>
-      <button
-        type="button"
-        className={item(false)}
-        onClick={() => {
-          document
-            .querySelector('[data-testid="score-chips"]')
-            ?.scrollIntoView({ block: "center" });
-        }}
-      >
-        Desks
-      </button>
       <button type="button" className={item(active === "trend")} onClick={onTrend}>
         Trend
       </button>
@@ -91,17 +83,19 @@ export function SideNav({
         History
         <span className="pw-mono text-[10px] uppercase tracking-[0.08em]">soon</span>
       </span>
-      <span className={item(false, true)} aria-disabled title="Settings — coming with pinned desks">
-        Settings
-        <span className="pw-mono text-[10px] uppercase tracking-[0.08em]">soon</span>
-      </span>
+
+      {extras ? (
+        <div className="mt-4 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pw-no-scrollbar">
+          {extras}
+        </div>
+      ) : null}
 
       <button
         type="button"
         onClick={onRefresh}
         disabled={refreshing}
         data-testid="rail-refresh"
-        className="pw-display mt-5 min-h-[50px] w-full rounded-full bg-[var(--pw-accent)] px-4 text-[16px] font-bold text-white transition-opacity duration-[120ms] hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--pw-accent)] disabled:opacity-50"
+        className="pw-display mt-4 min-h-[50px] w-full rounded-full bg-[var(--pw-accent)] px-4 text-[16px] font-bold text-white transition-opacity duration-[120ms] hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--pw-accent)] disabled:opacity-50"
       >
         {refreshing ? "Refreshing…" : "Refresh now"}
       </button>

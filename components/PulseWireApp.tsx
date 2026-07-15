@@ -10,6 +10,8 @@ import { StatusBar } from "@/components/StatusBar";
 import { SocialTrendsBoard } from "@/components/SocialTrendsBoard";
 import { SideNav } from "@/components/SideNav";
 import { DeskLeaderboard } from "@/components/DeskLeaderboard";
+import { LensToggle } from "@/components/LensToggle";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { FreshnessLine } from "@/components/FreshnessLine";
 import { VerdictHero } from "@/components/VerdictHero";
 import type { BriefPayload } from "@/lib/brief";
@@ -482,8 +484,46 @@ export function PulseWireApp({ initialData = null }: PulseWireAppProps) {
 
   const radarTripped = Boolean(radar && !radar.clear && radar.trips?.length);
 
+  // Desktop rail widgets — mounted ONLY at xl (JS-gated, never CSS-hidden) so
+  // the time control + leaderboard never duplicate their mobile-position testids.
+  const railExtras = isDesktop ? (
+    <>
+      <div>
+        <p className="pw-mono mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--pw-dim)]">
+          Time window
+        </p>
+        <LensToggle
+          lens={lens}
+          window={timeWindow}
+          onLensChange={setLens}
+          onWindowChange={setTimeWindow}
+          hasLastVisit={hasLastVisit}
+        />
+      </div>
+      <DeskLeaderboard
+        scores={data?.scores ?? []}
+        onSelect={(s) => onChipSelect(s)}
+      />
+    </>
+  ) : null;
+
+  // One ScoreChips instance — mounted top-right on desktop, in the body on
+  // mobile (never both, so chip-* / pulse-* testids stay unique).
+  const scoreChipsEl = (
+    <ScoreChips
+      scores={data?.scores ?? []}
+      active={chipActive}
+      onSelect={onChipSelect}
+      drivingSection={
+        !isTrend && data?.verdict?.drivingSection
+          ? data.verdict.drivingSection
+          : null
+      }
+    />
+  );
+
   return (
-    <div className="mx-auto min-h-screen w-full max-w-[680px] px-4 py-0 pb-6 sm:px-6 xl:grid xl:max-w-[1360px] xl:grid-cols-[240px_minmax(0,760px)_360px] xl:items-start xl:gap-9 xl:px-8">
+    <div className="mx-auto min-h-screen w-full max-w-[680px] px-4 py-0 pb-6 sm:px-6 xl:grid xl:max-w-[1360px] xl:grid-cols-[260px_minmax(0,720px)_340px] xl:items-start xl:gap-8 xl:px-8">
       <SideNav
         active={isTrend ? "trend" : "today"}
         onToday={() => onChipSelect("all")}
@@ -493,18 +533,28 @@ export function PulseWireApp({ initialData = null }: PulseWireAppProps) {
         }
         refreshing={showSkeleton}
         pulseKey={data?.generatedAt}
+        extras={railExtras}
       />
       <div className="flex min-w-0 flex-col gap-4 xl:pt-5">
-        <Header
-          lens={lens}
-          window={timeWindow}
-          onLensChange={setLens}
-          onWindowChange={setTimeWindow}
-          hasLastVisit={hasLastVisit}
-          night={night}
-          onToggleNight={() => setNight((v) => !v)}
-          rawMode={Boolean(data?.rawMode && data.section === section)}
-        />
+        {isDesktop ? (
+          // Desktop top bar: desk tabs where the time settings used to live,
+          // theme toggle at the far right. Time control now lives in the rail.
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0 flex-1">{scoreChipsEl}</div>
+            <ThemeToggle night={night} onToggle={() => setNight((v) => !v)} />
+          </div>
+        ) : (
+          <Header
+            lens={lens}
+            window={timeWindow}
+            onLensChange={setLens}
+            onWindowChange={setTimeWindow}
+            hasLastVisit={hasLastVisit}
+            night={night}
+            onToggleNight={() => setNight((v) => !v)}
+            rawMode={Boolean(data?.rawMode && data.section === section)}
+          />
+        )}
 
         {radarTripped ? (
           <RadarStrip
@@ -523,16 +573,7 @@ export function PulseWireApp({ initialData = null }: PulseWireAppProps) {
 
         <OnboardingLine />
 
-        <ScoreChips
-          scores={data?.scores ?? []}
-          active={chipActive}
-          onSelect={onChipSelect}
-          drivingSection={
-            !isTrend && data?.verdict?.drivingSection
-              ? data.verdict.drivingSection
-              : null
-          }
-        />
+        {!isDesktop ? scoreChipsEl : null}
 
         <FreshnessLine
           generatedAt={
@@ -648,7 +689,6 @@ export function PulseWireApp({ initialData = null }: PulseWireAppProps) {
               loading={!asidePack}
             />
           </div>
-          <DeskLeaderboard scores={data?.scores ?? []} />
         </aside>
       ) : (
         <div aria-hidden className="hidden xl:block" />

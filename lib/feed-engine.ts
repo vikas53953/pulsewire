@@ -156,12 +156,35 @@ function sourceLabelFromTitle(title: string, fallback: string): string {
   return fallback;
 }
 
+/** Last-known reachability per feed URL — powers the rail source-health widget. */
+const feedHealth = new Map<string, { ok: boolean; at: number }>();
+
+/** Feeds reporting vs configured (honest source health). */
+export function getFeedHealth(): {
+  reporting: number;
+  total: number;
+  down: string[];
+} {
+  const total = FEEDS.length;
+  // Test mode never fetches real feeds — report full health, not a fake outage.
+  if (isTestMode()) return { reporting: total, total, down: [] };
+  let reporting = 0;
+  const down: string[] = [];
+  for (const feed of FEEDS) {
+    const h = feedHealth.get(feed.url);
+    if (h?.ok) reporting += 1;
+    else if (h && !h.ok) down.push(feed.name);
+  }
+  return { reporting, total, down };
+}
+
 async function fetchOneFeed(
   feed: FeedConfig,
   now: number
 ): Promise<RawFeedItem[]> {
   try {
     const parsed = await parser.parseURL(feed.url);
+    feedHealth.set(feed.url, { ok: true, at: now });
     const items: RawFeedItem[] = [];
 
     for (const entry of parsed.items ?? []) {
@@ -203,6 +226,7 @@ async function fetchOneFeed(
 
     return items;
   } catch (error) {
+    feedHealth.set(feed.url, { ok: false, at: now });
     const message = error instanceof Error ? error.message : String(error);
     console.warn(`[pulsewire] feed skip ${feed.name} (${feed.url}): ${message}`);
     return [];

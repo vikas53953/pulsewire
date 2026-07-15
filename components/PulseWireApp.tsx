@@ -492,6 +492,7 @@ export function PulseWireApp({ initialData = null }: PulseWireAppProps) {
           void load(section, timeWindow, lens, { refresh: true })
         }
         refreshing={showSkeleton}
+        pulseKey={data?.generatedAt}
       />
       <div className="flex min-w-0 flex-col gap-4 xl:pt-5">
         <Header

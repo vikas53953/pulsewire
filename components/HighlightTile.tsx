@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { signalStateLabel } from "@/lib/fusion";
 import { distinctPublisherCount } from "@/lib/publisher";
 import { relativeAge } from "@/lib/time";
@@ -47,6 +48,87 @@ const LEVEL_COLOR: Record<string, string> = {
   red: "var(--pw-hot)",
 };
 
+/** Faint ECG watermark for the fallback tile (the brand wave, ~8% opacity). */
+function FallbackWave() {
+  return (
+    <svg
+      aria-hidden
+      viewBox="0 0 48 24"
+      preserveAspectRatio="xMidYMid meet"
+      className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 w-full opacity-[0.08]"
+    >
+      <path
+        d="M2 12 H14 L19 3 L27 21 L31 12 H46"
+        fill="none"
+        stroke="var(--pw-ink)"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+/**
+ * Article image with a DESIGNED, achromatic fallback. Never desk-*colored*
+ * (color = status only) — desk-*labeled* lives in the evidence caption. Fixed
+ * aspect box = zero layout shift whether the image loads, fails, or never was.
+ * Guards against tracking pixels (naturalWidth < 100) and hotlink blocks.
+ */
+function TileImage({
+  item,
+  variant,
+}: {
+  item: HighlightItem;
+  variant: "lead" | "row";
+}) {
+  const [failed, setFailed] = useState(false);
+  const src = item.image;
+  const showFallback = !src || failed;
+  const aspect = variant === "lead" ? "aspect-[16/9] w-full" : "h-[76px] w-[100px]";
+  const radius =
+    variant === "lead"
+      ? "rounded-t-[var(--pw-r-card)]"
+      : "rounded-[10px]";
+  const initialSize = variant === "lead" ? "text-[34px]" : "text-[20px]";
+
+  if (showFallback) {
+    return (
+      <span
+        data-testid="tile-img-fallback"
+        aria-hidden
+        className={`relative flex shrink-0 items-center justify-center overflow-hidden bg-[var(--pw-av)] ${aspect} ${radius}`}
+      >
+        <FallbackWave />
+        <span
+          className={`pw-display font-bold text-[var(--pw-dim)] ${initialSize}`}
+        >
+          {initials(item.sources[0]?.name || "wire")}
+        </span>
+      </span>
+    );
+  }
+
+  return (
+    // eslint-disable-next-line @next/next/no-img-element -- RSS image hosts are
+    // arbitrary; next/image remotePatterns would be endless churn. Plain <img>
+    // with lazy load + onError fallback + fixed aspect box (zero CLS).
+    <img
+      src={src}
+      alt=""
+      data-testid="tile-img"
+      loading={variant === "lead" ? "eager" : "lazy"}
+      decoding="async"
+      referrerPolicy="no-referrer"
+      onError={() => setFailed(true)}
+      onLoad={(e) => {
+        if (e.currentTarget.naturalWidth < 100) setFailed(true);
+      }}
+      className={`shrink-0 overflow-hidden bg-[var(--pw-av)] object-cover ${aspect} ${radius}`}
+    />
+  );
+}
+
 /**
  * MORNING FEED post card (spec §4.4): a post *from the source* — avatar,
  * source name, mono meta; the engagement row is replaced by evidence.
@@ -76,8 +158,13 @@ export function HighlightTile({
     : n >= 2
       ? LEVEL_COLOR.yellow
       : "var(--pw-dim)";
+  // Lead hero only for the earned mega tile — and never under a blind/stale
+  // board (no big glossy image beneath a STATUS UNKNOWN banner).
+  const showLeadImage = mega && !stale;
 
   const body = (
+    <span className="block min-w-0">
+    {showLeadImage ? <TileImage item={item} variant="lead" /> : null}
     <span className="block min-w-0 px-4 py-[14px] sm:px-5 sm:py-5">
       {/* Post header: avatar · source · meta */}
       <span className="flex items-center gap-3">
@@ -115,15 +202,18 @@ export function HighlightTile({
         </span>
       </span>
 
-      {/* Headline */}
-      <span
-        data-testid="tile-text"
-        className={`pw-display mt-3 block text-[15px] font-medium leading-[1.4] sm:text-[20px] ${
-          isEarly ? "text-[var(--pw-dim)]" : "text-[var(--pw-ink)]"
-        }`}
-        style={{ textWrap: "pretty" } as React.CSSProperties}
-      >
-        {item.text}
+      {/* Headline (+ right thumbnail on standard rows) */}
+      <span className="mt-3 flex items-start gap-3">
+        <span
+          data-testid="tile-text"
+          className={`pw-display block flex-1 text-[15px] font-medium leading-[1.4] sm:text-[20px] ${
+            isEarly ? "text-[var(--pw-dim)]" : "text-[var(--pw-ink)]"
+          }`}
+          style={{ textWrap: "pretty" } as React.CSSProperties}
+        >
+          {item.text}
+        </span>
+        {!showLeadImage ? <TileImage item={item} variant="row" /> : null}
       </span>
 
       {/* Evidence row — replaces the engagement row */}
@@ -163,6 +253,7 @@ export function HighlightTile({
           </span>
         ) : null}
       </span>
+    </span>
     </span>
   );
 

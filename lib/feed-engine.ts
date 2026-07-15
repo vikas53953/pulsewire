@@ -30,7 +30,87 @@ const parser = new Parser({
     "User-Agent": "PulseWire/1.0 (+local news highlights)",
     Accept: "application/rss+xml, application/xml, text/xml, */*",
   },
+  customFields: {
+    item: [
+      ["media:content", "mediaContent", { keepArray: true }],
+      ["media:thumbnail", "mediaThumbnail"],
+      ["content:encoded", "contentEncoded"],
+    ],
+  },
 });
+
+const IMG_EXT_RE = /\.(jpe?g|png|webp|gif|avif)(?:[?#].*)?$/i;
+
+/** Prefer https; upgrade http → https (the tile falls back on load error anyway). */
+function normalizeImageUrl(raw: string | undefined | null): string | null {
+  if (!raw) return null;
+  const upgraded = raw.startsWith("http://")
+    ? raw.replace(/^http:\/\//, "https://")
+    : raw;
+  const safe = sanitizeHttpUrl(upgraded.trim());
+  if (!safe || !safe.startsWith("https://")) return null;
+  return safe;
+}
+
+function attrUrl(node: unknown): string | undefined {
+  if (!node || typeof node !== "object") return undefined;
+  const attrs = (node as { $?: Record<string, string> }).$;
+  return attrs?.url;
+}
+
+/**
+ * Best article image from RSS — media:content, media:thumbnail, enclosure, or
+ * the first <img> in content:encoded. No page fetching, no scraping. Returns a
+ * sanitized https URL or null (→ designed fallback tile downstream).
+ */
+export function extractImage(entry: Record<string, unknown>): string | null {
+  // 1) media:content (may be an array) — prefer image medium/type.
+  const mc = entry.mediaContent;
+  const mcList = Array.isArray(mc) ? mc : mc ? [mc] : [];
+  for (const node of mcList) {
+    const attrs = (node as { $?: Record<string, string> }).$;
+    const url = attrs?.url;
+    if (!url) continue;
+    const isImage =
+      attrs?.medium === "image" ||
+      (attrs?.type ?? "").startsWith("image/") ||
+      IMG_EXT_RE.test(url);
+    if (isImage) {
+      const norm = normalizeImageUrl(url);
+      if (norm) return norm;
+    }
+  }
+
+  // 2) media:thumbnail
+  const thumb = normalizeImageUrl(attrUrl(entry.mediaThumbnail));
+  if (thumb) return thumb;
+
+  // 3) enclosure (rss-parser native)
+  const enc = entry.enclosure as
+    | { url?: string; type?: string }
+    | undefined;
+  if (enc?.url) {
+    const isImage =
+      (enc.type ?? "").startsWith("image/") || IMG_EXT_RE.test(enc.url);
+    if (isImage) {
+      const norm = normalizeImageUrl(enc.url);
+      if (norm) return norm;
+    }
+  }
+
+  // 4) first <img> in content:encoded / content
+  const body =
+    (entry.contentEncoded as string | undefined) ||
+    (entry.content as string | undefined) ||
+    "";
+  const imgMatch = body.match(/<img[^>]+src=["']([^"']+)["']/i);
+  if (imgMatch?.[1]) {
+    const norm = normalizeImageUrl(imgMatch[1]);
+    if (norm) return norm;
+  }
+
+  return null;
+}
 
 function decodeEntities(value: string): string {
   return value
@@ -115,6 +195,7 @@ async function fetchOneFeed(
         url,
         publishedAt,
         section: feed.section,
+        image: extractImage(entry as unknown as Record<string, unknown>) ?? undefined,
       });
 
       if (items.length >= PER_FEED_CAP) break;

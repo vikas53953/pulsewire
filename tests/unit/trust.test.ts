@@ -9,6 +9,7 @@ import { scoreSection } from "@/lib/score";
 import { pulseWhy } from "@/lib/copy";
 import { canonicalPublisherKey, distinctPublisherCount } from "@/lib/publisher";
 import { getBrief, resetBriefsForTests } from "@/lib/brief";
+import { extractImage } from "@/lib/feed-engine";
 import type { HighlightItem, RawFeedItem } from "@/lib/types";
 
 const PUBLISHED = "2026-07-14T12:00:00.000Z";
@@ -137,6 +138,41 @@ describe("Since-last-visit boundary fails closed (reviewer #3/#4)", () => {
     const after = Date.parse("2026-07-14T13:00:00.000Z");
     expect(filterSince(items, new Date(before).toISOString())).toHaveLength(1);
     expect(filterSince(items, new Date(after).toISOString())).toHaveLength(0);
+  });
+});
+
+describe("RSS image extraction (v2 image tiles)", () => {
+  it("reads media:content, upgrading http → https", () => {
+    expect(
+      extractImage({
+        mediaContent: [{ $: { url: "http://cdn.site/a.jpg", medium: "image" } }],
+      }),
+    ).toBe("https://cdn.site/a.jpg");
+  });
+
+  it("falls back to media:thumbnail, then enclosure", () => {
+    expect(
+      extractImage({ mediaThumbnail: { $: { url: "https://cdn.site/t.jpg" } } }),
+    ).toBe("https://cdn.site/t.jpg");
+    expect(
+      extractImage({ enclosure: { url: "https://cdn.site/e.png", type: "image/png" } }),
+    ).toBe("https://cdn.site/e.png");
+  });
+
+  it("pulls the first <img> from content:encoded", () => {
+    expect(
+      extractImage({
+        contentEncoded: '<p>hi</p><img src="https://cdn.site/body.webp" alt="x">',
+      }),
+    ).toBe("https://cdn.site/body.webp");
+  });
+
+  it("returns null when there is no usable image (→ fallback tile)", () => {
+    expect(extractImage({})).toBeNull();
+    // Non-image enclosure (podcast audio) must not become a picture.
+    expect(
+      extractImage({ enclosure: { url: "https://cdn.site/ep.mp3", type: "audio/mpeg" } }),
+    ).toBeNull();
   });
 });
 

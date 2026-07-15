@@ -88,6 +88,14 @@ export function clusterBySimilarity(
   });
 }
 
+/** First available article image across a cluster's members. */
+function pickClusterImage(items: RawFeedItem[]): string | undefined {
+  for (const item of items) {
+    if (item.image) return item.image;
+  }
+  return undefined;
+}
+
 function clusterToHighlight(cluster: MergedCluster): HighlightItem {
   const sources = dedupeSourcesByPublisher(cluster.items);
 
@@ -105,6 +113,7 @@ function clusterToHighlight(cluster: MergedCluster): HighlightItem {
     hot: cluster.merged,
     firstSeen,
     clusterId: clusterIdFromMemberIds(cluster.ids),
+    image: pickClusterImage(cluster.items),
   };
 }
 
@@ -154,6 +163,7 @@ export function applyLlmHighlights(
         sources.map((s) => s.firstSeen || publishedAt)
       ),
       clusterId: clusterIdFromMemberIds(items.map((i) => i.id)),
+      image: pickClusterImage(items),
     });
   }
 

@@ -1,4 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" role="img" aria-label="PulseWire">
-  <rect x="1" y="1" width="38" height="38" rx="10" fill="#1D9BF0"/>
-  <path d="M6 20h8l3-8 6 16 3-8h8" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-label="PulseWire">
+  <circle cx="24" cy="24" r="23" fill="#1D9BF0"/>
+  <path d="M8 24 H16 L20.5 13 L27.5 35 L31 24 H35" fill="none" stroke="#FFFFFF" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="39.5" cy="24" r="3.2" fill="#FFFFFF"/>
 </svg>

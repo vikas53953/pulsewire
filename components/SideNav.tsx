@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { Logo } from "@/components/Logo";
 
 type SideNavProps = {
@@ -11,8 +11,6 @@ type SideNavProps = {
   refreshing?: boolean;
   /** Change (e.g. generatedAt) to replay the logo refresh ping. */
   pulseKey?: string | number;
-  /** Desktop rail widgets (time control, leaderboard) — mounted only at xl. */
-  extras?: ReactNode;
 };
 
 function istClock(now: Date): string {
@@ -37,7 +35,6 @@ export function SideNav({
   onRefresh,
   refreshing = false,
   pulseKey,
-  extras,
 }: SideNavProps) {
   const [clock, setClock] = useState<string>("");
   useEffect(() => {
@@ -57,14 +54,14 @@ export function SideNav({
     }`;
 
   return (
-    // The whole rail scrolls as one column when content is tall — no fragile
-    // inner scroll region, so widgets can never clip behind the refresh button.
+    // Clean, minimal nav — brand, a few destinations, the action, the account.
+    // Widgets live in the right rail (X-style); the left stays quiet.
     <nav
       data-testid="side-nav"
       aria-label="PulseWire navigation"
-      className="pw-no-scrollbar sticky top-0 hidden max-h-screen flex-col overflow-y-auto py-5 pr-4 xl:flex"
+      className="sticky top-0 hidden h-screen flex-col py-5 pr-6 xl:flex"
     >
-      <div className="mb-5 flex items-center px-2">
+      <div className="mb-6 flex items-center px-2">
         <button
           type="button"
           onClick={onToday}
@@ -86,31 +83,24 @@ export function SideNav({
         <span className="pw-mono text-[10px] uppercase tracking-[0.08em]">soon</span>
       </span>
 
-      {/* Primary action stays high so it's always reachable without scrolling. */}
       <button
         type="button"
         onClick={onRefresh}
         disabled={refreshing}
         data-testid="rail-refresh"
-        className="pw-display mt-3 min-h-[46px] w-full rounded-full bg-[var(--pw-accent)] px-4 text-[15px] font-bold text-white transition-opacity duration-[120ms] hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--pw-accent)] disabled:opacity-50"
+        className="pw-display mt-5 min-h-[50px] w-full rounded-full bg-[var(--pw-accent)] px-4 text-[16px] font-bold text-white transition-opacity duration-[120ms] hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--pw-accent)] disabled:opacity-50"
       >
         {refreshing ? "Refreshing…" : "Refresh now"}
       </button>
 
-      {extras ? (
-        <div className="mt-5 flex flex-col divide-y divide-[var(--pw-line)]">
-          {extras}
-        </div>
-      ) : null}
-
-      <div className="mt-6 flex items-center gap-3 border-t border-[var(--pw-line)] px-2 pt-4">
-        <Logo size={34} />
+      <div className="mt-auto flex items-center gap-3 rounded-full px-2 py-2">
+        <Logo size={40} />
         <span className="min-w-0">
-          <span className="pw-display block text-[14px] font-semibold text-[var(--pw-ink)]">
+          <span className="pw-display block text-[15px] font-semibold text-[var(--pw-ink)]">
             PulseWire
           </span>
           <span
-            className="pw-mono block text-[11px] text-[var(--pw-dim)]"
+            className="pw-mono block text-[12px] text-[var(--pw-dim)]"
             suppressHydrationWarning
           >
             new delhi · {clock}

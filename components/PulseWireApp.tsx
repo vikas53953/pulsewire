@@ -493,8 +493,8 @@ export function PulseWireApp({ initialData = null }: PulseWireAppProps) {
   // the time control + leaderboard never duplicate their mobile-position testids.
   const railExtras = isDesktop ? (
     <>
-      <div>
-        <p className="pw-mono mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--pw-dim)]">
+      <div className="px-2 py-3">
+        <p className="pw-mono mb-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--pw-dim)]">
           Time window
         </p>
         <LensToggle

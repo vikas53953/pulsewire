@@ -28,9 +28,9 @@ export function DeskLeaderboard({
     <section
       data-testid="desk-leaderboard"
       aria-label="Desk leaderboard"
-      className="pw-card px-4 py-4"
+      className="px-2 py-3"
     >
-      <h2 className="pw-display m-0 mb-3 text-[16px] font-bold text-[var(--pw-ink)]">
+      <h2 className="pw-mono m-0 mb-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--pw-dim)]">
         Desk leaderboard
       </h2>
       <ul className="m-0 flex list-none flex-col gap-1 p-0">

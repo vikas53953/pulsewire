@@ -57,12 +57,14 @@ export function SideNav({
     }`;
 
   return (
+    // The whole rail scrolls as one column when content is tall — no fragile
+    // inner scroll region, so widgets can never clip behind the refresh button.
     <nav
       data-testid="side-nav"
       aria-label="PulseWire navigation"
-      className="sticky top-0 hidden h-screen flex-col py-5 pr-6 xl:flex"
+      className="pw-no-scrollbar sticky top-0 hidden max-h-screen flex-col overflow-y-auto py-5 pr-4 xl:flex"
     >
-      <div className="mb-7 flex items-center px-2">
+      <div className="mb-5 flex items-center px-2">
         <button
           type="button"
           onClick={onToday}
@@ -84,32 +86,31 @@ export function SideNav({
         <span className="pw-mono text-[10px] uppercase tracking-[0.08em]">soon</span>
       </span>
 
-      {extras ? (
-        <div className="mt-4 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pw-no-scrollbar">
-          {extras}
-        </div>
-      ) : null}
-
+      {/* Primary action stays high so it's always reachable without scrolling. */}
       <button
         type="button"
         onClick={onRefresh}
         disabled={refreshing}
         data-testid="rail-refresh"
-        className="pw-display mt-4 min-h-[50px] w-full rounded-full bg-[var(--pw-accent)] px-4 text-[16px] font-bold text-white transition-opacity duration-[120ms] hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--pw-accent)] disabled:opacity-50"
+        className="pw-display mt-3 min-h-[46px] w-full rounded-full bg-[var(--pw-accent)] px-4 text-[15px] font-bold text-white transition-opacity duration-[120ms] hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--pw-accent)] disabled:opacity-50"
       >
         {refreshing ? "Refreshing…" : "Refresh now"}
       </button>
 
-      <div className="mt-auto flex items-center gap-3 rounded-full px-2 py-2">
-        <span className="flex h-[42px] w-[42px] items-center justify-center overflow-hidden rounded-full">
-          <Logo size={42} />
-        </span>
+      {extras ? (
+        <div className="mt-5 flex flex-col divide-y divide-[var(--pw-line)]">
+          {extras}
+        </div>
+      ) : null}
+
+      <div className="mt-6 flex items-center gap-3 border-t border-[var(--pw-line)] px-2 pt-4">
+        <Logo size={34} />
         <span className="min-w-0">
-          <span className="pw-display block text-[15px] font-semibold text-[var(--pw-ink)]">
+          <span className="pw-display block text-[14px] font-semibold text-[var(--pw-ink)]">
             PulseWire
           </span>
           <span
-            className="pw-mono block text-[12px] text-[var(--pw-dim)]"
+            className="pw-mono block text-[11px] text-[var(--pw-dim)]"
             suppressHydrationWarning
           >
             new delhi · {clock}

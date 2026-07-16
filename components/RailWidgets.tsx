@@ -18,8 +18,10 @@ function RailCard({
   return (
     <section
       data-testid={testId}
-      className={`pw-card px-4 py-3 ${
-        alert ? "border-dashed border-[var(--pw-unk-alert,var(--pw-hot))]" : ""
+      className={`px-2 py-3 ${
+        alert
+          ? "border-l-2 border-[var(--pw-unk-alert,var(--pw-hot))] pl-3"
+          : ""
       }`}
     >
       <h2 className="pw-mono m-0 mb-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--pw-dim)]">

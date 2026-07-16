@@ -18,9 +18,9 @@ function RailCard({
   return (
     <section
       data-testid={testId}
-      className={`px-2 py-3 ${
+      className={`pw-card px-4 py-3 ${
         alert
-          ? "border-l-2 border-[var(--pw-unk-alert,var(--pw-hot))] pl-3"
+          ? "border-dashed border-[var(--pw-unk-alert,var(--pw-hot))]"
           : ""
       }`}
     >

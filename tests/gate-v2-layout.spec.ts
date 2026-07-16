@@ -1,9 +1,9 @@
 import { test, expect } from "@playwright/test";
 
 /**
- * v2 desktop layout: desk tabs top-right, time control + clickable leaderboard
- * in the left rail. Desktop only — mobile keeps tabs + time in their original
- * positions (verified by the existing gates).
+ * v2 desktop layout: clean left nav (no widgets), desk tabs + a thin
+ * time/theme control at the top of the feed, and market + trends widgets in
+ * the RIGHT rail (X-style). Desktop only.
  */
 test.describe("v2 desktop layout", () => {
   test.beforeEach(({}, testInfo) => {
@@ -13,47 +13,36 @@ test.describe("v2 desktop layout", () => {
     );
   });
 
-  test("tabs, time, and a clickable leaderboard sit in the v2 positions", async ({
-    page,
-  }) => {
+  test("clean nav rail + top tabs + time control", async ({ page }) => {
     await page.goto("/");
 
-    // Tabs render exactly once (strict locator) and are visible.
+    // Desk tabs render exactly once (strict locator) and are visible.
     await expect(page.getByTestId("score-chips")).toBeVisible({
       timeout: 15_000,
     });
 
-    // Left rail carries the brand, the relocated time control, and refresh.
+    // Left rail is nav-only: brand + refresh, no widgets duplicating the tabs.
     await expect(page.getByTestId("side-nav")).toBeVisible();
-    await expect(page.getByTestId("pill-4h")).toBeVisible();
     await expect(page.getByTestId("rail-refresh")).toBeVisible();
+    await expect(page.getByTestId("desk-leaderboard")).toHaveCount(0);
 
-    // Leaderboard moved to the rail and is now a clickable jump-to-desk.
-    const leaderboard = page.getByTestId("desk-leaderboard");
-    await expect(leaderboard).toBeVisible();
-    await page.getByTestId("leaderboard-markets").click();
-    await expect(page.getByTestId("chip-markets")).toHaveAttribute(
-      "aria-selected",
-      "true",
-    );
+    // Time control lives at the top of the feed (not the rail).
+    await expect(page.getByTestId("pill-4h")).toBeVisible();
   });
 
-  test("rail widgets: source health + market snapshot render", async ({
-    page,
-  }) => {
+  test("right rail carries market snapshot + trends", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByTestId("side-nav")).toBeVisible({ timeout: 15_000 });
 
-    // Source health (test mode = full health, never a fake outage).
-    await expect(page.getByTestId("source-health")).toBeVisible();
-    await expect(page.getByTestId("source-health")).toContainText(
-      /feeds reporting/i,
-    );
-
-    // Market snapshot renders real-data honesty markers (fixture in test mode).
+    // Market snapshot moved to the right rail (fixture in test mode).
     const market = page.getByTestId("market-snapshot");
     await expect(market).toBeVisible();
     await expect(market).toContainText("NIFTY");
     await expect(market).toContainText(/delayed/i);
+
+    // Source health present, honest (test mode = full health).
+    await expect(page.getByTestId("source-health")).toContainText(
+      /feeds reporting/i,
+    );
   });
 });

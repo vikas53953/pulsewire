@@ -9,7 +9,6 @@ import { ScoreChips, type ChipId } from "@/components/ScoreChips";
 import { StatusBar } from "@/components/StatusBar";
 import { SocialTrendsBoard } from "@/components/SocialTrendsBoard";
 import { SideNav } from "@/components/SideNav";
-import { DeskLeaderboard } from "@/components/DeskLeaderboard";
 import { LensToggle } from "@/components/LensToggle";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import {
@@ -489,35 +488,6 @@ export function PulseWireApp({ initialData = null }: PulseWireAppProps) {
 
   const radarTripped = Boolean(radar && !radar.clear && radar.trips?.length);
 
-  // Desktop rail widgets — mounted ONLY at xl (JS-gated, never CSS-hidden) so
-  // the time control + leaderboard never duplicate their mobile-position testids.
-  const railExtras = isDesktop ? (
-    <>
-      <div className="px-2 py-3">
-        <p className="pw-mono mb-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--pw-dim)]">
-          Time window
-        </p>
-        <LensToggle
-          lens={lens}
-          window={timeWindow}
-          onLensChange={setLens}
-          onWindowChange={setTimeWindow}
-          hasLastVisit={hasLastVisit}
-        />
-      </div>
-      <DeskLeaderboard
-        scores={data?.scores ?? []}
-        onSelect={(s) => onChipSelect(s)}
-      />
-      <QuietStreak streak={data?.quietStreak} />
-      <MarketSnapshotWidget />
-      <SourceHealth
-        health={data?.sourceHealth}
-        blind={Boolean(data?.sourcesUnreachable)}
-      />
-    </>
-  ) : null;
-
   // One ScoreChips instance — mounted top-right on desktop, in the body on
   // mobile (never both, so chip-* / pulse-* testids stay unique).
   const scoreChipsEl = (
@@ -544,15 +514,23 @@ export function PulseWireApp({ initialData = null }: PulseWireAppProps) {
         }
         refreshing={showSkeleton}
         pulseKey={data?.generatedAt}
-        extras={railExtras}
       />
       <div className="flex min-w-0 flex-col gap-4 xl:pt-5">
         {isDesktop ? (
-          // Desktop top bar: desk tabs where the time settings used to live,
-          // theme toggle at the far right. Time control now lives in the rail.
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0 flex-1">{scoreChipsEl}</div>
-            <ThemeToggle night={night} onToggle={() => setNight((v) => !v)} />
+          // Desktop top: a thin utility row (time window · theme) above the desk
+          // tabs. Feed controls sit with the feed; the left rail stays nav-only.
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between gap-3">
+              <LensToggle
+                lens={lens}
+                window={timeWindow}
+                onLensChange={setLens}
+                onWindowChange={setTimeWindow}
+                hasLastVisit={hasLastVisit}
+              />
+              <ThemeToggle night={night} onToggle={() => setNight((v) => !v)} />
+            </div>
+            {scoreChipsEl}
           </div>
         ) : (
           <Header
@@ -691,15 +669,21 @@ export function PulseWireApp({ initialData = null }: PulseWireAppProps) {
 
       {isDesktop && !isTrend ? (
         <aside
-          aria-label="Trending off-platform"
+          aria-label="Market and trends"
           className="flex min-w-0 flex-col gap-4 xl:pt-5"
         >
+          <MarketSnapshotWidget />
           <div className="pw-card px-4 py-4">
             <SocialTrendsBoard
               pack={asidePack?.socialTrends}
               loading={!asidePack}
             />
           </div>
+          <QuietStreak streak={data?.quietStreak} />
+          <SourceHealth
+            health={data?.sourceHealth}
+            blind={Boolean(data?.sourcesUnreachable)}
+          />
         </aside>
       ) : (
         <div aria-hidden className="hidden xl:block" />
